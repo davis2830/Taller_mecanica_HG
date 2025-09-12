@@ -4,124 +4,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Taller Mecánico{% endblock %}</title>
+    <title>{% block title %}AutoServi Pro - Taller Mecánico{% endblock %}</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <style>
+        :root {
+            --primary-color: #1a237e;
+            --secondary-color: #ff6f00;
+            --accent-color: #dc2626;
+            --dark-bg: #1a1a1a;
+            --light-bg: #f8fafc;
+            --text-light: #e2e8f0;
+            --text-dark: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            padding-top: 70px;
-            background-color: #f8f9fa;
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            padding-top: 80px;
+            color: var(--text-dark);
         }
+
+        /* Navbar Styling */
         .navbar {
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #2d3748 100%) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--secondary-color);
+            min-height: 70px;
         }
+
+        .navbar-brand {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-light) !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-brand::before {
+            content: '\f013';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+            animation: rotate 4s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--text-light) !important;
+            font-weight: 500;
+            padding: 0.75rem 1rem !important;
+            border-radius: 6px;
+            margin: 0 3px;
+            transition: all 0.3s ease;
+            position: relative;
+            text-transform: capitalize;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--secondary-color) !important;
+            background: rgba(255, 111, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .navbar-nav .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--secondary-color);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .navbar-nav .nav-link:hover::after {
+            width: 80%;
+        }
+
+        /* Dropdown Styling */
+        .dropdown-menu {
+            background: white;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 0.5rem 0;
+            margin-top: 10px;
+            border-top: 3px solid var(--secondary-color);
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1.5rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin: 2px 8px;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, var(--secondary-color), #ff8f00);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .dropdown-divider {
+            margin: 0.5rem 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Button Styling */
+        .btn-link {
+            color: var(--text-light) !important;
+            text-decoration: none !important;
+            font-weight: 500;
+            padding: 0.75rem 1rem !important;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-link:hover {
+            color: var(--accent-color) !important;
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        /* Alert Styling */
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: currentColor;
+            opacity: 0.3;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            color: #065f46;
+            border-left-color: var(--success-color);
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            color: #92400e;
+            border-left-color: var(--warning-color);
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #fef2f2, #fecaca);
+            color: #991b1b;
+            border-left-color: var(--danger-color);
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #f0f9ff, #bfdbfe);
+            color: #1e40af;
+            border-left-color: var(--primary-color);
+        }
+
+        /* Card Styling */
         .card {
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), #3949ab);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 1.2rem 1.5rem;
+        }
+
+        /* Container Enhancement */
+        .container {
+            max-width: 1200px;
+        }
+
+        /* Main Content Area */
+        main {
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Navbar Toggle Enhancement */
+        .navbar-toggler {
+            border: 2px solid var(--secondary-color);
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 3px rgba(255, 111, 0, 0.3);
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 111, 0, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        /* Icon styling for dropdowns */
+        .dropdown-item i {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 70px;
+            }
+            
+            .navbar-brand {
+                font-size: 1.4rem;
+            }
+            
+            .navbar-nav .nav-link {
+                padding: 0.5rem 1rem !important;
+            }
+            
+            .container {
+                padding: 0 15px;
+            }
+        }
+
+        /* Loading animation for better UX */
+        .loading {
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* Enhanced close button */
+        .close {
+            opacity: 0.8;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .close:hover {
+            opacity: 1;
+            transform: scale(1.1);
         }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'dashboard' %}">Taller Mecánico</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">AutoServi Pro</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav mr-auto">
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    
+                    <!-- Enlaces a módulo de citas -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="citasDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-calendar-check"></i> Citas
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="citasDropdown">
+                            <a class="dropdown-item" href="{% url 'mis_citas' %}">
+                                <i class="fas fa-list"></i> Mis Citas
+                            </a>
+                            <a class="dropdown-item" href="{% url 'seleccionar_fecha_hora' %}">
+                                <i class="fas fa-plus-circle"></i> Nueva Cita
+                            </a>
+                            <a class="dropdown-item" href="{% url 'lista_vehiculos' %}">
+                                <i class="fas fa-car"></i> Mis Vehículos
+                            </a>
+                            
+                            {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' %}
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'calendario_citas' %}">
+                                <i class="fas fa-calendar-alt"></i> Calendario de Citas
+                            </a>
+                            <a class="dropdown-item" href="{% url 'lista_servicios' %}">
+                                <i class="fas fa-wrench"></i> Gestión de Servicios
+                            </a>
+                            {% endif %}
+                        </div>
+                    </li>
+                    
+                    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Mecánico' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="inventarioDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-boxes"></i> Inventario
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="inventarioDropdown">
+                            <a class="dropdown-item" href="{% url 'dashboard_inventario' %}">
+                                <i class="fas fa-chart-bar"></i> Dashboard Inventario
+                            </a>
+                            <a class="dropdown-item" href="{% url 'lista_productos' %}">
+                                <i class="fas fa-cog"></i> Productos
+                            </a>
+                            <a class="dropdown-item" href="{% url 'agregar_movimiento' %}">
+                                <i class="fas fa-exchange-alt"></i> Registrar Movimiento
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'lista_alertas' %}">
+                                <i class="fas fa-exclamation-triangle text-warning"></i> Alertas
+                            </a>
+                            <a class="dropdown-item" href="{% url 'test_notificaciones' %}">
+                                <i class="fas fa-tools"></i> Herramientas
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'lista_proveedores' %}">
+                                <i class="fas fa-truck"></i> Proveedores
+                            </a>
+                            <a class="dropdown-item" href="{% url 'lista_categorias' %}">
+                                <i class="fas fa-tags"></i> Categorías
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'reporte_stock_bajo' %}">
+                                <i class="fas fa-chart-line text-danger"></i> Stock Bajo
+                            </a>
+                            <a class="dropdown-item" href="{% url 'reporte_valorizado' %}">
+                                <i class="fas fa-file-invoice-dollar"></i> Reporte Valorizado
+                            </a>
+                        </div>
                     </li>
                     {% endif %}
+                    {% endif %}
                 </ul>
-                <ul class="navbar-nav">
-                    <ul class="navbar-nav">
-    {% if user.is_authenticated %}
-        {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown">
-                Administración
-            </a>
-            <div class="dropdown-menu">
-                <a class="dropdown-item" href="{% url 'lista_usuarios' %}">Usuarios</a>
-                <a class="dropdown-item" href="{% url 'lista_roles' %}">Roles</a>
-            </div>
-        </li>
-        {% endif %}
-        
-        
-    {% else %}
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'register' %}">Registrarse</a>
-        </li>
-    {% endif %}
-
-    <div class="collapse navbar-collapse" id="navbarNav">
-    <ul class="navbar-nav mr-auto">
-        {% if user.is_authenticated %}
-        {% comment %} <li class="nav-item">
-            <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
-        </li> {% endcomment %}
-        <!-- Enlaces a módulo de citas -->
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="citasDropdown" role="button" data-toggle="dropdown">
-                Citas
-            </a>
-            <div class="dropdown-menu">
-                <a class="dropdown-item" href="{% url 'mis_citas' %}">Mis Citas</a>
-                <a class="dropdown-item" href="{% url 'seleccionar_fecha_hora' %}">Nueva Cita</a>
-                <a class="dropdown-item" href="{% url 'lista_vehiculos' %}">Mis Vehículos</a>
                 
-                {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' %}
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{% url 'calendario_citas' %}">Calendario de Citas</a>
-                <a class="dropdown-item" href="{% url 'lista_servicios' %}">Gestión de Servicios</a>
-                {% endif %}
-            </div>
-        </li>
-        {% endif %}
-    </ul>
-    
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Mecánico' %}
-        <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle" href="#" id="inventarioDropdown" role="button" data-toggle="dropdown">
-        Inventario
-    </a>
-        <div class="dropdown-menu">
-            <a class="dropdown-item" href="{% url 'dashboard_inventario' %}">Dashboard Inventario</a>
-            <a class="dropdown-item" href="{% url 'lista_productos' %}">Productos</a>
-            <a class="dropdown-item" href="{% url 'agregar_movimiento' %}">Registrar Movimiento</a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="{% url 'lista_alertas' %}">🚨 Alertas</a>
-            <a class="dropdown-item" href="{% url 'test_notificaciones' %}">🔧 Herramientas</a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="{% url 'lista_proveedores' %}">Proveedores</a>
-            <a class="dropdown-item" href="{% url 'lista_categorias' %}">Categorías</a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="{% url 'reporte_stock_bajo' %}">Stock Bajo</a>
-            <a class="dropdown-item" href="{% url 'reporte_valorizado' %}">Reporte Valorizado</a>
-        </div>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'profile' %}">Perfil</a>
-        </li>
-        <li class="nav-item">
-            <form method="POST" action="{% url 'logout' %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="nav-link btn btn-link text-decoration-none">Cerrar sesión</button>
-            </form>
-        </li>
-        {% endif %}
-        
-</ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-user-shield"></i> Administración
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <a class="dropdown-item" href="{% url 'lista_usuarios' %}">
+                                    <i class="fas fa-users"></i> Usuarios
+                                </a>
+                                <a class="dropdown-item" href="{% url 'lista_roles' %}">
+                                    <i class="fas fa-user-tag"></i> Roles
+                                </a>
+                            </div>
+                        </li>
+                        {% endif %}
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'profile' %}">
+                                <i class="fas fa-user"></i> Perfil
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <form method="POST" action="{% url 'logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-link btn btn-link text-decoration-none">
+                                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                                </button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">
+                                <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">
+                                <i class="fas fa-user-plus"></i> Registrarse
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </nav>
@@ -130,9 +452,11 @@
     <div class="container">
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show loading">
                     {{ message }}
-                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
             {% endfor %}
         {% endif %}
@@ -147,5 +471,175 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Smooth scrolling for navbar links
+        $('a[href*="#"]').on('click', function(e) {
+            if (this.hash !== "") {
+                e.preventDefault();
+                var hash = this.hash;
+                $('html, body').animate({
+                    scrollTop: $(hash).offset().top - 70
+                }, 800);
+            }
+        });
+
+        // Auto-hide alerts after 5 seconds
+        $('.alert').each(function(index) {
+            setTimeout(() => {
+                $(this).fadeOut('slow');
+            }, 5000 + (index * 1000));
+        });
+
+        // Add loading class to elements for smooth animations
+        $(document).ready(function() {
+            $('.card, .alert').addClass('loading');
+            
+            // Counter animation for stats
+            $('.stat-number').each(function() {
+                const $this = $(this);
+                const countTo = $this.attr('data-count');
+                
+                $({ countNum: 0 }).animate({
+                    countNum: countTo
+                }, {
+                    duration: 2000,
+                    easing: 'linear',
+                    step: function() {
+                        $this.text(Math.floor(this.countNum));
+                    },
+                    complete: function() {
+                        $this.text(this.countNum);
+                        if (countTo == 98) {
+                            $this.text(countTo + '%');
+                        }
+                    }
+                });
+            });
+            
+            // Intersection Observer for animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe elements
+            $('.stat-item, .service-card').each(function() {
+                observer.observe(this);
+            });
+        });
+
+        // Navbar scroll effect
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 50) {
+                $('.navbar').addClass('navbar-scrolled');
+            } else {
+                $('.navbar').removeClass('navbar-scrolled');
+            }
+        });
+
+        // Parallax effect for hero section
+        $(window).scroll(function() {
+            const scrolled = $(this).scrollTop();
+            const parallax = $('.hero-section');
+            const speed = scrolled * 0.5;
+            
+            parallax.css('background-position', 'center ' + speed + 'px');
+        });
+
+        // Smooth reveal animations
+        $(window).scroll(function() {
+            $('.service-card, .stat-item').each(function() {
+                const elementTop = $(this).offset().top;
+                const elementBottom = elementTop + $(this).outerHeight();
+                const viewportTop = $(window).scrollTop();
+                const viewportBottom = viewportTop + $(window).height();
+                
+                if (elementBottom > viewportTop && elementTop < viewportBottom) {
+                    $(this).addClass('visible');
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* Additional animation styles */
+        .stat-item, .service-card {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .stat-item.animate-in, .service-card.animate-in,
+        .stat-item.visible, .service-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .navbar-scrolled {
+            background: rgba(26, 26, 26, 0.95) !important;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        /* Responsive improvements for hero */
+        @media (max-width: 991px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-visual {
+                margin-top: 3rem;
+                height: 300px;
+            }
+            
+            .floating-card {
+                width: 160px !important;
+                padding: 1.5rem;
+            }
+            
+            .floating-card:nth-child(2) {
+                top: 30%;
+                right: 50%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                min-height: 80vh;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+                text-align: center;
+            }
+            
+            .hero-subtitle {
+                text-align: center;
+                font-size: 1.1rem;
+            }
+            
+            .hero-buttons {
+                text-align: center;
+            }
+            
+            .hero-visual {
+                display: none;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </body>
 </html>

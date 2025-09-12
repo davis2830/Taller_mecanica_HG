@@ -1,101 +1,988 @@
 <!-- usuarios/templates/usuarios/dashboard.html -->
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Taller Mecánico{% endblock %}
+{% block title %}Dashboard - AutoServi Pro{% endblock %}
+
+{% block hero %}{% endblock %}
+{% block stats %}{% endblock %}
+{% block services_preview %}{% endblock %}
 
 {% block content %}
-<div class="jumbotron">
-    <h1 class="display-4">Bienvenido, {{ user.first_name|default:user.username }}!</h1>
-    <p class="lead">Sistema de Gestión de Taller Mecánico y Carwash</p>
-    <hr class="my-4">
-    <p>Selecciona una opción del menú o utiliza los accesos rápidos a continuación.</p>
+<div class="dashboard-container">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="welcome-content">
+                    <h1 class="welcome-title">
+                        ¡Bienvenido de vuelta, 
+                        <span class="text-primary">{{ user.first_name|default:user.username }}</span>!
+                    </h1>
+                    <p class="welcome-subtitle">
+                        Tu centro de control para gestionar eficientemente tu taller mecánico
+                    </p>
+                    <div class="welcome-badges">
+                        <span class="badge-role">
+                            <i class="fas fa-user-tag"></i>
+                            {{ user.perfil.rol.nombre|default:"Usuario" }}
+                        </span>
+                        <span class="badge-time">
+                            <i class="fas fa-clock"></i>
+                            <span id="current-time"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="welcome-visual">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="quick-stats">
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number">12</h3>
+                        <p class="stat-label">Citas Hoy</p>
+                        <small class="stat-trend">
+                            <i class="fas fa-arrow-up"></i> +15% vs ayer
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card stat-success">
+                    <div class="stat-icon">
+                        <i class="fas fa-car"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number">8</h3>
+                        <p class="stat-label">En Servicio</p>
+                        <small class="stat-trend">
+                            <i class="fas fa-wrench"></i> Activos ahora
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number">3</h3>
+                        <p class="stat-label">Pendientes</p>
+                        <small class="stat-trend">
+                            <i class="fas fa-hourglass-half"></i> En espera
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card stat-info">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number">$2,840</h3>
+                        <p class="stat-label">Ingresos Hoy</p>
+                        <small class="stat-trend">
+                            <i class="fas fa-arrow-up"></i> +8% vs ayer
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="quick-actions">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-bolt"></i>
+                Acciones Rápidas
+            </h2>
+            <p class="section-subtitle">Accede rápidamente a las funciones más utilizadas</p>
+        </div>
+
+        <div class="row">
+            <!-- Nueva Cita -->
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="action-card action-primary">
+                    <div class="action-icon">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Nueva Cita</h4>
+                        <p>Agenda una nueva cita para un cliente</p>
+                        <div class="action-buttons">
+                            <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-action-primary">
+                                <i class="fas fa-plus"></i> Agendar
+                            </a>
+                        </div>
+                    </div>
+                    <div class="action-badge">
+                        <span>+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mis Citas -->
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="action-card action-success">
+                    <div class="action-icon">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Mis Citas</h4>
+                        <p>Revisa y gestiona tus citas programadas</p>
+                        <div class="action-buttons">
+                            <a href="{% url 'mis_citas' %}" class="btn btn-action-success">
+                                <i class="fas fa-eye"></i> Ver Citas
+                            </a>
+                        </div>
+                    </div>
+                    <div class="action-badge">
+                        <span>5</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mis Vehículos -->
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="action-card action-info">
+                    <div class="action-icon">
+                        <i class="fas fa-car-side"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Mis Vehículos</h4>
+                        <p>Gestiona la información de tus vehículos</p>
+                        <div class="action-buttons">
+                            <a href="{% url 'lista_vehiculos' %}" class="btn btn-action-info">
+                                <i class="fas fa-cog"></i> Gestionar
+                            </a>
+                        </div>
+                    </div>
+                    <div class="action-badge">
+                        <span><i class="fas fa-car"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Section -->
+    <div class="management-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-cogs"></i>
+                Panel de Administración
+            </h2>
+            <p class="section-subtitle">Herramientas administrativas según tu rol</p>
+        </div>
+
+        <div class="row">
+            <!-- Gestión de Usuarios (solo para admin) -->
+            {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="management-card">
+                    <div class="card-header-custom bg-gradient-primary">
+                        <div class="header-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <h5>Gestión de Usuarios</h5>
+                    </div>
+                    <div class="card-body-custom">
+                        <p>Administra usuarios, roles y permisos del sistema</p>
+                        <div class="management-stats">
+                            <div class="mini-stat">
+                                <i class="fas fa-users"></i>
+                                <span>45 Usuarios</span>
+                            </div>
+                            <div class="mini-stat">
+                                <i class="fas fa-user-shield"></i>
+                                <span>5 Roles</span>
+                            </div>
+                        </div>
+                        <div class="action-buttons mt-3">
+                            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-list"></i> Ver Usuarios
+                            </a>
+                            <a href="{% url 'lista_roles' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-tags"></i> Roles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Calendario de Citas (solo para staff) -->
+            {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' or user.perfil.rol.nombre == 'Mecánico' %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="management-card">
+                    <div class="card-header-custom bg-gradient-warning">
+                        <div class="header-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h5>Calendario General</h5>
+                    </div>
+                    <div class="card-body-custom">
+                        <p>Visualiza y gestiona todas las citas del taller</p>
+                        <div class="management-stats">
+                            <div class="mini-stat">
+                                <i class="fas fa-calendar-day"></i>
+                                <span>12 Hoy</span>
+                            </div>
+                            <div class="mini-stat">
+                                <i class="fas fa-calendar-week"></i>
+                                <span>58 Esta semana</span>
+                            </div>
+                        </div>
+                        <div class="action-buttons mt-3">
+                            <a href="{% url 'calendario_citas' %}" class="btn btn-outline-warning">
+                                <i class="fas fa-calendar"></i> Ver Calendario
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Gestión de Servicios (solo para admin y recepcionista) -->
+            {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="management-card">
+                    <div class="card-header-custom bg-gradient-success">
+                        <div class="header-icon">
+                            <i class="fas fa-wrench"></i>
+                        </div>
+                        <h5>Gestión de Servicios</h5>
+                    </div>
+                    <div class="card-body-custom">
+                        <p>Administra los tipos de servicios y precios</p>
+                        <div class="management-stats">
+                            <div class="mini-stat">
+                                <i class="fas fa-tools"></i>
+                                <span>25 Servicios</span>
+                            </div>
+                            <div class="mini-stat">
+                                <i class="fas fa-star"></i>
+                                <span>15 Populares</span>
+                            </div>
+                        </div>
+                        <div class="action-buttons mt-3">
+                            <a href="{% url 'lista_servicios' %}" class="btn btn-outline-success">
+                                <i class="fas fa-cogs"></i> Ver Servicios
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Inventario (para admin y mecánicos) -->
+            {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Mecánico' %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="management-card">
+                    <div class="card-header-custom bg-gradient-info">
+                        <div class="header-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h5>Control de Inventario</h5>
+                    </div>
+                    <div class="card-body-custom">
+                        <p>Gestiona productos, stock y proveedores</p>
+                        <div class="management-stats">
+                            <div class="mini-stat">
+                                <i class="fas fa-box"></i>
+                                <span>156 Productos</span>
+                            </div>
+                            <div class="mini-stat text-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>8 Stock bajo</span>
+                            </div>
+                        </div>
+                        <div class="action-buttons mt-3">
+                            <a href="{% url 'dashboard_inventario' %}" class="btn btn-outline-info">
+                                <i class="fas fa-chart-bar"></i> Dashboard
+                            </a>
+                            <a href="{% url 'lista_productos' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-list"></i> Productos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-history"></i>
+                Actividad Reciente
+            </h2>
+        </div>
+
+        <div class="activity-timeline">
+            <div class="timeline-item">
+                <div class="timeline-marker bg-success">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="timeline-content">
+                    <h6>Cita completada - Toyota Corolla</h6>
+                    <p>Cambio de aceite y filtros completado satisfactoriamente</p>
+                    <small class="text-muted">
+                        <i class="fas fa-clock"></i> Hace 15 minutos
+                    </small>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-marker bg-primary">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <div class="timeline-content">
+                    <h6>Nueva cita agendada</h6>
+                    <p>Honda Civic - Revisión general para mañana 10:00 AM</p>
+                    <small class="text-muted">
+                        <i class="fas fa-clock"></i> Hace 1 hora
+                    </small>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-marker bg-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="timeline-content">
+                    <h6>Stock bajo detectado</h6>
+                    <p>Filtros de aceite - Solo 5 unidades restantes</p>
+                    <small class="text-muted">
+                        <i class="fas fa-clock"></i> Hace 2 horas
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="row">
-    <!-- Tarjeta para Gestión de Usuarios (solo para admin) -->
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Gestión de Usuarios</h5>
-            </div>
-            <div class="card-body">
-                <p>Administra los usuarios y roles del sistema.</p>
-                <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-primary">Ver Usuarios</a>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Tarjeta para Mis Citas -->
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">Mis Citas</h5>
-            </div>
-            <div class="card-body">
-                <p>Revisa tus citas agendadas o agenda una nueva.</p>
-                <a href="{% url 'mis_citas' %}" class="btn btn-outline-success">Ver Mis Citas</a>
-                <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-outline-success">Nueva Cita</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Tarjeta para Mis Vehículos -->
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">Mis Vehículos</h5>
-            </div>
-            <div class="card-body">
-                <p>Administra la información de tus vehículos.</p>
-                <a href="{% url 'lista_vehiculos' %}" class="btn btn-outline-info">Ver Vehículos</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Tarjeta para Calendario de Citas (solo para staff) -->
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' or user.perfil.rol.nombre == 'Mecánico' %}
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0">Calendario de Citas</h5>
-            </div>
-            <div class="card-body">
-                <p>Visualiza y gestiona todas las citas.</p>
-                <a href="{% url 'calendario_citas' %}" class="btn btn-outline-warning">Ver Calendario</a>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Tarjeta para Gestión de Servicios (solo para admin y recepcionista) -->
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' %}
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">Gestión de Servicios</h5>
-            </div>
-            <div class="card-body">
-                <p>Administra los tipos de servicios ofrecidos.</p>
-                <a href="{% url 'lista_servicios' %}" class="btn btn-outline-secondary">Ver Servicios</a>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Mecánico' %}
-<div class="col-md-4 mb-4">
-    <div class="card">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Inventario</h5>
-        </div>
-        <div class="card-body">
-            <p>Gestiona productos, stock y proveedores.</p>
-            <a href="{% url 'dashboard_inventario' %}" class="btn btn-outline-secondary">Dashboard Inventario</a>
-            <a href="{% url 'lista_productos' %}" class="btn btn-outline-secondary">Productos</a>
-        </div>
-    </div>
-</div>
-{% endif %}
-</div>
+<style>
+    /* Dashboard Styles */
+    .dashboard-container {
+        padding: 2rem 0;
+    }
+
+    /* Welcome Section */
+    .welcome-section {
+        background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .welcome-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .welcome-title {
+        font-family: 'Oswald', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .welcome-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+    }
+
+    .welcome-badges {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .badge-role, .badge-time {
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .welcome-visual {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .dashboard-icon {
+        width: 120px;
+        height: 120px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255,255,255,0.2);
+        animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    /* Quick Stats */
+    .quick-stats {
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    .stat-primary { --gradient: linear-gradient(135deg, #1a237e, #3949ab); }
+    .stat-success { --gradient: linear-gradient(135deg, #10b981, #34d399); }
+    .stat-warning { --gradient: linear-gradient(135deg, #f59e0b, #fbbf24); }
+    .stat-info { --gradient: linear-gradient(135deg, #0ea5e9, #38bdf8); }
+
+    .stat-card::before {
+        background: var(--gradient);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 1rem;
+        background: var(--gradient);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+        font-family: 'Oswald', sans-serif;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .stat-trend {
+        color: #10b981;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    /* Section Headers */
+    .section-header {
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.8rem;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-subtitle {
+        color: #6b7280;
+        font-size: 1rem;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        margin-bottom: 3rem;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        border-top: 4px solid var(--color);
+    }
+
+    .action-primary { --color: #1a237e; }
+    .action-success { --color: #10b981; }
+    .action-info { --color: #0ea5e9; }
+
+    .action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+    }
+
+    .action-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, var(--color), var(--color));
+        color: white;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.9;
+    }
+
+    .action-content h4 {
+        color: var(--text-dark);
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .action-content p {
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+    }
+
+    .action-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 40px;
+        height: 40px;
+        background: var(--color);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .btn-action-primary {
+        background: linear-gradient(135deg, #1a237e, #3949ab);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action-info {
+        background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action-primary:hover,
+    .btn-action-success:hover,
+    .btn-action-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        color: white;
+    }
+
+    /* Management Section */
+    .management-section {
+        margin-bottom: 3rem;
+    }
+
+    .management-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .management-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    .card-header-custom {
+        padding: 1.5rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #1a237e, #3949ab);
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+    }
+
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    }
+
+    .header-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .card-body-custom {
+        padding: 1.5rem;
+    }
+
+    .management-stats {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+
+    .mini-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .mini-stat i {
+        color: #9ca3af;
+    }
+
+    /* Activity Section */
+    .activity-section {
+        margin-bottom: 2rem;
+    }
+
+    .activity-timeline {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+
+    .timeline-item {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 40px;
+        bottom: -20px;
+        width: 2px;
+        background: #e5e7eb;
+    }
+
+    .timeline-marker {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .timeline-content h6 {
+        color: var(--text-dark);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .timeline-content p {
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .welcome-section {
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+        }
+
+        .welcome-badges {
+            justify-content: center;
+        }
+
+        .dashboard-icon {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .action-card {
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    // Update current time
+    function updateTime() {
+        const now = new Date();
+        const options = { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+        };
+        document.getElementById('current-time').textContent = 
+            now.toLocaleTimeString('es-ES', options);
+    }
+
+    // Update time immediately and then every minute
+    updateTime();
+    setInterval(updateTime, 60000);
+
+    // Add entrance animations
+    $(document).ready(function() {
+        $('.stat-card, .action-card, .management-card').each(function(index) {
+            $(this).css({
+                'opacity': '0',
+                'transform': 'translateY(30px)'
+            });
+            
+            setTimeout(() => {
+                $(this).css({
+                    'opacity': '1',
+                    'transform': 'translateY(0)',
+                    'transition': 'all 0.6s ease'
+                });
+            }, index * 100);
+        });
+
+        // Animate numbers in stats
+        $('.stat-number').each(function() {
+            const $this = $(this);
+            const finalValue = $this.text().replace(/[^0-9]/g, '');
+            
+            if (finalValue && !isNaN(finalValue)) {
+                $this.text('0');
+                $({ counter: 0 }).animate({
+                    counter: finalValue
+                }, {
+                    duration: 1500,
+                    easing: 'swing',
+                    step: function() {
+                        const current = Math.floor(this.counter);
+                        if ($this.text().includes(')) {
+                            $this.text(' + current.toLocaleString());
+                        } else {
+                            $this.text(current.toLocaleString());
+                        }
+                    },
+                    complete: function() {
+                        if ($this.text().includes(')) {
+                            $this.text(' + parseInt(finalValue).toLocaleString());
+                        } else {
+                            $this.text(parseInt(finalValue).toLocaleString());
+                        }
+                    }
+                });
+            }
+        });
+
+        // Add floating animation to welcome section
+        setInterval(function() {
+            $('.dashboard-icon').css({
+                'transform': 'scale(1.05) rotate(5deg)',
+                'transition': 'all 0.5s ease'
+            });
+            
+            setTimeout(() => {
+                $('.dashboard-icon').css({
+                    'transform': 'scale(1) rotate(0deg)',
+                    'transition': 'all 0.5s ease'
+                });
+            }, 500);
+        }, 3000);
+
+        // Intersection Observer for timeline animations
+        const timelineObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateX(0)';
+                }
+            });
+        });
+
+        $('.timeline-item').each(function() {
+            this.style.opacity = '0';
+            this.style.transform = 'translateX(-30px)';
+            this.style.transition = 'all 0.6s ease';
+            timelineObserver.observe(this);
+        });
+    });
+
+    // Add hover effects for cards
+    $('.management-card').hover(
+        function() {
+            $(this).find('.header-icon').css({
+                'transform': 'scale(1.1) rotate(5deg)',
+                'transition': 'all 0.3s ease'
+            });
+        },
+        function() {
+            $(this).find('.header-icon').css({
+                'transform': 'scale(1) rotate(0deg)',
+                'transition': 'all 0.3s ease'
+            });
+        }
+    );
+
+    // Add click feedback for action buttons
+    $('.btn-action-primary, .btn-action-success, .btn-action-info').on('click', function(e) {
+        const $btn = $(this);
+        $btn.css({
+            'transform': 'scale(0.95)',
+            'transition': 'all 0.1s ease'
+        });
+        
+        setTimeout(() => {
+            $btn.css({
+                'transform': 'scale(1)',
+                'transition': 'all 0.1s ease'
+            });
+        }, 100);
+    });
+
+    // Auto-refresh stats (simulation)
+    setInterval(function() {
+        // Simulate real-time updates
+        const statNumbers = document.querySelectorAll('.stat-number');
+        statNumbers.forEach(stat => {
+            if (Math.random() > 0.8) { // 20% chance to update
+                const current = parseInt(stat.textContent.replace(/[^0-9]/g, ''));
+                const variation = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+                const newValue = Math.max(0, current + variation);
+                
+                if (stat.textContent.includes(')) {
+                    stat.textContent = ' + newValue.toLocaleString();
+                } else {
+                    stat.textContent = newValue.toLocaleString();
+                }
+                
+                // Add a subtle flash effect
+                stat.style.color = '#10b981';
+                setTimeout(() => {
+                    stat.style.color = '#1f2937';
+                }, 300);
+            }
+        });
+    }, 30000); // Update every 30 seconds
+</script>
 {% endblock %}

@@ -12,7 +12,7 @@ SECRET_KEY = 'django-insecure-um9zgqp09!-^4&i9(v)nz5@bu#i6*mv4rb3q@a$kw@y00mptgb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'inventario',
     'crispy_forms',
     'crispy_bootstrap4',
+    "django_extensions",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
@@ -78,7 +79,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'taller_mecanico',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': 'Perezoso2000',
         'HOST': 'localhost',
         'PORT': '3306',
     }
