@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block page_title %}Directorio de Clientes{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">
+            <i class="fas fa-users mr-2"></i> Directorio de Clientes
+        </h4>
+        <p class="text-muted mb-0 mt-1">Administra la base de datos de los dueños de vehículos del taller.</p>
+    </div>
+    <div class="col-md-4 text-md-right mt-3 mt-md-0">
+        <a href="{% url 'agregar_cliente' %}" class="btn btn-primary shadow-sm" style="border-radius: 20px;">
+            <i class="fas fa-user-plus mr-1"></i> Registrar Nuevo Cliente
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-body p-0">
+        {% if clientes %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-top-0 border-bottom-0 pl-4 py-3"><i class="fas fa-user text-muted mr-1"></i> Nombre</th>
+                        <th class="border-top-0 border-bottom-0 py-3"><i class="fas fa-envelope text-muted mr-1"></i> Correo Electrónico</th>
+                        <th class="border-top-0 border-bottom-0 py-3"><i class="fas fa-phone text-muted mr-1"></i> Teléfono</th>
+                        <th class="border-top-0 border-bottom-0 py-3"><i class="fas fa-car text-muted mr-1"></i> Autos Asignados</th>
+                        <th class="border-top-0 border-bottom-0 py-3">Registro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr>
+                        <td class="pl-4 align-middle font-weight-bold text-dark">{{ cliente.get_full_name|default:cliente.username }}</td>
+                        <td class="align-middle">{{ cliente.email|default:"N/A" }}</td>
+                        <td class="align-middle">
+                            {% if cliente.perfil.telefono %}
+                            <a href="https://wa.me/{{ cliente.perfil.telefono }}" target="_blank" class="text-success text-decoration-none">
+                                <i class="fab fa-whatsapp mr-1"></i> {{ cliente.perfil.telefono }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted italic">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            <span class="badge badge-info px-2 py-1"><i class="fas fa-car-side mr-1"></i> {{ cliente.vehiculos.count }}</span>
+                        </td>
+                        <td class="align-middle small text-muted">{{ cliente.date_joined|date:"d M Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users-slash fa-3x text-secondary opacity-50 mb-3"></i>
+            <h5 class="text-muted font-weight-bold">Aún no hay clientes registrados</h5>
+            <p class="text-muted small">Crea tu primer cliente para poder asignarle vehículos.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

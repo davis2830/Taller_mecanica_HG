@@ -57,7 +57,7 @@
             </div>
             <div class="col-6 mb-3">
                 <div class="data-label">Teléfono/Contacto</div>
-                <div class="data-value">{{ recepcion.vehiculo.propietario.perfil.telefono|default:"N/A" }}</div>
+                <div class="data-value">{{ recepcion.vehiculo.propietario.perfil.telefono|default:"N/A" }} | {{ recepcion.vehiculo.propietario.email|default:"Sin correo" }}</div>
             </div>
             <div class="col-4 mb-3">
                 <div class="data-label">Marca y Modelo</div>

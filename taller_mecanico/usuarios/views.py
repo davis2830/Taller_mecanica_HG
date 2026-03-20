@@ -3,9 +3,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import user_passes_test
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
+
 from .forms import UserRegisterForm, UserUpdateForm, PerfilUpdateForm, RolForm, AsignarRolForm
 from .models import Rol, Perfil
-from django.contrib.auth.decorators import user_passes_test
 
 def es_admin(user):
     if not user.is_authenticated:
@@ -42,8 +49,27 @@ def register(request):
                         rol=rol_cliente
                     )
                 
-                username = form.cleaned_data.get('username')
-                messages.success(request, f'Cuenta creada para {username}! Ahora puedes iniciar sesión.')
+                # Enviar correo de activación con Token criptográfico
+                current_site = get_current_site(request)
+                mail_subject = 'Activa tu cuenta en AutoServi Pro'
+                message = render_to_string('usuarios/email_activacion.html', {
+                    'user': user,
+                    'domain': current_site.domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': default_token_generator.make_token(user),
+                })
+                
+                send_mail(
+                    mail_subject,
+                    "", # mensaje original en texto plano
+                    None, # usa DEFAULT_FROM_EMAIL
+                    [form.cleaned_data.get('email')],
+                    html_message=message,
+                    fail_silently=False,
+                )
+                
+                nombre = form.cleaned_data.get('first_name', '') or form.cleaned_data.get('email', '')
+                messages.success(request, f'¡Casi listo {nombre}! Te hemos enviado un correo electrónico. Por favor revisa tu bandeja de entrada o SPAM para poder iniciar sesión.')
                 return redirect('login')
                 
             except Exception as e:
@@ -54,6 +80,23 @@ def register(request):
     else:
         form = UserRegisterForm()
     return render(request, 'usuarios/register.html', {'form': form})
+
+def activar_cuenta(request, uidb64, token):
+    """Descifra el token del correo electrónico y activa al usuario si es válido"""
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except(TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        messages.success(request, '¡Felicidades! Tu cuenta ha sido activada y verificada exitosamente. Ya puedes iniciar sesión.')
+        return redirect('login')
+    else:
+        messages.error(request, '⚠️ El enlace de activación es inválido o ya expiró por seguridad. Intenta registrar tu cuenta de nuevo.')
+        return redirect('login')
 
 @login_required
 def profile(request):
@@ -131,6 +174,62 @@ def asignar_rol(request, user_id):
         form = AsignarRolForm(instance=perfil)
     
     return render(request, 'usuarios/asignar_rol.html', {'form': form, 'usuario': usuario})
+    return render(request, 'usuarios/asignar_rol.html', {'form': form, 'usuario': usuario})
+
+# =======================================================
+# DIRECTORIO DE CLIENTES (Para Staff)
+# =======================================================
+@login_required
+def lista_clientes(request):
+    # Validar permisos
+    es_staff = request.user.is_superuser or (hasattr(request.user, 'perfil') and request.user.perfil.rol and request.user.perfil.rol.nombre in ['Administrador', 'Recepcionista', 'Mecánico'])
+    if not es_staff:
+        messages.error(request, 'No tienes permiso para acceder al Directorio de Clientes.')
+        return redirect('dashboard')
+        
+    clientes = User.objects.filter(perfil__rol__nombre='Cliente').order_by('-date_joined')
+    return render(request, 'usuarios/lista_clientes.html', {'clientes': clientes})
+
+@login_required
+def agregar_cliente(request):
+    es_staff = request.user.is_superuser or (hasattr(request.user, 'perfil') and request.user.perfil.rol and request.user.perfil.rol.nombre in ['Administrador', 'Recepcionista'])
+    if not es_staff:
+        messages.error(request, 'No tienes permiso para registrar clientes.')
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        from .forms import ClienteRapidoForm
+        form = ClienteRapidoForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            email = form.cleaned_data.get('email')
+            
+            # Generar username inteligente y único
+            base_username = email.split('@')[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+                
+            user.username = username
+            user.set_unusable_password() # El usuario no ingresará web hasta pedir reset de password
+            user.save()
+            
+            # Signal autogenera Perfil y Rol 'Cliente'. Actualizamos el teléfono.
+            telefono = form.cleaned_data.get('telefono')
+            if telefono and hasattr(user, 'perfil'):
+                perfil = user.perfil
+                perfil.telefono = telefono
+                perfil.save()
+                
+            messages.success(request, f'Cliente {user.get_full_name()} registrado exitosamente en el directorio.')
+            return redirect('lista_clientes')
+    else:
+        from .forms import ClienteRapidoForm
+        form = ClienteRapidoForm()
+        
+    return render(request, 'usuarios/agregar_cliente.html', {'form': form})
 
 @login_required
 def dashboard(request):

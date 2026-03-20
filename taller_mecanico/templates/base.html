@@ -701,6 +701,9 @@
                     <i class="fas fa-circle-dot fa-xs"></i> Directorio y Clínica
                 </a>
                 {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Recepcionista' %}
+                <a class="sidebar-submenu-link" href="{% url 'lista_clientes' %}">
+                    <i class="fas fa-circle-dot fa-xs"></i> Base de Clientes
+                </a>
                 <a class="sidebar-submenu-link" href="{% url 'calendario_citas' %}">
                     <i class="fas fa-circle-dot fa-xs"></i> Calendario
                 </a>

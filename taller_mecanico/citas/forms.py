@@ -7,10 +7,29 @@ import datetime
 class VehiculoForm(forms.ModelForm):
     class Meta:
         model = Vehiculo
-        fields = ['marca', 'modelo', 'año', 'placa', 'color']
+        fields = ['propietario', 'marca', 'modelo', 'año', 'placa', 'color']
         widgets = {
             'año': forms.NumberInput(attrs={'min': 1900, 'max': datetime.date.today().year + 1}),
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(VehiculoForm, self).__init__(*args, **kwargs)
+        
+        # Evaluar si es Staff
+        es_staff = False
+        if user:
+            es_staff = user.is_superuser or (hasattr(user, 'perfil') and user.perfil.rol and user.perfil.rol.nombre in ['Administrador', 'Recepcionista', 'Mecánico'])
+            
+        if not es_staff:
+            # Si un Cliente normal lo abre en su web, no debe poder cambiar el dueño de un carro
+            if 'propietario' in self.fields:
+                self.fields.pop('propietario')
+        else:
+            # Si es personal de mostrador, filtrar para que solo salgan clientes (no mecánicos)
+            from django.contrib.auth.models import User
+            self.fields['propietario'].queryset = User.objects.filter(perfil__rol__nombre='Cliente').order_by('first_name', 'username')
+            self.fields['propietario'].label = "Cliente / Propietario del Vehículo"
 
 class FechaHoraDisponibleForm(forms.Form):
     """Formulario para seleccionar fecha y ver horas disponibles"""

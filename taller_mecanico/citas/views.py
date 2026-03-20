@@ -25,42 +25,59 @@ def es_staff(user):
 # Vistas para vehículos
 @login_required
 def lista_vehiculos(request):
-    vehiculos = Vehiculo.objects.filter(propietario=request.user)
+    if es_staff(request.user):
+        vehiculos = Vehiculo.objects.all().order_by('-fecha_registro')
+    else:
+        vehiculos = Vehiculo.objects.filter(propietario=request.user).order_by('-fecha_registro')
+        
     return render(request, 'citas/lista_vehiculos.html', {'vehiculos': vehiculos})
 
 @login_required
 def agregar_vehiculo(request):
     if request.method == 'POST':
-        form = VehiculoForm(request.POST)
+        form = VehiculoForm(request.POST, user=request.user)
         if form.is_valid():
             vehiculo = form.save(commit=False)
-            vehiculo.propietario = request.user
+            
+            # Si el usuario NO es staff, forzosamente atarlo a él. 
+            # Si es staff, el `propietario` viaja en el `vehiculo` desde el form.
+            if not es_staff(request.user):
+                vehiculo.propietario = request.user
+            elif getattr(vehiculo, 'propietario', None) is None:
+                vehiculo.propietario = request.user
+                
             vehiculo.save()
             messages.success(request, 'Vehículo agregado correctamente.')
             return redirect('lista_vehiculos')
     else:
-        form = VehiculoForm()
+        form = VehiculoForm(user=request.user)
     
     return render(request, 'citas/agregar_vehiculo.html', {'form': form})
 
 @login_required
 def editar_vehiculo(request, vehiculo_id):
-    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id, propietario=request.user)
+    if es_staff(request.user):
+        vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+    else:
+        vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id, propietario=request.user)
     
     if request.method == 'POST':
-        form = VehiculoForm(request.POST, instance=vehiculo)
+        form = VehiculoForm(request.POST, instance=vehiculo, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Vehículo actualizado correctamente.')
             return redirect('lista_vehiculos')
     else:
-        form = VehiculoForm(instance=vehiculo)
+        form = VehiculoForm(instance=vehiculo, user=request.user)
     
     return render(request, 'citas/editar_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
 
 @login_required
 def eliminar_vehiculo(request, vehiculo_id):
-    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id, propietario=request.user)
+    if es_staff(request.user):
+        vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+    else:
+        vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id, propietario=request.user)
     
     if request.method == 'POST':
         vehiculo.delete()
