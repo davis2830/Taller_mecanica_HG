@@ -57,7 +57,6 @@
         display: flex;
         flex-direction: column;
         min-height: 100vh;
-        /* leave room for sidebar and topbar */
         padding-top: var(--topbar-h);
         padding-left: var(--sidebar-w);
         transition: padding-left var(--tr);
@@ -83,7 +82,6 @@
         transition: left var(--tr);
     }
 
-    /* Left: hamburger + greeting */
     .topbar-left {
         display: flex;
         align-items: center;
@@ -108,7 +106,6 @@
         white-space: nowrap;
     }
 
-    /* Right: actions cluster */
     .topbar-actions {
         display: flex;
         align-items: center;
@@ -116,7 +113,6 @@
         flex-shrink: 0;
     }
 
-    /* Icon button */
     .topbar-icon-btn {
         width: 38px; height: 38px;
         border-radius: 10px;
@@ -144,7 +140,6 @@
         border: 2px solid var(--surface);
     }
 
-    /* Divider */
     .topbar-sep {
         width: 1px;
         height: 32px;
@@ -152,7 +147,6 @@
         margin: 0 6px;
     }
 
-    /* User button */
     .topbar-user {
         display: flex;
         align-items: center;
@@ -184,7 +178,6 @@
         white-space: nowrap;
     }
 
-    /* Mobile hamburger */
     .sidebar-toggle {
         display: none;
         background: transparent;
@@ -201,7 +194,6 @@
     }
     .sidebar-toggle:hover { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
 
-    /* User pill */
     .user-pill {
         display: flex;
         align-items: center;
@@ -213,7 +205,6 @@
         transition: background var(--tr);
     }
     .user-pill:hover { background: #f1f5f9; color: #0f172a; }
-
     .user-avatar {
         width: 32px; height: 32px;
         border-radius: 50%;
@@ -225,7 +216,6 @@
         flex-shrink: 0;
     }
     .user-pill-name { font-size: 0.87rem; font-weight: 600; }
-
     .btn-logout {
         display: flex;
         align-items: center;
@@ -268,7 +258,6 @@
     }
     .sidebar::-webkit-scrollbar { display: none; }
 
-    /* Brand inside sidebar */
     .sidebar-brand {
         display: flex;
         align-items: center;
@@ -310,13 +299,8 @@
         text-transform: uppercase;
     }
 
-    /* Nav container */
-    .sidebar-nav {
-        flex: 1;
-        padding: 12px 0;
-    }
+    .sidebar-nav { flex: 1; padding: 12px 0; }
 
-    /* Section label */
     .sidebar-section-label {
         font-size: 0.68rem;
         font-weight: 700;
@@ -326,7 +310,6 @@
         padding: 14px 20px 6px;
     }
 
-    /* Plain link (no submenu) */
     .sidebar-link {
         display: flex;
         align-items: center;
@@ -363,7 +346,6 @@
     }
     .sidebar-link .sl-label { flex: 1; }
 
-    /* Submenu toggle button */
     .sidebar-toggle-btn {
         display: flex;
         align-items: center;
@@ -411,7 +393,6 @@
         transform: rotate(180deg);
     }
 
-    /* Submenu (hidden by default) */
     .sidebar-submenu {
         display: none;
         background: rgba(0,0,0,.18);
@@ -440,14 +421,12 @@
     .sidebar-submenu-link:hover i,
     .sidebar-submenu-link.active i { opacity: 1; }
 
-    /* Divider */
     .sidebar-divider {
         height: 1px;
         background: rgba(255,255,255,.06);
         margin: 8px 16px;
     }
 
-    /* ── Sidebar footer (user info) ── */
     .sidebar-footer {
         padding: 14px 16px;
         border-top: 1px solid rgba(255,255,255,.06);
@@ -475,7 +454,6 @@
         color: var(--text-muted);
     }
 
-    /* ══ OVERLAY (mobile) ══ */
     .sidebar-overlay {
         display: none;
         position: fixed;
@@ -495,11 +473,10 @@
         display: flex;
         flex-direction: column;
     }
-
     .page-content {
         max-width: 1160px;
         width: 100%;
-        margin: 0 auto;       /* center the content */
+        margin: 0 auto;
         padding: 28px 32px 60px;
         flex: 1;
     }
@@ -591,7 +568,6 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* btn shared between dashboard and navbar */
     .nav-btn {
         display: inline-flex;
         align-items: center;
@@ -617,28 +593,19 @@
     }
 
     /* ═══════════════════════════════════════════
-       RESPONSIVE — Sidebar becomes overlay drawer
+       RESPONSIVE
     ═══════════════════════════════════════════ */
     @media (max-width: 992px) {
-        body {
-            padding-left: 0;
-        }
-        .topbar {
-            left: 0;
-        }
-        .sidebar {
-            transform: translateX(-100%);
-        }
-        .sidebar.open {
-            transform: translateX(0);
-        }
+        body { padding-left: 0; }
+        .topbar { left: 0; }
+        .sidebar { transform: translateX(-100%); }
+        .sidebar.open { transform: translateX(0); }
         .sidebar-toggle {
             display: flex;
             align-items: center;
             justify-content: center;
         }
     }
-
     @media (max-width: 576px) {
         .page-content { padding: 16px 16px 40px; }
         .user-pill-name { display: none; }
@@ -648,9 +615,7 @@
 </head>
 <body>
 
-    <!-- ════════════════════════════════
-         SIDEBAR OVERLAY (mobile)
-    ════════════════════════════════ -->
+    <!-- SIDEBAR OVERLAY (mobile) -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- ════════════════════════════════
@@ -671,9 +636,7 @@
 
         <!-- Navigation -->
         <nav class="sidebar-nav">
-
             {% if user.is_authenticated %}
-
             <p class="sidebar-section-label">Principal</p>
 
             <!-- Dashboard -->
@@ -684,7 +647,6 @@
 
             <!-- ── Citas ── -->
             <p class="sidebar-section-label">Gestión</p>
-
             <button class="sidebar-toggle-btn" data-target="sub-citas" id="btn-citas" type="button">
                 <span class="sl-icon"><i class="fas fa-calendar-check"></i></span>
                 <span class="sl-label">Citas</span>
@@ -770,7 +732,6 @@
             {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
             <div class="sidebar-divider"></div>
             <p class="sidebar-section-label">Administración</p>
-
             <button class="sidebar-toggle-btn" data-target="sub-admin" id="btn-admin" type="button">
                 <span class="sl-icon"><i class="fas fa-user-shield"></i></span>
                 <span class="sl-label">Admin</span>
@@ -785,6 +746,9 @@
                 </a>
                 <a class="sidebar-submenu-link" href="{% url 'test_notificaciones' %}">
                     <i class="fas fa-circle-dot fa-xs"></i> Herramientas
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'configuracion_sistema' %}">
+                    <i class="fas fa-circle-dot fa-xs"></i> Configuración
                 </a>
             </div>
             {% endif %}
@@ -821,7 +785,6 @@
             <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú" type="button">
                 <i class="fas fa-bars" id="hamburgerIcon"></i>
             </button>
-
             {% if user.is_authenticated %}
             <div class="topbar-greeting d-none d-md-flex">
                 <span class="topbar-greeting-main">
@@ -836,22 +799,18 @@
         <!-- Right: actions -->
         <div class="topbar-actions">
             {% if user.is_authenticated %}
-
-                <!-- Notification bell (placeholder) -->
+                <!-- Notification bell -->
                 <a href="#" class="topbar-icon-btn" title="Notificaciones">
                     <i class="fas fa-bell"></i>
                     {% if alertas_activas and alertas_activas > 0 %}
                     <span class="topbar-notif-dot"></span>
                     {% endif %}
                 </a>
-
                 <!-- Profile shortcut -->
                 <a href="{% url 'profile' %}" class="topbar-icon-btn" title="Mi Perfil">
                     <i class="fas fa-user"></i>
                 </a>
-
                 <div class="topbar-sep"></div>
-
                 <!-- User button -->
                 <a href="{% url 'profile' %}" class="topbar-user d-none d-lg-flex">
                     <div class="user-avatar" style="width:32px;height:32px;font-size:.83rem">
@@ -863,7 +822,6 @@
                     </div>
                     <i class="fas fa-chevron-down" style="font-size:.65rem;color:#94a3b8;margin-left:2px"></i>
                 </a>
-
                 <!-- Logout -->
                 <form method="POST" action="{% url 'logout' %}" class="d-inline m-0" id="form-logout">
                     {% csrf_token %}
@@ -872,7 +830,6 @@
                         <span class="d-none d-sm-inline">Salir</span>
                     </button>
                 </form>
-
             {% else %}
                 <a href="{% url 'login' %}" class="btn-logout" style="border-color:rgba(59,130,246,.35);color:#3b82f6">
                     <i class="fas fa-arrow-right-to-bracket"></i>
@@ -880,7 +837,6 @@
                 </a>
             {% endif %}
         </div>
-
     </header>
 
     <!-- ════════════════════════════════
@@ -925,21 +881,19 @@
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
     <script>
     (function () {
         'use strict';
 
         /* ══════════════════════════════════════
-           SIDEBAR SUBMENU  — click to expand/collapse
+           SIDEBAR SUBMENU — click to expand/collapse
         ══════════════════════════════════════ */
         var toggleBtns = document.querySelectorAll('.sidebar-toggle-btn');
-
         toggleBtns.forEach(function (btn) {
             btn.addEventListener('click', function () {
-                var targetId  = btn.getAttribute('data-target');
-                var submenu   = document.getElementById(targetId);
-                var isOpen    = submenu.classList.contains('open');
+                var targetId = btn.getAttribute('data-target');
+                var submenu  = document.getElementById(targetId);
+                var isOpen   = submenu.classList.contains('open');
 
                 // Collapse all other open submenus
                 document.querySelectorAll('.sidebar-submenu.open').forEach(function (sm) {
@@ -959,10 +913,10 @@
         /* ══════════════════════════════════════
            MOBILE SIDEBAR TOGGLE
         ══════════════════════════════════════ */
-        var sidebarToggle  = document.getElementById('sidebarToggle');
-        var sidebar        = document.getElementById('sidebar');
-        var overlay        = document.getElementById('sidebarOverlay');
-        var hamburger      = document.getElementById('hamburgerIcon');
+        var sidebarToggle = document.getElementById('sidebarToggle');
+        var sidebar       = document.getElementById('sidebar');
+        var overlay       = document.getElementById('sidebarOverlay');
+        var hamburger     = document.getElementById('hamburgerIcon');
 
         function openSidebar() {
             sidebar.classList.add('open');
@@ -976,7 +930,6 @@
             hamburger.className = 'fas fa-bars';
             document.body.style.overflow = '';
         }
-
         if (sidebarToggle) {
             sidebarToggle.addEventListener('click', function () {
                 sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
@@ -990,12 +943,10 @@
            MARK ACTIVE LINKS & AUTO-OPEN SUBMENU
         ══════════════════════════════════════ */
         var path = window.location.pathname;
-
         document.querySelectorAll('.sidebar-link, .sidebar-submenu-link').forEach(function (link) {
             var href = link.getAttribute('href');
             if (href && href !== '/' && path.startsWith(href)) {
                 link.classList.add('active');
-                // Auto-open parent submenu if inside one
                 var parent = link.closest('.sidebar-submenu');
                 if (parent) {
                     parent.classList.add('open');
@@ -1017,7 +968,6 @@
             setTimeout(function () { el.remove(); }, 400);
         }
         window.dismissAlert = dismissAlert;
-
         document.querySelectorAll('.alert[id^="msg-"]').forEach(function (el, i) {
             setTimeout(function () { dismissAlert(el.id); }, 6000 + i * 800);
         });
@@ -1043,7 +993,6 @@
 
     })();
     </script>
-
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -4,148 +4,444 @@
 {% block title %}Mis Citas - Taller Mecánico{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h2 class="mb-0">Mis Citas</h2>
-        <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-success">Nueva Cita</a>
+<style>
+/* Estilos Premium para Mis Citas */
+.citas-header {
+    background: linear-gradient(135deg, var(--info) 0%, var(--primary) 100%);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    color: white;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+.citas-header::before {
+    content: '';
+    position: absolute;
+    bottom: -20px; right: 10%;
+    font-size: 8rem;
+    color: rgba(255,255,255,0.08);
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    content: "\f274"; /* fa-calendar-check */
+    transform: rotate(-15deg);
+    pointer-events: none;
+}
+.citas-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 0.5px;
+}
+.citas-subtitle {
+    font-size: 0.95rem;
+    color: #e0f2fe;
+    margin-top: 5px;
+}
+.custom-tabs {
+    border: none;
+    background: var(--surface);
+    padding: 10px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 25px;
+    display: inline-flex;
+    gap: 8px;
+}
+.custom-tabs .nav-item { margin: 0; }
+.custom-tabs .nav-link {
+    border: none !important;
+    border-radius: var(--radius) !important;
+    padding: 10px 24px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background: transparent;
+}
+.custom-tabs .nav-link:hover {
+    color: var(--primary);
+    background: #f1f5f9;
+}
+.custom-tabs .nav-link.active {
+    background: var(--info);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.cita-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+.cita-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: #cbd5e1;
+}
+
+/* Bordes laterales por estado */
+.estado-pendiente { border-left: 4px solid var(--warning); }
+.estado-confirmada { border-left: 4px solid var(--info); }
+.estado-completada { border-left: 4px solid var(--success); }
+.estado-cancelada { border-left: 4px solid var(--danger); opacity: 0.8; }
+
+.cita-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+.cita-date {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cita-date i { color: var(--info); font-size: 1.3rem; }
+.cita-time {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 32px;
+}
+.badge-custom {
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: var(--shadow-sm);
+}
+.badge-pendiente { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.badge-confirmada { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.badge-completada { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-cancelada { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+.cita-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.info-block {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.info-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--primary-light);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.info-text-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+.info-text-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.cita-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--surface-alt);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: var(--radius-lg);
+    border: 1px dashed #cbd5e1;
+}
+.empty-state i {
+    font-size: 4rem;
+    color: #e2e8f0;
+    margin-bottom: 20px;
+}
+.empty-state h3 { color: var(--primary); font-weight: 700; }
+.empty-state p { color: var(--text-muted); }
+
+@media (max-width: 768px) {
+    .cita-body { grid-template-columns: 1fr; }
+    .cita-header { flex-direction: column; gap: 10px; }
+}
+</style>
+
+<div class="citas-header">
+    <div style="z-index: 1;">
+        <h1 class="citas-title"><i class="fas fa-calendar-check mr-3 text-warning"></i>Mis Citas</h1>
+        <p class="citas-subtitle mb-0">Gestiona tus próximos mantenimientos y el historial de tu vehículo.</p>
     </div>
-    <div class="card-body">
-        {% if citas %}
-            <ul class="nav nav-tabs mb-3" id="citasTabs" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active" id="proximas-tab" data-toggle="tab" href="#proximas" role="tab">Próximas</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="completadas-tab" data-toggle="tab" href="#completadas" role="tab">Completadas</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="canceladas-tab" data-toggle="tab" href="#canceladas" role="tab">Canceladas</a>
-                </li>
-            </ul>
-            
-            <div class="tab-content" id="citasTabsContent">
-                <!-- Próximas citas -->
-                <div class="tab-pane fade show active" id="proximas" role="tabpanel">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Hora</th>
-                                    <th>Servicio</th>
-                                    <th>Vehículo</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for cita in citas %}
-                                    {% if cita.estado == 'PENDIENTE' or cita.estado == 'CONFIRMADA' %}
-                                    <tr>
-                                        <td>{{ cita.fecha }}</td>
-                                        <td>{{ cita.hora_inicio }}</td>
-                                        <td>{{ cita.servicio.nombre }}</td>
-                                        <td>{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} ({{ cita.vehiculo.placa }})</td>
-                                        <td>
-                                            {% if cita.estado == 'PENDIENTE' %}
-                                                <span class="badge badge-warning">Pendiente</span>
-                                            {% elif cita.estado == 'CONFIRMADA' %}
-                                                <span class="badge badge-info">Confirmada</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-sm btn-info">Detalles</a>
-                                            <a href="{% url 'cancelar_cita' cita.id %}" class="btn btn-sm btn-danger">Cancelar</a>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="6" class="text-center">No tienes citas próximas.</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Citas completadas -->
-                <div class="tab-pane fade" id="completadas" role="tabpanel">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Hora</th>
-                                    <th>Servicio</th>
-                                    <th>Vehículo</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for cita in citas %}
-                                    {% if cita.estado == 'COMPLETADA' %}
-                                    <tr>
-                                        <td>{{ cita.fecha }}</td>
-                                        <td>{{ cita.hora_inicio }}</td>
-                                        <td>{{ cita.servicio.nombre }}</td>
-                                        <td>{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} ({{ cita.vehiculo.placa }})</td>
-                                        <td>
-                                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-sm btn-info">Detalles</a>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="5" class="text-center">No tienes citas completadas.</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Citas canceladas -->
-                <div class="tab-pane fade" id="canceladas" role="tabpanel">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Hora</th>
-                                    <th>Servicio</th>
-                                    <th>Vehículo</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for cita in citas %}
-                                    {% if cita.estado == 'CANCELADA' %}
-                                    <tr>
-                                        <td>{{ cita.fecha }}</td>
-                                        <td>{{ cita.hora_inicio }}</td>
-                                        <td>{{ cita.servicio.nombre }}</td>
-                                        <td>{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} ({{ cita.vehiculo.placa }})</td>
-                                        <td>
-                                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-sm btn-info">Detalles</a>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="5" class="text-center">No tienes citas canceladas.</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <div class="alert alert-info">
-                No tienes citas registradas. <a href="{% url 'seleccionar_fecha_hora' %}">Agenda una ahora</a>.
-            </div>
-        {% endif %}
+    <div style="z-index: 1;">
+        <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-light text-info font-weight-bold shadow-sm rounded-pill px-4 py-2">
+            <i class="fas fa-plus mr-2"></i>Nueva Cita
+        </a>
     </div>
 </div>
+
+{% if citas %}
+<ul class="nav custom-tabs mb-4" id="citasTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="proximas-tab" data-toggle="tab" href="#proximas" role="tab" aria-selected="true">
+            <i class="fas fa-calendar-day mr-2"></i>Próximas
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="completadas-tab" data-toggle="tab" href="#completadas" role="tab" aria-selected="false">
+            <i class="fas fa-check-circle mr-2"></i>Completadas
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="canceladas-tab" data-toggle="tab" href="#canceladas" role="tab" aria-selected="false">
+            <i class="fas fa-ban mr-2"></i>Canceladas
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content" id="citasTabsContent">
+    <!-- Próximas citas -->
+    <div class="tab-pane fade show active" id="proximas" role="tabpanel" aria-labelledby="proximas-tab">
+        <div class="row">
+            {% for cita in citas %}
+                {% if cita.estado == 'PENDIENTE' or cita.estado == 'CONFIRMADA' %}
+                <div class="col-xl-6 mb-4">
+                    <div class="cita-card estado-{{ cita.estado|lower }}">
+                        <div class="cita-header">
+                            <div>
+                                <div class="cita-date">
+                                    <i class="far fa-calendar-alt"></i> 
+                                    {{ cita.fecha|date:"l, d de F Y"|title }}
+                                </div>
+                                <div class="cita-time">
+                                    {{ cita.hora_inicio|time:"g:i A" }} - {{ cita.hora_fin|time:"g:i A" }}
+                                </div>
+                            </div>
+                            <div>
+                                {% if cita.estado == 'PENDIENTE' %}
+                                    <span class="badge-custom badge-pendiente"><i class="fas fa-hourglass-half"></i>Pendiente</span>
+                                {% elif cita.estado == 'CONFIRMADA' %}
+                                    <span class="badge-custom badge-confirmada"><i class="fas fa-check-double"></i>Confirmada</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="cita-body">
+                            <!-- Vehículo -->
+                            <div class="info-block">
+                                <div class="info-icon"><i class="fas fa-car-side"></i></div>
+                                <div>
+                                    <div class="info-text-label">Vehículo</div>
+                                    <div class="info-text-value">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</div>
+                                    <small class="text-muted">{{ cita.vehiculo.placa }}</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Servicio -->
+                            <div class="info-block">
+                                <div class="info-icon"><i class="fas fa-wrench"></i></div>
+                                <div>
+                                    <div class="info-text-label">Servicio Requerido</div>
+                                    <div class="info-text-value">{{ cita.servicio.nombre|truncatechars:35 }}</div>
+                                    <small class="text-muted">Q{{ cita.servicio.precio|floatformat:2 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="cita-actions">
+                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-outline-info font-weight-bold rounded-pill px-4">
+                                <i class="fas fa-ticket-alt mr-2"></i>Ver Boleto
+                            </a>
+                            <a href="{% url 'cancelar_cita' cita.id %}" class="btn btn-outline-danger font-weight-bold rounded-pill px-4">
+                                <i class="fas fa-times mr-2"></i>Anular
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if not has_proximas %}
+            <!-- This check relies on django template logic, a workaround to show empty state if loop outputs nothing -->
+            <!-- We will render an empty state visually below if the wrapper has no children in JS, or we can just always loop and use a counter -->
+            <div class="col-12 empty-proximas d-none">
+                <div class="empty-state">
+                    <i class="far fa-calendar-plus"></i>
+                    <h3>Tu agenda está libre</h3>
+                    <p>No tienes citas programadas próximamente. ¿Deseas agendar un servicio?</p>
+                    <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-primary mt-3 rounded-pill px-4 py-2">Agendar Nueva Cita</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Citas completadas -->
+    <div class="tab-pane fade" id="completadas" role="tabpanel" aria-labelledby="completadas-tab">
+        <div class="row">
+            {% for cita in citas %}
+                {% if cita.estado == 'COMPLETADA' %}
+                <div class="col-xl-6 mb-4">
+                    <div class="cita-card estado-completada">
+                        <div class="cita-header">
+                            <div>
+                                <div class="cita-date">
+                                    <i class="far fa-calendar-check text-success"></i> 
+                                    {{ cita.fecha|date:"l, d de F Y"|title }}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge-custom badge-completada"><i class="fas fa-flag-checkered"></i>Finalizada</span>
+                            </div>
+                        </div>
+                        <div class="cita-body">
+                            <div class="info-block">
+                                <div class="info-icon bg-light"><i class="fas fa-car-side"></i></div>
+                                <div>
+                                    <div class="info-text-label">Vehículo</div>
+                                    <div class="info-text-value">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</div>
+                                </div>
+                            </div>
+                            <div class="info-block">
+                                <div class="info-icon bg-light"><i class="fas fa-wrench"></i></div>
+                                <div>
+                                    <div class="info-text-label">Servicio Generado</div>
+                                    <div class="info-text-value">{{ cita.servicio.nombre|truncatechars:35 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cita-actions">
+                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-light text-primary font-weight-bold rounded-pill px-4">
+                                <i class="fas fa-file-invoice mr-2"></i>Ver Historial
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            <div class="col-12 empty-completadas d-none">
+                <div class="empty-state">
+                    <i class="fas fa-award opacity-50"></i>
+                    <h3>Aún no hay historial</h3>
+                    <p>Las citas que hayan finalizado exitosamente aparecerán aquí guardadas en el historial del vehículo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Citas canceladas -->
+    <div class="tab-pane fade" id="canceladas" role="tabpanel" aria-labelledby="canceladas-tab">
+        <div class="row">
+            {% for cita in citas %}
+                {% if cita.estado == 'CANCELADA' %}
+                <div class="col-xl-6 mb-4">
+                    <div class="cita-card estado-cancelada">
+                        <div class="cita-header">
+                            <div>
+                                <div class="cita-date text-muted">
+                                    <i class="far fa-calendar-times text-danger"></i> 
+                                    {{ cita.fecha|date:"l, d F Y"|title }}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge-custom badge-cancelada"><i class="fas fa-ban"></i>Anulada</span>
+                            </div>
+                        </div>
+                        <div class="cita-body opacity-75">
+                            <div class="info-block">
+                                <div class="info-icon"><i class="fas fa-car-side"></i></div>
+                                <div>
+                                    <div class="info-text-label">Vehículo</div>
+                                    <div class="info-text-value">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</div>
+                                </div>
+                            </div>
+                            <div class="info-block">
+                                <div class="info-icon"><i class="fas fa-wrench"></i></div>
+                                <div>
+                                    <div class="info-text-label">Servicio</div>
+                                    <div class="info-text-value">{{ cita.servicio.nombre|truncatechars:35 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            <div class="col-12 empty-canceladas d-none">
+                <div class="empty-state">
+                    <i class="fas fa-shield-alt opacity-50"></i>
+                    <h3>Sin anulaciones</h3>
+                    <p>No tienes historial de citas canceladas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="empty-state mt-5">
+    <i class="far fa-calendar-alt"></i>
+    <h2 class="mb-3">Aún no tienes citas registradas</h2>
+    <p class="lead text-muted mb-4">Mantén el rendimiento de tu vehículo agendando servicios periódicos con nuestros expertos.</p>
+    <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-primary btn-lg rounded-pill shadow px-5">Agendar Primera Cita</a>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lógica simple para mostrar estados vacíos (empty states)
+        const tabs = [
+            { id: 'proximas', emptyClass: '.empty-proximas' },
+            { id: 'completadas', emptyClass: '.empty-completadas' },
+            { id: 'canceladas', emptyClass: '.empty-canceladas' }
+        ];
+        
+        tabs.forEach(tab => {
+            const pane = document.getElementById(tab.id);
+            if(pane) {
+                // Contar cuántas tarjetas de cita hay (restando el empty state escondido)
+                const cards = pane.querySelectorAll('.cita-card');
+                const emptyState = pane.querySelector(tab.emptyClass);
+                
+                if(cards.length === 0 && emptyState) {
+                    emptyState.classList.remove('d-none');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}

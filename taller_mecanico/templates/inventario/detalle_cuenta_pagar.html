@@ -1,166 +1,110 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block page_title %}Detalle de Cuenta por Pagar{% endblock %}
-
+{% extends 'base.html' %}{% load static %}
+{% block page_title %}Detalle de Cuenta por Pagar
+{% endblock %}
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col-md-8">
-        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">
-            <a href="{% url 'lista_cuentas_pagar' %}" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
-            Detalle de Cuenta: CT-{{ cuenta.id|stringformat:"05d" }}
-        </h4>
-    </div>
+<div class="row mb-4 align-items-center">    
+<div class="col-md-8">        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">            <a href="{% url 'lista_cuentas_pagar' %}" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>            Detalle de Cuenta: CT-{{ cuenta.id|stringformat:"05d" }}        </h4>    </div>
 </div>
 
-<div class="row">
-    <!-- Información de la Cuenta -->
-    <div class="col-lg-8">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <h6 class="m-0 font-weight-bold" style="color: var(--primary);">Información de la Deuda</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small text-uppercase mb-1">Proveedor</label>
-                        <div class="font-weight-bold text-dark">{{ cuenta.proveedor.nombre }}</div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small text-uppercase mb-1">Estado Actual</label>
-                        <div>
-                            {% if cuenta.estado == 'PENDIENTE' %}
-                                <span class="badge badge-danger px-3 py-2">Pendiente</span>
-                            {% elif cuenta.estado == 'PARCIAL' %}
-                                <span class="badge badge-warning px-3 py-2">Abono Parcial</span>
-                            {% elif cuenta.estado == 'PAGADO' %}
-                                <span class="badge badge-success px-3 py-2">Pagado</span>
-                            {% else %}
-                                <span class="badge badge-secondary px-3 py-2">Cancelada</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% if cuenta.orden_compra %}
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small text-uppercase mb-1">Orden de Compra Origen</label>
-                        <div><a href="{% url 'ver_orden_compra' cuenta.orden_compra.id %}">OC-{{ cuenta.orden_compra.id|stringformat:"04d" }}</a></div>
-                    </div>
-                    {% endif %}
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small text-uppercase mb-1">Fecha Emisión</label>
-                        <div class="font-weight-500">{{ cuenta.fecha_emision|date:"d M Y" }}</div>
-                    </div>
-                </div>
-
-                <hr class="mt-3 mb-4">
-
-                <div class="row">
-                    <div class="col-md-4 text-center border-right">
-                        <div class="text-muted small text-uppercase mb-1">Total Deuda Original</div>
-                        <h4 class="text-dark font-weight-bold mb-0">Q{{ cuenta.monto_total|floatformat:2 }}</h4>
-                    </div>
-                    <div class="col-md-4 text-center border-right">
-                        <div class="text-muted small text-uppercase mb-1">Total Abonado</div>
-                        <h4 class="text-success font-weight-bold mb-0">Q{{ cuenta.monto_pagado|floatformat:2 }}</h4>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <div class="text-muted small text-uppercase mb-1">Saldo Pendiente</div>
-                        <h3 class="text-danger font-weight-bold mb-0">Q{{ cuenta.saldo_pendiente|floatformat:2 }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Historial de Pagos / Abonos -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h6 class="m-0 font-weight-bold" style="color: var(--primary);">Historial de Abonos</h6>
-            </div>
-            <div class="card-body p-0">
-                {% if pagos %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead style="background: #f8fafc;">
-                            <tr>
-                                <th class="border-0 px-4">Fecha</th>
-                                <th class="border-0">Método de Pago</th>
-                                <th class="border-0">Referencia</th>
-                                <th class="border-0">Usuario</th>
-                                <th class="border-0 text-right px-4 text-success">Monto (Q)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for pago in pagos %}
-                            <tr>
-                                <td class="px-4 py-3 align-middle">{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
-                                <td class="py-3 align-middle">{{ pago.get_metodo_pago_display }}</td>
-                                <td class="py-3 align-middle">{{ pago.referencia|default:"-" }}</td>
-                                <td class="py-3 align-middle">{{ pago.registrado_por.username|default:"Sistema" }}</td>
-                                <td class="py-3 px-4 align-middle text-right font-weight-bold text-success">+ Q{{ pago.monto|floatformat:2 }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="p-4 text-center text-muted">
-                    No se han registrado abonos a esta cuenta.
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Formulario para Registrar Nuevo Abono -->
-    <div class="col-lg-4">
-        {% if cuenta.estado != 'PAGADO' and cuenta.estado != 'CANCELADO' %}
-        <div class="card shadow-sm border-left-success">
-            <div class="card-header bg-white py-3">
-                <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-money-bill-wave mr-2"></i>Registrar Abono</h6>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info py-2 small mb-4">
-                    <i class="fas fa-info-circle mr-1"></i> El saldo restante es de <strong>Q{{ cuenta.saldo_pendiente|floatformat:2 }}</strong>
-                </div>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label class="text-muted small font-weight-bold">Monto a Abonar (Q)</label>
-                        <input type="number" name="monto" step="0.01" max="{{ cuenta.saldo_pendiente|stringformat:'f' }}" 
-                               class="form-control form-control-lg text-success font-weight-bold" required 
-                               value="{{ cuenta.saldo_pendiente|stringformat:'f' }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="text-muted small font-weight-bold">Método de Pago</label>
-                        <select name="metodo_pago" class="form-control" required>
-                            <option value="EFECTIVO">Efectivo</option>
-                            <option value="TRANSFERENCIA">Transferencia Bancaria</option>
-                            <option value="CHEQUE">Cheque</option>
-                            <option value="TARJETA">Tarjeta</option>
-                            <option value="OTRO">Otro</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="text-muted small font-weight-bold">Nro. de Referencia (Opcional)</label>
-                        <input type="text" name="referencia" class="form-control" placeholder="Ej: TRF-485923">
-                        <small class="form-text text-muted">Anotar comprobante si aplica.</small>
+<div class="row">    <!-- Información de la Cuenta -->    
+<div class="col-lg-8">        
+<div class="card shadow-sm mb-4">            
+<div class="card-header bg-white py-3">                <h6 class="m-0 font-weight-bold" style="color: var(--primary);">Información de la Deuda</h6>            </div>
+            
+<div class="card-body">                
+<div class="row">                    
+<div class="col-md-6 mb-3">                        <label class="text-muted small text-uppercase mb-1">Proveedor</label>                        
+<div class="font-weight-bold text-dark">{{ cuenta.proveedor.nombre }}</div>
                     </div>
                     
-                    <button type="submit" class="btn btn-success btn-block py-2 mt-4 shadow-sm" style="border-radius: 8px;">
-                        <i class="fas fa-check-circle mr-2"></i> Confirmar Abono
-                    </button>
-                </form>
+<div class="col-md-6 mb-3">                        <label class="text-muted small text-uppercase mb-1">Estado Actual</label>                        
+<div>                            
+{% if cuenta.estado == 'PENDIENTE' %}                                <span class="badge badge-danger px-3 py-2">Pendiente</span>                            {% elif cuenta.estado == 'PARCIAL' %}                                <span class="badge badge-warning px-3 py-2">Abono Parcial</span>                            {% elif cuenta.estado == 'PAGADO' %}                                <span class="badge badge-success px-3 py-2">Pagado</span>                            {% else %}                                <span class="badge badge-secondary px-3 py-2">Cancelada</span>                            
+{% endif %}                        </div>
+                    </div>
+                    
+{% if cuenta.orden_compra %}                    
+<div class="col-md-6 mb-3">                        <label class="text-muted small text-uppercase mb-1">Orden de Compra Origen</label>                        
+<div><a href="{% url 'ver_orden_compra' cuenta.orden_compra.id %}">OC-{{ cuenta.orden_compra.id|stringformat:"04d" }}</a></div>
+                    </div>
+                    
+{% endif %}                    
+<div class="col-md-6 mb-3">                        <label class="text-muted small text-uppercase mb-1">Fecha Emisión</label>                        
+<div class="font-weight-500">{{ cuenta.fecha_emision|date:"d M Y" }}</div>
+                    </div>
+                </div>
+                <hr class="mt-3 mb-4">                
+<div class="row">                    
+<div class="col-md-4 text-center border-right">                        
+<div class="text-muted small text-uppercase mb-1">Total Deuda Original</div>
+                        <h4 class="text-dark font-weight-bold mb-0">Q{{ cuenta.monto_total|floatformat:2 }}</h4>                    </div>
+                    
+<div class="col-md-4 text-center border-right">                        
+<div class="text-muted small text-uppercase mb-1">Total Abonado</div>
+                        <h4 class="text-success font-weight-bold mb-0">Q{{ cuenta.monto_pagado|floatformat:2 }}</h4>                    </div>
+                    
+<div class="col-md-4 text-center">                        
+<div class="text-muted small text-uppercase mb-1">Saldo Pendiente</div>
+                        <h3 class="text-danger font-weight-bold mb-0">Q{{ cuenta.saldo_pendiente|floatformat:2 }}</h3>                    </div>
+                </div>
             </div>
         </div>
-        {% elif cuenta.estado == 'PAGADO' %}
-        <div class="card bg-success text-white shadow-sm mb-4">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-check-circle fa-4x mb-3" style="opacity: 0.8;"></i>
-                <h4 class="font-weight-bold">Cuenta Saldada</h4>
-                <p class="mb-0">El total de esta deuda ha sido cubierto satisfactoriamente.</p>
-            </div>
+        <!-- Historial de Pagos / Abonos -->        
+<div class="card shadow-sm">            
+<div class="card-header bg-white py-3">                <h6 class="m-0 font-weight-bold" style="color: var(--primary);">Historial de Abonos</h6>            </div>
+            
+<div class="card-body p-0">                
+{% if pagos %}                
+<div class="table-responsive">                    
+<table class="table table-hover mb-0">                        
+<thead style="background: #f8fafc;">                            
+<tr>                                
+<th class="border-0 px-4">Fecha</th>                                
+<th class="border-0">Método de Pago</th>                                
+<th class="border-0">Referencia</th>                                
+<th class="border-0">Usuario</th>                                
+<th class="border-0 text-right px-4 text-success">Monto (Q)</th>                            </tr>                        </thead>                        <tbody>                            
+{% for pago in pagos %}                            
+<tr>                                
+<td class="px-4 py-3 align-middle">{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>                                
+<td class="py-3 align-middle">{{ pago.get_metodo_pago_display }}</td>                                
+<td class="py-3 align-middle">{{ pago.referencia|default:"-" }}</td>                                
+<td class="py-3 align-middle">{{ pago.registrado_por.username|default:"Sistema" }}</td>                                
+<td class="py-3 px-4 align-middle text-right font-weight-bold text-success">+ Q{{ pago.monto|floatformat:2 }}</td>                            </tr>                            
+{% endfor %}                        </tbody>                    </table>                </div>
+                {% else %}                
+<div class="p-4 text-center text-muted">                    No se han registrado abonos a esta cuenta.                </div>
+                
+{% endif %}            </div>
         </div>
-        {% endif %}
     </div>
+    <!-- Formulario para Registrar Nuevo Abono -->    
+<div class="col-lg-4">        
+{% if cuenta.estado != 'PAGADO' and cuenta.estado != 'CANCELADO' %}        
+<div class="card shadow-sm border-left-success">            
+<div class="card-header bg-white py-3">                <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-money-bill-wave mr-2"></i>Registrar Abono</h6>            </div>
+            
+<div class="card-body">                
+<div class="alert alert-info py-2 small mb-4">                    <i class="fas fa-info-circle mr-1"></i> El saldo restante es de <strong>Q{{ cuenta.saldo_pendiente|floatformat:2 }}</strong>                </div>
+                
+<form method="post">                    {% csrf_token %}                    
+<div class="form-group">                        <label class="text-muted small font-weight-bold">Monto a Abonar (Q)</label>                        
+<input type="number" name="monto" step="0.01" max="{{ cuenta.saldo_pendiente|stringformat:'f' }}"                                class="form-control form-control-lg text-success font-weight-bold" required                                value="{{ cuenta.saldo_pendiente|stringformat:'f' }}">                    </div>
+                    
+<div class="form-group">                        <label class="text-muted small font-weight-bold">Método de Pago</label>                        <select name="metodo_pago" class="form-control" required>                            <option value="EFECTIVO">Efectivo</option>                            <option value="TRANSFERENCIA">Transferencia Bancaria</option>                            <option value="CHEQUE">Cheque</option>                            <option value="TARJETA">Tarjeta</option>                            <option value="OTRO">Otro</option>                        </select>                    </div>
+                    
+<div class="form-group">                        <label class="text-muted small font-weight-bold">Nro. de Referencia (Opcional)</label>                        
+<input type="text" name="referencia" class="form-control" placeholder="Ej: TRF-485923">                        <small class="form-text text-muted">Anotar comprobante si aplica.</small>                    </div>
+                                        
+<button type="submit" class="btn btn-success btn-block py-2 mt-4 shadow-sm" style="border-radius: 8px;">                        <i class="fas fa-check-circle mr-2"></i> Confirmar Abono                    </button>                </form>            </div>
+        </div>
+        {% elif cuenta.estado == 'PAGADO' %}        
+<div class="card bg-success text-white shadow-sm mb-4">            
+<div class="card-body text-center py-5">                <i class="fas fa-check-circle fa-4x mb-3" style="opacity: 0.8;"></i>                <h4 class="font-weight-bold">Cuenta Saldada</h4>                
+<p class="mb-0">El total de esta deuda ha sido cubierto satisfactoriamente.</p>            </div>
+        </div>
+        
+{% endif %}    </div>
 </div>
+
 {% endblock %}

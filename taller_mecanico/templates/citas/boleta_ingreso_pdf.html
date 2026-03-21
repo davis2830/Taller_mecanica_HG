@@ -1,179 +1,215 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boleta de Recepción de Vehículo #{{ recepcion.id|stringformat:"05d" }}</title>
-    <!-- Incluir Bootstrap para facilidad de estilos, o escribir CSS custom -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .hoja-impresion {
-            background: white; width: 21cm; min-height: 29.7cm; padding: 2cm;
-            margin: 20px auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); border: 1px solid #ccc;
-        }
-        .header-title { font-size: 24px; font-weight: bold; border-bottom: 2px solid #2d6a4f; padding-bottom: 5px; color: #2d6a4f; }
-        .section-title { font-size: 14px; font-weight: bold; background: #e9ecef; padding: 5px 10px; margin-top: 20px; text-transform: uppercase; }
-        .data-label { font-weight: bold; font-size: 13px; color: #555; }
-        .data-value { font-size: 14px; border-bottom: 1px dashed #ccc; padding-bottom: 2px; }
+<!DOCTYPE html><html lang="es"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Boleta de Recepción de Vehículo #{{ recepcion.id|stringformat:"05d" }}
+</title>    <!-- Incluir Bootstrap para facilidad de estilos, o escribir CSS custom -->    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">    
+<style>        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }        .hoja-impresion {            background: white; width: 21cm; min-height: 29.7cm; padding: 2cm;            margin: 20px auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); border: 1px solid #ccc;        }        .header-title { font-size: 24px; font-weight: bold; border-bottom: 2px solid #2d6a4f; padding-bottom: 5px; color: #2d6a4f; }        .section-title { font-size: 14px; font-weight: bold; background: #e9ecef; padding: 5px 10px; margin-top: 20px; text-transform: uppercase; }        .data-label { font-weight: bold; font-size: 13px; color: #555; }        .data-value { font-size: 14px; border-bottom: 1px dashed #ccc; padding-bottom: 2px; }                .gas-meter { width: 100%; border: 1px solid #999; height: 15px; border-radius: 10px; position: relative; overflow: hidden; }        .gas-fill { height: 100%; background-color: #2d6a4f; }                @media print {            body { background: white; margin: 0; padding: 0; }            .hoja-impresion { box-shadow: none; margin: 0; border: none; width: 100%; min-height: auto; padding: 1cm; }            .no-print { display: none !important; }        }    </style>
+</head><body>    
+<div class="text-center mt-4 mb-2 no-print">        
+<button onclick="window.print()" class="btn btn-primary btn-lg shadow"><i class="fas fa-print"></i> Imprimir / Guardar PDF</button>        <a href="
+{% url 'historial_vehiculo' recepcion.vehiculo.id %}
+" class="btn btn-secondary btn-lg shadow ml-2">Volver</a>    </div>
+    
+<div class="hoja-impresion">        <!-- CABECERA -->        
+<div class="row mb-4 align-items-end">            
+<div class="col-8">                <h2 class="header-title m-0">AUTOSERVI PRO</h2>                
+<p class="mb-0 text-muted" style="font-size: 14px;"><strong>BOLETA DE RECEPCIÓN NRO:</strong> {{ recepcion.id|stringformat:"05d" }}
+</p>                
+<p class="mb-0 text-muted" style="font-size: 14px;"><strong>FECHA/HORA INGRESO:</strong> {{ recepcion.fecha_ingreso|date:"d/m/Y H:i" }}
+</p>            </div>
+            
+<div class="col-4 text-right">                
+<p class="mb-0" style="font-size: 12px;">Generado por: <br> {{ recepcion.recibido_por.get_full_name|default:recepcion.recibido_por.username }}
+</p>            </div>
+        </div>
+        <!-- DATOS DEL PROPIETARIO Y VEHÍCULO -->        
+<div class="section-title">1. Datos del Vehículo y Propietario</div>
         
-        .gas-meter { width: 100%; border: 1px solid #999; height: 15px; border-radius: 10px; position: relative; overflow: hidden; }
-        .gas-fill { height: 100%; background-color: #2d6a4f; }
-        
-        @media print {
-            body { background: white; margin: 0; padding: 0; }
-            .hoja-impresion { box-shadow: none; margin: 0; border: none; width: 100%; min-height: auto; padding: 1cm; }
-            .no-print { display: none !important; }
-        }
-    </style>
-</head>
-<body>
-
-    <div class="text-center mt-4 mb-2 no-print">
-        <button onclick="window.print()" class="btn btn-primary btn-lg shadow"><i class="fas fa-print"></i> Imprimir / Guardar PDF</button>
-        <a href="{% url 'historial_vehiculo' recepcion.vehiculo.id %}" class="btn btn-secondary btn-lg shadow ml-2">Volver</a>
-    </div>
-
-    <div class="hoja-impresion">
-        <!-- CABECERA -->
-        <div class="row mb-4 align-items-end">
-            <div class="col-8">
-                <h2 class="header-title m-0">AUTOSERVI PRO</h2>
-                <p class="mb-0 text-muted" style="font-size: 14px;"><strong>BOLETA DE RECEPCIÓN NRO:</strong> {{ recepcion.id|stringformat:"05d" }}</p>
-                <p class="mb-0 text-muted" style="font-size: 14px;"><strong>FECHA/HORA INGRESO:</strong> {{ recepcion.fecha_ingreso|date:"d/m/Y H:i" }}</p>
-            </div>
-            <div class="col-4 text-right">
-                <p class="mb-0" style="font-size: 12px;">Generado por: <br> {{ recepcion.recibido_por.get_full_name|default:recepcion.recibido_por.username }}</p>
-            </div>
-        </div>
-
-        <!-- DATOS DEL PROPIETARIO Y VEHÍCULO -->
-        <div class="section-title">1. Datos del Vehículo y Propietario</div>
-        <div class="row mt-3">
-            <div class="col-6 mb-3">
-                <div class="data-label">Cliente / Propietario</div>
-                <div class="data-value">{{ recepcion.vehiculo.propietario.get_full_name|default:recepcion.vehiculo.propietario.username }}</div>
-            </div>
-            <div class="col-6 mb-3">
-                <div class="data-label">Teléfono/Contacto</div>
-                <div class="data-value">{{ recepcion.vehiculo.propietario.perfil.telefono|default:"N/A" }} | {{ recepcion.vehiculo.propietario.email|default:"Sin correo" }}</div>
-            </div>
-            <div class="col-4 mb-3">
-                <div class="data-label">Marca y Modelo</div>
-                <div class="data-value">{{ recepcion.vehiculo.marca }} {{ recepcion.vehiculo.modelo }}</div>
-            </div>
-            <div class="col-3 mb-3">
-                <div class="data-label">Año</div>
-                <div class="data-value">{{ recepcion.vehiculo.año }}</div>
-            </div>
-            <div class="col-2 mb-3">
-                <div class="data-label">Placas</div>
-                <div class="data-value">{{ recepcion.vehiculo.placa }}</div>
-            </div>
-            <div class="col-3 mb-3">
-                <div class="data-label">Color</div>
-                <div class="data-value">{{ recepcion.vehiculo.color }}</div>
-            </div>
-        </div>
-
-        <!-- CONDICIÓN AL INGRESO -->
-        <div class="section-title">2. Condición del Vehículo al Ingreso</div>
-        <div class="row mt-3">
-            <div class="col-4 mb-3">
-                <div class="data-label">Kilometraje / Millaje Actual</div>
-                <div class="data-value font-weight-bold">{{ recepcion.kilometraje }}</div>
-            </div>
-            <div class="col-8 mb-3">
-                <div class="data-label d-flex justify-content-between">
-                    <span>Nivel de Gasolina </span>
-                    <span class="text-dark">{{ recepcion.get_nivel_gasolina_display }}</span>
-                </div>
-                <!-- Barra visual del tanque de gasolina -->
-                <div class="gas-meter mt-1">
-                    {% if recepcion.nivel_gasolina == 'VACIO' %} <div class="gas-fill bg-danger" style="width: 5%;"></div>
-                    {% elif recepcion.nivel_gasolina == 'CUARTO' %} <div class="gas-fill bg-warning" style="width: 25%;"></div>
-                    {% elif recepcion.nivel_gasolina == 'MEDIO' %} <div class="gas-fill" style="width: 50%;"></div>
-                    {% elif recepcion.nivel_gasolina == 'TRESCUARTOS' %} <div class="gas-fill" style="width: 75%;"></div>
-                    {% elif recepcion.nivel_gasolina == 'LLENO' %} <div class="gas-fill" style="width: 100%;"></div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="row mt-2">
-            <div class="col-12">
-                <div class="data-label">Daños Previos Visuales (Rayones, golpes, abolladuras pre-existentes)</div>
-                <div class="border p-2 mt-1" style="min-height: 50px; background:#f9f9f9;">
-                    {% if recepcion.danos_previos %}
-                        {{ recepcion.danos_previos|linebreaksbr }}
-                    {% else %}
-                        <i>Ningún daño visual reportado durante la inspección.</i>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- INVENTARIO INTERNO -->
-        <div class="section-title">3. Inventario Abordo</div>
-        <div class="row mt-3 px-2">
-            <div class="col-3">
-                [ {% if recepcion.tiene_llanta_repuesto %}<strong>X</strong>{% else %}&nbsp;&nbsp;{% endif %} ] Llanta Repuesto
-            </div>
-            <div class="col-3">
-                [ {% if recepcion.tiene_gata_herramientas %}<strong>X</strong>{% else %}&nbsp;&nbsp;{% endif %} ] Tricket/Herram.
-            </div>
-            <div class="col-3">
-                [ {% if recepcion.tiene_radio %}<strong>X</strong>{% else %}&nbsp;&nbsp;{% endif %} ] Radio/Pantalla
-            </div>
-            <div class="col-3">
-                [ {% if recepcion.tiene_documentos %}<strong>X</strong>{% else %}&nbsp;&nbsp;{% endif %} ] Documentos
+<div class="row mt-3">            
+<div class="col-6 mb-3">                
+<div class="data-label">Cliente / Propietario</div>
+                
+<div class="data-value">
+{{ recepcion.vehiculo.propietario.get_full_name|default:recepcion.vehiculo.propietario.username }}
+</div>
             </div>
             
-            <div class="col-12 mt-3">
-                <div class="data-label">Otros Objetos Relevantes Dejados </div>
-                <div class="data-value">{{ recepcion.otros_objetos|default:"Ninguno" }}</div>
+<div class="col-6 mb-3">                
+<div class="data-label">Teléfono/Contacto</div>
+                
+<div class="data-value">
+{{ recepcion.vehiculo.propietario.perfil.telefono|default:"N/A" }} | {{ recepcion.vehiculo.propietario.email|default:"Sin correo" }}
+</div>
+            </div>
+            
+<div class="col-4 mb-3">                
+<div class="data-label">Marca y Modelo</div>
+                
+<div class="data-value">
+{{ recepcion.vehiculo.marca }} {{ recepcion.vehiculo.modelo }}
+</div>
+            </div>
+            
+<div class="col-3 mb-3">                
+<div class="data-label">Año</div>
+                
+<div class="data-value">
+{{ recepcion.vehiculo.año }}
+</div>
+            </div>
+            
+<div class="col-2 mb-3">                
+<div class="data-label">Placas</div>
+                
+<div class="data-value">
+{{ recepcion.vehiculo.placa }}
+</div>
+            </div>
+            
+<div class="col-3 mb-3">                
+<div class="data-label">Color</div>
+                
+<div class="data-value">
+{{ recepcion.vehiculo.color }}
+</div>
             </div>
         </div>
-
-        <!-- REPORTE DE INGRESO -->
-        <div class="section-title">4. Motivo de Ingreso y Trabajo Solicitado</div>
-        <div class="row mt-3">
-            <div class="col-12 mb-3">
-                <div class="data-label text-danger">Falla Reportada por el Cliente / Solicitud:</div>
-                <div class="border p-2 mt-1" style="min-height: 60px;">{{ recepcion.motivo_ingreso|linebreaksbr }}</div>
-            </div>
-            <div class="col-12">
-                <div class="data-label text-primary">Diagnóstico Inicial (Por parte de Recepción/Mecánico):</div>
-                <div class="border p-2 mt-1" style="min-height: 40px;">{{ recepcion.diagnostico_inicial|default:"Pendiente de revisión a profundidad."|linebreaksbr }}</div>
-            </div>
-        </div>
-
-        <!-- FIRMAS -->
-        <div class="row" style="margin-top: 50px;">
-            <div class="col-12">
-                <p class="text-justify text-muted" style="font-size: 11px; line-height: 1.2;">
-                    El cliente autoriza el ingreso del vehículo descrito para su respectivo diagnóstico y reparación. 
-                    El Taller no se hace responsable por objetos de valor no reportados en la sección "Inventario Abordo" ni por daños mecánicos ocultos no relacionados con el motivo de ingreso. Declaro que el nivel de gasolina y los daños descritos concuerdan con la realidad física del auto en este momento.
-                </p>
-            </div>
-        </div>
+        <!-- CONDICIÓN AL INGRESO -->        
+<div class="section-title">2. Condición del Vehículo al Ingreso</div>
         
-        <div class="row mt-5 text-center">
-            <div class="col-6">
-                <div style="border-top: 1px solid black; width: 80%; margin: 0 auto; padding-top: 5px;">
-                    <strong>Firma de Cliente / Entregó</strong><br>
-                    <span style="font-size:12px;">{{ recepcion.firma_cliente_text|default:"-" }}</span>
-                </div>
+<div class="row mt-3">            
+<div class="col-4 mb-3">                
+<div class="data-label">Kilometraje / Millaje Actual</div>
+                
+<div class="data-value font-weight-bold">
+{{ recepcion.kilometraje }}
+</div>
             </div>
-            <div class="col-6">
-                <div style="border-top: 1px solid black; width: 80%; margin: 0 auto; padding-top: 5px;">
-                    <strong>Recibido Por (Taller)</strong><br>
-                    <span style="font-size:12px;">{{ recepcion.recibido_por.get_full_name|default:recepcion.recibido_por.username }}</span>
+            
+<div class="col-8 mb-3">                
+<div class="data-label d-flex justify-content-between">                    <span>Nivel de Gasolina </span>                    <span class="text-dark">
+{{ recepcion.get_nivel_gasolina_display }}
+</span>                </div>
+                <!-- Barra visual del tanque de gasolina -->                
+<div class="gas-meter mt-1">                    
+{% if recepcion.nivel_gasolina == 'VACIO' %}
+ 
+<div class="gas-fill bg-danger" style="width: 5%;"></div>
+                    
+{% elif recepcion.nivel_gasolina == 'CUARTO' %}
+ 
+<div class="gas-fill bg-warning" style="width: 25%;"></div>
+                    
+{% elif recepcion.nivel_gasolina == 'MEDIO' %}
+ 
+<div class="gas-fill" style="width: 50%;"></div>
+                    
+{% elif recepcion.nivel_gasolina == 'TRESCUARTOS' %}
+ 
+<div class="gas-fill" style="width: 75%;"></div>
+                    
+{% elif recepcion.nivel_gasolina == 'LLENO' %}
+ 
+<div class="gas-fill" style="width: 100%;"></div>
+                    
+{% endif %}
                 </div>
             </div>
         </div>
-
+                
+<div class="row mt-2">            
+<div class="col-12">                
+<div class="data-label">Daños Previos Visuales (Rayones, golpes, abolladuras pre-existentes)</div>
+                
+<div class="border p-2 mt-1" style="min-height: 50px; background:#f9f9f9;">                    
+{% if recepcion.danos_previos %}
+                        {{ recepcion.danos_previos|linebreaksbr }}                    
+{% else %}
+                        <i>Ningún daño visual reportado durante la inspección.</i>                    
+{% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- INVENTARIO INTERNO -->        
+<div class="section-title">3. Inventario Abordo</div>
+        
+<div class="row mt-3 px-2">            
+<div class="col-3">                [ 
+{% if recepcion.tiene_llanta_repuesto %}
+<strong>X</strong>
+{% else %}
+&nbsp;&nbsp;
+{% endif %}
+ ] Llanta Repuesto            </div>
+            
+<div class="col-3">                [ 
+{% if recepcion.tiene_gata_herramientas %}
+<strong>X</strong>
+{% else %}
+&nbsp;&nbsp;
+{% endif %}
+ ] Tricket/Herram.            </div>
+            
+<div class="col-3">                [ 
+{% if recepcion.tiene_radio %}
+<strong>X</strong>
+{% else %}
+&nbsp;&nbsp;
+{% endif %}
+ ] Radio/Pantalla            </div>
+            
+<div class="col-3">                [ 
+{% if recepcion.tiene_documentos %}
+<strong>X</strong>
+{% else %}
+&nbsp;&nbsp;
+{% endif %}
+ ] Documentos            </div>
+                        
+<div class="col-12 mt-3">                
+<div class="data-label">Otros Objetos Relevantes Dejados </div>
+                
+<div class="data-value">
+{{ recepcion.otros_objetos|default:"Ninguno" }}
+</div>
+            </div>
+        </div>
+        <!-- REPORTE DE INGRESO -->        
+<div class="section-title">4. Motivo de Ingreso y Trabajo Solicitado</div>
+        
+<div class="row mt-3">            
+<div class="col-12 mb-3">                
+<div class="data-label text-danger">Falla Reportada por el Cliente / Solicitud:</div>
+                
+<div class="border p-2 mt-1" style="min-height: 60px;">
+{{ recepcion.motivo_ingreso|linebreaksbr }}
+</div>
+            </div>
+            
+<div class="col-12">                
+<div class="data-label text-primary">Diagnóstico Inicial (Por parte de Recepción/Mecánico):</div>
+                
+<div class="border p-2 mt-1" style="min-height: 40px;">
+{{ recepcion.diagnostico_inicial|default:"Pendiente de revisión a profundidad."|linebreaksbr }}
+</div>
+            </div>
+        </div>
+        <!-- FIRMAS -->        
+<div class="row" style="margin-top: 50px;">            
+<div class="col-12">                
+<p class="text-justify text-muted" style="font-size: 11px; line-height: 1.2;">                    El cliente autoriza el ingreso del vehículo descrito para su respectivo diagnóstico y reparación.                     El Taller no se hace responsable por objetos de valor no reportados en la sección "Inventario Abordo" ni por daños mecánicos ocultos no relacionados con el motivo de ingreso. Declaro que el nivel de gasolina y los daños descritos concuerdan con la realidad física del auto en este momento.                </p>            </div>
+        </div>
+                
+<div class="row mt-5 text-center">            
+<div class="col-6">                
+<div style="border-top: 1px solid black; width: 80%; margin: 0 auto; padding-top: 5px;">                    <strong>Firma de Cliente / Entregó</strong><br>                    <span style="font-size:12px;">
+{{ recepcion.firma_cliente_text|default:"-" }}
+</span>                </div>
+            </div>
+            
+<div class="col-6">                
+<div style="border-top: 1px solid black; width: 80%; margin: 0 auto; padding-top: 5px;">                    <strong>Recibido Por (Taller)</strong><br>                    <span style="font-size:12px;">
+{{ recepcion.recibido_por.get_full_name|default:recepcion.recibido_por.username }}
+</span>                </div>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</body></html>

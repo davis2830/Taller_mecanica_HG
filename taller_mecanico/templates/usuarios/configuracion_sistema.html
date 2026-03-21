@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Configuración del Sistema - AutoServi Pro
+{% endblock %}
+{% block content %}
+<style>.config-card {    border: none;    border-radius: var(--radius-lg);    box-shadow: 0 8px 25px rgba(0,0,0,0.07);    overflow: hidden;    margin-bottom: 30px;}.config-card .card-header {    padding: 20px 28px;    border-bottom: 1px solid rgba(255,255,255,0.15);    font-weight: 700;    font-size: 1rem;    letter-spacing: 0.3px;}.config-card .card-body {    padding: 30px;    background: var(--surface);}.section-security { border-left: 5px solid #f59e0b; }.section-security .card-header { background: linear-gradient(135deg, #78350f, #b45309); color: white; }.section-db { border-left: 5px solid #3b82f6; }.section-db .card-header { background: linear-gradient(135deg, #1e3a5f, #1d4ed8); color: white; }.section-email { border-left: 5px solid #10b981; }.section-email .card-header { background: linear-gradient(135deg, #064e3b, #059669); color: white; }.env-field-group { margin-bottom: 20px; }.env-label {    display: block;    font-weight: 700;    font-size: 0.82rem;    text-transform: uppercase;    letter-spacing: 0.8px;    color: #64748b;    margin-bottom: 6px;}.env-input {    width: 100%;    padding: 10px 16px;    border-radius: 10px;    border: 1.5px solid #e2e8f0;    font-size: 0.95rem;    font-family: 'Courier New', monospace;    transition: border-color 0.2s, box-shadow 0.2s;    color: #334155;    background: #f8fafc;}.env-input:focus {    outline: none;    border-color: var(--primary);    box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.08);    background: white;}.env-input.sensitive:focus { border-color: #f59e0b; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }.env-hint { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }.warning-banner {    background: linear-gradient(135deg, #fffbeb, #fef3c7);    border: 1px solid #fcd34d;    border-radius: var(--radius);    padding: 18px 24px;    margin-bottom: 30px;    display: flex;    align-items: flex-start;    gap: 15px;}.restart-banner {    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);    border: 1px solid #7dd3fc;    border-radius: var(--radius);    padding: 15px 20px;    margin-top: 20px;}</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">    
+<div>        <h2 class="font-weight-bold text-dark mb-1" style="font-family: 'Oswald', sans-serif;">            <i class="fas fa-sliders-h text-primary mr-3"></i>Configuración del Sistema        </h2>        
+<p class="text-muted mb-0">Gestiona las variables de entorno del servidor. Solo visible para Administradores.</p>    </div>
+</div>
+<!-- Advertencia de seguridad -->
+<div class="warning-banner shadow-sm">    <i class="fas fa-shield-alt fa-2x text-warning flex-shrink-0 mt-1"></i>    
+<div>        <h6 class="font-weight-bold text-dark mb-1">⚠️ Área Restringida — Variables de Entorno Sensibles</h6>        
+<p class="mb-0 text-secondary" style="font-size: 0.9rem;">            Los cambios aquí modifican el archivo <code>.env</code> del servidor y afectan toda la aplicación.            Se recomienda hacer una copia de respaldo antes de modificar. Los cambios surten efecto al <strong>reiniciar el servidor</strong>.        </p>    </div>
+</div>
+
+<form method="POST" id="configForm">    {% csrf_token %}    <!-- Sección 1: Seguridad -->    
+<div class="card config-card section-security">        
+<div class="card-header d-flex align-items-center">            <i class="fas fa-lock mr-3 fa-lg"></i>            
+<div>                
+<div>Seguridad de Django</div>
+                <small class="opacity-75 font-weight-normal">SECRET_KEY, Modo Debug y Hosts Permitidos</small>            </div>
+        </div>
+        
+<div class="card-body">            
+<div class="row">                
+<div class="col-12">                    
+<div class="env-field-group">                        <label class="env-label" for="SECRET_KEY">Secret Key <span class="text-danger">★</span></label>                        
+<input type="password" id="SECRET_KEY" name="SECRET_KEY" class="env-input sensitive"                               value="{{ env.SECRET_KEY }}" autocomplete="off"                               onfocus="this.type='text'" onblur="this.type='password'">                        
+<div class="env-hint"><i class="fas fa-eye-slash mr-1"></i>Clave criptográfica de Django. Nunca la compartas. Haz clic para revelar.</div>
+                    </div>
+                </div>
+                
+<div class="col-md-4">                    
+<div class="env-field-group">                        <label class="env-label" for="DEBUG">Modo Debug</label>                        <select id="DEBUG" name="DEBUG" class="env-input">                            <option value="True" 
+{% if env.DEBUG == 'True' %}selected
+{% endif %}>True (Desarrollo)</option>                            <option value="False" 
+{% if env.DEBUG == 'False' %}selected
+{% endif %}>False (Producción) ✅</option>                        </select>                        
+<div class="env-hint text-danger"><i class="fas fa-info-circle mr-1"></i>SIEMPRE en False en producción.</div>
+                    </div>
+                </div>
+                
+<div class="col-md-8">                    
+<div class="env-field-group">                        <label class="env-label" for="ALLOWED_HOSTS">Hosts Permitidos</label>                        
+<input type="text" id="ALLOWED_HOSTS" name="ALLOWED_HOSTS" class="env-input"                               value="{{ env.ALLOWED_HOSTS }}" placeholder="ejemplo.com,www.ejemplo.com,127.0.0.1">                        
+<div class="env-hint">Separa múltiples hosts con coma. Usa <code>*</code> solo en desarrollo local.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Sección 2: Base de Datos -->    
+<div class="card config-card section-db">        
+<div class="card-header d-flex align-items-center">            <i class="fas fa-database mr-3 fa-lg"></i>            
+<div>                
+<div>Base de Datos</div>
+                <small class="opacity-75 font-weight-normal">Motor, Nombre, Usuario, Contraseña y Host</small>            </div>
+        </div>
+        
+<div class="card-body">            
+<div class="row">                
+<div class="col-md-6">                    
+<div class="env-field-group">                        <label class="env-label" for="DB_ENGINE">Motor de Base de Datos</label>                        <select id="DB_ENGINE" name="DB_ENGINE" class="env-input">                            <option value="django.db.backends.mysql" 
+{% if env.DB_ENGINE == 'django.db.backends.mysql' %}selected
+{% endif %}>MySQL / MariaDB</option>                            <option value="django.db.backends.postgresql" 
+{% if env.DB_ENGINE == 'django.db.backends.postgresql' %}selected
+{% endif %}>PostgreSQL</option>                            <option value="django.db.backends.sqlite3" 
+{% if env.DB_ENGINE == 'django.db.backends.sqlite3' %}selected
+{% endif %}>SQLite3 (Solo Desarrollo)</option>                        </select>                    </div>
+                </div>
+                
+<div class="col-md-6">                    
+<div class="env-field-group">                        <label class="env-label" for="DB_NAME">Nombre de la Base de Datos</label>                        
+<input type="text" id="DB_NAME" name="DB_NAME" class="env-input" value="{{ env.DB_NAME }}" placeholder="taller_mecanico">                    </div>
+                </div>
+                
+<div class="col-md-4">                    
+<div class="env-field-group">                        <label class="env-label" for="DB_USER">Usuario de BD</label>                        
+<input type="text" id="DB_USER" name="DB_USER" class="env-input" value="{{ env.DB_USER }}" placeholder="root">                    </div>
+                </div>
+                
+<div class="col-md-4">                    
+<div class="env-field-group">                        <label class="env-label" for="DB_PASSWORD">Contraseña de BD <span class="text-danger">★</span></label>                        
+<input type="password" id="DB_PASSWORD" name="DB_PASSWORD" class="env-input sensitive"                               value="{{ env.DB_PASSWORD }}" autocomplete="off"                               onfocus="this.type='text'" onblur="this.type='password'">                    </div>
+                </div>
+                
+<div class="col-md-2">                    
+<div class="env-field-group">                        <label class="env-label" for="DB_HOST">Host</label>                        
+<input type="text" id="DB_HOST" name="DB_HOST" class="env-input" value="{{ env.DB_HOST }}" placeholder="localhost">                    </div>
+                </div>
+                
+<div class="col-md-2">                    
+<div class="env-field-group">                        <label class="env-label" for="DB_PORT">Puerto</label>                        
+<input type="text" id="DB_PORT" name="DB_PORT" class="env-input" value="{{ env.DB_PORT }}" placeholder="3306">                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Sección 3: Email SMTP -->    
+<div class="card config-card section-email">        
+<div class="card-header d-flex align-items-center">            <i class="fas fa-envelope mr-3 fa-lg"></i>            
+<div>                
+<div>Correo Electrónico (SMTP)</div>
+                <small class="opacity-75 font-weight-normal">Servidor, Puerto, Autenticación y Credenciales</small>            </div>
+        </div>
+        
+<div class="card-body">            
+<div class="row">                
+<div class="col-md-5">                    
+<div class="env-field-group">                        <label class="env-label" for="EMAIL_HOST">Servidor SMTP</label>                        
+<input type="text" id="EMAIL_HOST" name="EMAIL_HOST" class="env-input" value="{{ env.EMAIL_HOST }}" placeholder="smtp.gmail.com">                        
+<div class="env-hint">Gmail: smtp.gmail.com | Outlook: smtp-mail.outlook.com</div>
+                    </div>
+                </div>
+                
+<div class="col-md-3">                    
+<div class="env-field-group">                        <label class="env-label" for="EMAIL_PORT">Puerto SMTP</label>                        <select id="EMAIL_PORT" name="EMAIL_PORT" class="env-input">                            <option value="587" 
+{% if env.EMAIL_PORT == '587' %}selected
+{% endif %}>587 (TLS/STARTTLS)</option>                            <option value="465" 
+{% if env.EMAIL_PORT == '465' %}selected
+{% endif %}>465 (SSL)</option>                            <option value="25" 
+{% if env.EMAIL_PORT == '25' %}selected
+{% endif %}>25 (Sin cifrado)</option>                        </select>                    </div>
+                </div>
+                
+<div class="col-md-4">                    
+<div class="env-field-group">                        <label class="env-label" for="EMAIL_USE_TLS">Cifrado</label>                        <select id="EMAIL_USE_TLS" name="EMAIL_USE_TLS" class="env-input">                            <option value="True" 
+{% if env.EMAIL_USE_TLS == 'True' %}selected
+{% endif %}>TLS Activado (Recomendado)</option>                            <option value="False" 
+{% if env.EMAIL_USE_TLS == 'False' %}selected
+{% endif %}>Sin TLS</option>                        </select>                    </div>
+                </div>
+                
+<div class="col-md-6">                    
+<div class="env-field-group">                        <label class="env-label" for="EMAIL_HOST_USER">Correo Remitente</label>                        
+<input type="email" id="EMAIL_HOST_USER" name="EMAIL_HOST_USER" class="env-input"                               value="{{ env.EMAIL_HOST_USER }}" placeholder="correo@dominio.com">                    </div>
+                </div>
+                
+<div class="col-md-6">                    
+<div class="env-field-group">                        <label class="env-label" for="EMAIL_HOST_PASSWORD">Contraseña de Aplicación <span class="text-danger">★</span></label>                        
+<input type="password" id="EMAIL_HOST_PASSWORD" name="EMAIL_HOST_PASSWORD" class="env-input sensitive"                               value="{{ env.EMAIL_HOST_PASSWORD }}" autocomplete="off"                               onfocus="this.type='text'" onblur="this.type='password'">                        
+<div class="env-hint">Para <strong>Gmail</strong>, usa una <a href="https://myaccount.google.com/apppasswords" target="_blank">Contraseña de Aplicación</a>, no tu contraseña normal.</div>
+                    </div>
+                </div>
+                
+<div class="col-md-12">                    
+<div class="env-field-group mb-0">                        <label class="env-label" for="DEFAULT_FROM_EMAIL">Email "De" predeterminado</label>                        
+<input type="email" id="DEFAULT_FROM_EMAIL" name="DEFAULT_FROM_EMAIL" class="env-input"                               value="{{ env.DEFAULT_FROM_EMAIL }}" placeholder="noreply@autoservipro.com">                        
+<div class="env-hint">Nombre que verá el destinatario en el campo "De:" de los correos del sistema.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Nota de reinicio -->    
+<div class="restart-banner d-flex align-items-center shadow-sm mb-4">        <i class="fas fa-info-circle fa-2x text-info mr-3 flex-shrink-0"></i>        
+<div>            <h6 class="font-weight-bold text-dark mb-1">Importante: Requiere Reinicio del Servidor</h6>            
+<p class="mb-0 text-secondary" style="font-size: 0.88rem;">                Django carga las variables de entorno al iniciar. Para que los cambios se activen, deberás <strong>detener y volver a arrancar</strong> el servidor                con <code>python manage.py runserver</code> (o reiniciar el proceso en tu hosting/VPS).            </p>        </div>
+    </div>
+    
+<div class="d-flex justify-content-between align-items-center">        <span class="text-muted small"><i class="fas fa-file-code mr-1"></i>Archivo: <code>.env</code> en la raíz del proyecto</span>        
+<button type="submit" class="btn btn-primary font-weight-bold shadow px-5 py-3 rounded-pill" id="btnGuardar"                onclick="return confirm('¿Guardar cambios en la configuración del sistema?')">            <i class="fas fa-save mr-2"></i>Guardar Configuración        </button>    </div>
+</form>
+{% endblock %}

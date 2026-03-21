@@ -4,85 +4,301 @@
 {% block title %}Calendario de Citas - Taller Mecánico{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header bg-primary text-white">
-        <h2 class="mb-0">Calendario de Citas</h2>
+<style>
+/* Estilos Premium para Calendario de Citas */
+.cal-header {
+    background: linear-gradient(135deg, var(--primary) 0%, #1e1b4b 100%);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    color: white;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+.cal-header::before {
+    content: '';
+    position: absolute;
+    bottom: -30px; right: 5%;
+    font-size: 10rem;
+    color: rgba(255,255,255,0.03);
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    content: "\f133"; /* fa-calendar */
+    transform: rotate(10deg);
+    pointer-events: none;
+}
+.cal-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 0.5px;
+}
+.cal-subtitle {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    margin-top: 5px;
+}
+
+/* Filtros */
+.filter-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 20px 25px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 25px;
+    border: 1px solid var(--border);
+}
+.filter-card form .form-group label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.filter-card .form-control {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 15px;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+}
+.filter-card .form-control:focus {
+    border-color: var(--info);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+.btn-filter, .btn-clear {
+    padding: 10px 24px;
+    font-weight: 600;
+    border-radius: 10px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+.btn-filter {
+    background: var(--primary);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+.btn-filter:hover {
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
+}
+.btn-clear {
+    background: white;
+    color: var(--text-muted);
+    border: 2px solid #e2e8f0;
+}
+.btn-clear:hover {
+    background: #f1f5f9;
+    color: var(--primary);
+    border-color: #cbd5e1;
+}
+
+/* Tabla Premium */
+.table-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+.table-responsive {
+    margin: 0;
+}
+.table-premium {
+    margin: 0;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.table-premium thead th {
+    background: #f8fafc;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 16px 20px;
+    border-bottom: 2px solid var(--border);
+    border-top: none;
+    white-space: nowrap;
+}
+.table-premium tbody td {
+    padding: 18px 20px;
+    vertical-align: middle;
+    border-bottom: 1px dashed var(--border);
+    color: var(--primary-light);
+    font-size: 0.95rem;
+}
+.table-premium tbody tr {
+    transition: background 0.2s ease;
+}
+.table-premium tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* Detalles celda */
+.cell-fecha { font-weight: 700; color: var(--primary); }
+.cell-hora { color: var(--text-muted); font-size: 0.85rem; font-family: monospace; }
+.cell-user { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.cell-auto { display: flex; flex-direction: column; }
+.cell-auto-marca { font-weight: 600; }
+.cell-auto-placa { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; }
+
+/* Badges de estado */
+.st-badge {
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.st-pendiente { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.st-confirmada { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.st-completada { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.st-cancelada { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* Empty state */
+.table-empty {
+    padding: 60px 20px;
+    text-align: center;
+}
+.table-empty i { font-size: 3.5rem; color: #cbd5e1; margin-bottom: 15px; }
+.table-empty h4 { color: var(--primary); font-weight: 700; }
+</style>
+
+<div class="cal-header">
+    <div style="z-index: 1;">
+        <h1 class="cal-title"><i class="fas fa-calendar-alt mr-3 text-warning"></i>Agenda Maestra</h1>
+        <p class="cal-subtitle mb-0">Revisa y gestiona todas las citas programadas en el taller.</p>
     </div>
-    <div class="card-body">
-        <!-- Filtros -->
-        <form method="GET" class="mb-4">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="fecha">Fecha:</label>
-                        <input type="date" id="fecha" name="fecha" class="form-control" value="{{ fecha_filtro }}">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="categoria">Categoría:</label>
-                        <select id="categoria" name="categoria" class="form-control">
-                            <option value="">Todas</option>
-                            <option value="MECANICO" {% if categoria_filtro == 'MECANICO' %}selected{% endif %}>Servicio Mecánico</option>
-                            <option value="CARWASH" {% if categoria_filtro == 'CARWASH' %}selected{% endif %}>Servicio de Lavado</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary mr-2">Filtrar</button>
-                    <a href="{% url 'calendario_citas' %}" class="btn btn-outline-secondary">Limpiar</a>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card">
+    <form method="GET" class="mb-0">
+        <div class="row align-items-end">
+            <div class="col-md-4">
+                <div class="form-group mb-md-0">
+                    <label for="fecha"><i class="far fa-calendar mr-1"></i>Día Específico:</label>
+                    <input type="date" id="fecha" name="fecha" class="form-control" value="{{ fecha_filtro }}">
                 </div>
             </div>
-        </form>
-        
-        <!-- Tabla de citas -->
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Cliente</th>
-                        <th>Servicio</th>
-                        <th>Vehículo</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cita in citas %}
-                    <tr>
-                        <td>{{ cita.fecha }}</td>
-                        <td>{{ cita.hora_inicio }} - {{ cita.hora_fin }}</td>
-                        <td>{{ cita.cliente.get_full_name|default:cita.cliente.username }}</td>
-                        <td>{{ cita.servicio.nombre }}</td>
-                        <td>{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} ({{ cita.vehiculo.placa }})</td>
-                        <td>
-                            {% if cita.estado == 'PENDIENTE' %}
-                                <span class="badge badge-warning">Pendiente</span>
-                            {% elif cita.estado == 'CONFIRMADA' %}
-                                <span class="badge badge-info">Confirmada</span>
-                            {% elif cita.estado == 'COMPLETADA' %}
-                                <span class="badge badge-success">Completada</span>
-                            {% elif cita.estado == 'CANCELADA' %}
-                                <span class="badge badge-danger">Cancelada</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-sm btn-info">Detalles</a>
-                            {% if cita.estado != 'CANCELADA' %}
-                                <a href="{% url 'gestionar_cita' cita.id %}" class="btn btn-sm btn-primary">Gestionar</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center">No hay citas para mostrar con los filtros seleccionados.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="col-md-4">
+                <div class="form-group mb-md-0">
+                    <label for="categoria"><i class="fas fa-tag mr-1"></i>Categoría de Servicio:</label>
+                    <select id="categoria" name="categoria" class="form-control">
+                        <option value="">Todas las categorías</option>
+                        <option value="MECANICO" {% if categoria_filtro == 'MECANICO' %}selected{% endif %}>Mecánica General</option>
+                        <option value="CARWASH" {% if categoria_filtro == 'CARWASH' %}selected{% endif %}>Carwash / Estética</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4 mt-3 mt-md-0">
+                <div class="d-flex gap-2" style="gap: 10px;">
+                    <button type="submit" class="btn-filter flex-grow-1">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'calendario_citas' %}" class="btn-clear" title="Quitar Filtros">
+                        <i class="fas fa-eraser"></i>
+                    </a>
+                </div>
+            </div>
         </div>
+    </form>
+</div>
+
+<!-- Tabla de citas -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-premium">
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Cliente</th>
+                    <th>Vehículo</th>
+                    <th>Servicio Solicitado</th>
+                    <th>Estado</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cita in citas %}
+                <tr>
+                    <td>
+                        <div class="cell-fecha">{{ cita.fecha|date:"d M Y" }}</div>
+                        <div class="cell-hora"><i class="far fa-clock mr-1"></i>{{ cita.hora_inicio|time:"g:i A" }} - {{ cita.hora_fin|time:"g:i A" }}</div>
+                    </td>
+                    <td>
+                        <div class="cell-user">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; display:flex; align-items:center; justify-content:center; color: var(--primary); font-size:0.8rem;">
+                                {{ cita.cliente.first_name|default:cita.cliente.username|slice:":1"|upper }}
+                            </div>
+                            <span>{{ cita.cliente.get_full_name|default:cita.cliente.username }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="cell-auto">
+                            <span class="cell-auto-marca">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</span>
+                            <span class="cell-auto-placa"><i class="fas fa-hashtag mr-1"></i>{{ cita.vehiculo.placa }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <strong>{{ cita.servicio.nombre|truncatechars:30 }}</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);"><i class="fas fa-circle fa-xs mr-1 {% if cita.servicio.categoria == 'CARWASH' %}text-info{% else %}text-warning{% endif %}"></i>{{ cita.servicio.get_categoria_display }}</div>
+                    </td>
+                    <td>
+                        {% if cita.estado == 'PENDIENTE' %}
+                            <span class="st-badge st-pendiente"><i class="fas fa-hourglass-half"></i>Pendiente</span>
+                        {% elif cita.estado == 'CONFIRMADA' %}
+                            <span class="st-badge st-confirmada"><i class="fas fa-check-double"></i>Confirmada</span>
+                        {% elif cita.estado == 'COMPLETADA' %}
+                            <span class="st-badge st-completada"><i class="fas fa-flag-checkered"></i>Completada</span>
+                        {% elif cita.estado == 'CANCELADA' %}
+                            <span class="st-badge st-cancelada"><i class="fas fa-ban"></i>Cancelada</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        <div class="d-inline-flex gap-2" style="gap: 5px;">
+                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-sm btn-light text-primary border rounded-lg font-weight-bold shadow-sm" title="Ver Detalles">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if cita.estado != 'CANCELADA' %}
+                                <a href="{% url 'gestionar_cita' cita.id %}" class="btn btn-sm text-white rounded-lg font-weight-bold shadow-sm" style="background: var(--info);" title="Gestionar (Aprobar/Finalizar)">
+                                    <i class="fas fa-clipboard-check"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="table-empty">
+                            <i class="far fa-folder-open"></i>
+                            <h4>Sin resultados</h4>
+                            <p class="text-muted mb-0">No se encontraron citas agendadas para los filtros seleccionados.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

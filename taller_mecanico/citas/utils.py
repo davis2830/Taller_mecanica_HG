@@ -3,7 +3,14 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 import datetime
 
-def enviar_email_cita(cita, tipo_email, destinatario_email=None):
+def_dias = {0: 'Lunes', 1: 'Martes', 2: 'Miércoles', 3: 'Jueves', 4: 'Viernes', 5: 'Sábado', 6: 'Domingo'}
+def_meses = {1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril', 5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto', 9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'}
+
+def formato_fecha_es(fecha):
+    """Traduce la fecha al idioma español para obviar el locale del sistema operativo"""
+    return f"{def_dias[fecha.weekday()]}, {fecha.day} de {def_meses[fecha.month]} de {fecha.year}"
+
+def enviar_email_cita(cita, tipo_email, destinatario_email=None, dominio=None):
     """
     Enviar email relacionado con una cita
     tipo_email: 'confirmacion', 'recordatorio', 'cambio_estado'
@@ -15,13 +22,38 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
         return False
     
     # Configurar el contenido según el tipo de email
+    boton_confirmar = ""
+    
     if tipo_email == 'confirmacion':
-        emoji = '✅'
-        asunto = f'✅ Confirmación de Cita - {cita.servicio.nombre}'
-        titulo = 'Confirmación de Cita'
-        mensaje_principal = 'Tu cita ha sido <strong>confirmada exitosamente</strong>.'
-        color_principal = '#28a745'  # Verde
-        cuando = f"el {cita.fecha.strftime('%A, %d de %B de %Y')} a las {cita.hora_inicio.strftime('%H:%M')}"
+        if cita.estado == 'PENDIENTE':
+            emoji = '⏳'
+            asunto = f'⏳ Solicitud Recibida: Confirma tu Cita - {cita.servicio.nombre}'
+            titulo = 'Confirma tu Asistencia'
+            mensaje_principal = 'Hemos recibido tu solicitud de cita. Para reservarla formalmente y confirmar tu asistencia, haz clic en el botón debajo.'
+            color_principal = '#f59e0b'  # Naranja/Amarillo
+            
+            # Generar enlace mágico si pasaron el dominio
+            from django.core.signing import Signer
+            if dominio:
+                signer = Signer()
+                token = signer.sign(str(cita.id))
+                protocol = 'https' if settings.SECURE_SSL_REDIRECT else 'http'
+                enlace = f"{protocol}://{dominio}/citas/confirmar-email/{token}/"
+                boton_confirmar = f'''
+                <div style="text-align: center; margin: 35px 0;">
+                    <a href="{enlace}" style="background-color: #22c55e; color: white; padding: 16px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">
+                        ✅ Confirmar mi Cita Exactamente
+                    </a>
+                </div>
+                '''
+        else:
+            emoji = '✅'
+            asunto = f'✅ Confirmación de Cita - {cita.servicio.nombre}'
+            titulo = 'Confirmación de Cita'
+            mensaje_principal = 'Tu cita ha sido <strong>confirmada exitosamente</strong>. ¡Te esperamos!'
+            color_principal = '#22c55e'  # Verde nativo
+            
+        cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
         
     elif tipo_email == 'recordatorio':
         emoji = '🔔'
@@ -38,16 +70,16 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
             cuando_texto = f"el {cita.fecha.strftime('%d/%m/%Y')}"
             
         mensaje_principal = f'Te recordamos que tienes una cita programada para <strong>{cuando_texto}</strong>.'
-        color_principal = '#ffc107'  # Amarillo
-        cuando = f"el {cita.fecha.strftime('%A, %d de %B de %Y')} a las {cita.hora_inicio.strftime('%H:%M')}"
+        color_principal = '#eab308'  # Amarillo
+        cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
         
     elif tipo_email == 'cambio_estado':
         emoji = '📋'
         asunto = f'📋 Actualización de Cita - {cita.servicio.nombre}'
         titulo = 'Estado de Cita Actualizado'
         mensaje_principal = f'El estado de tu cita ha cambiado a: <strong>{cita.get_estado_display()}</strong>'
-        color_principal = '#17a2b8'  # Azul
-        cuando = f"el {cita.fecha.strftime('%A, %d de %B de %Y')} a las {cita.hora_inicio.strftime('%H:%M')}"
+        color_principal = '#3b82f6'  # Azul
+        cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
         
     else:
         return False
@@ -148,7 +180,9 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
                     </table>
                 </div>
                 
-                {f'''<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                {boton_confirmar}
+                
+                {f'''<div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 15px; margin: 20px 0; border-left: 4px solid #f59e0b;">
                     <h4 style="margin: 0 0 10px 0; color: #856404;">📝 Notas adicionales:</h4>
                     <p style="margin: 0; color: #856404;">{cita.notas}</p>
                 </div>''' if cita.notas else ''}
@@ -210,7 +244,7 @@ Hola {cita.cliente.first_name or cita.cliente.username},
 {mensaje_principal.replace('<strong>', '').replace('</strong>', '')}
 
 DETALLES DE LA CITA:
-📅 Fecha: {cita.fecha.strftime('%A, %d de %B de %Y')}
+📅 Fecha: {formato_fecha_es(cita.fecha)}
 🕐 Hora: {cita.hora_inicio.strftime('%H:%M')} - {cita.hora_fin.strftime('%H:%M')}
 🔧 Servicio: {cita.servicio.nombre} ({cita.servicio.get_categoria_display()})
 🚗 Vehículo: {cita.vehiculo.marca} {cita.vehiculo.modelo} ({cita.vehiculo.placa})

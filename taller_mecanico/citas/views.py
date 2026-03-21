@@ -221,10 +221,12 @@ def nueva_cita(request, fecha, categoria):
                     enviado=False  # Se marcará como enviado después del email
                 )
                 
-                # Enviar email de confirmación usando el nuevo sistema
+                # Enviar email de confirmación (solicitud)
                 from .utils import enviar_email_cita
+                dominio = request.get_host()
+                
                 try:
-                    if request.user.email and enviar_email_cita(cita, 'confirmacion'):
+                    if request.user.email and enviar_email_cita(cita, 'confirmacion', dominio=dominio):
                         # Marcar la notificación como enviada
                         notificacion = Notificacion.objects.filter(
                             cita=cita,
@@ -267,6 +269,32 @@ def nueva_cita(request, fecha, categoria):
         'categoria_key': categoria
     }
     return render(request, 'citas/nueva_cita.html', context)
+
+def confirmar_cita_email(request, token):
+    """
+    Vista que recibe un clic desde el correo electrónico
+    para confirmar una cita en estado Pendiente.
+    """
+    from django.core.signing import Signer, BadSignature
+    signer = Signer()
+    
+    try:
+        cita_id = signer.unsign(token)
+        cita = get_object_or_404(Cita, id=cita_id)
+        
+        if cita.estado == 'PENDIENTE':
+            cita.estado = 'CONFIRMADA'
+            cita.save()
+            messages.success(request, f'¡Excelente! Tu cita para {cita.servicio.nombre} ha sido confirmada.')
+        elif cita.estado == 'CONFIRMADA':
+            messages.info(request, 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!')
+        else:
+            messages.warning(request, f'Tu cita se encuentra en estado: {cita.get_estado_display()} y ya no puede ser confirmada.')
+            
+    except BadSignature:
+        messages.error(request, 'El enlace de confirmación es inválido o está corrupto.')
+        
+    return redirect('mis_citas') if request.user.is_authenticated else redirect('login')
 
 @login_required
 def detalle_cita(request, cita_id):

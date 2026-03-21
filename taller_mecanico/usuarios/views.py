@@ -387,3 +387,81 @@ def asignar_rol(request, user_id):
         form = AsignarRolForm(instance=perfil)
     
     return render(request, 'usuarios/asignar_rol.html', {'form': form, 'usuario': usuario})
+
+
+# =====================================================================
+# PANEL DE CONFIGURACIÓN DEL SISTEMA (Solo Administradores)
+# =====================================================================
+
+@login_required
+@user_passes_test(es_admin)
+def configuracion_sistema(request):
+    """
+    Vista para editar las variables de entorno del sistema (.env).
+    IMPORTANTE: Solo accesible por usuarios Administradores.
+    Los cambios requieren reiniciar el servidor para aplicar.
+    """
+    from pathlib import Path
+    from django.conf import settings
+    import os
+
+    env_path = Path(settings.BASE_DIR) / '.env'
+
+    def parse_env(path):
+        """Lee el archivo .env y retorna un diccionario de clave-valor."""
+        env_vars = {}
+        if path.exists():
+            with open(path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, _, value = line.partition('=')
+                        env_vars[key.strip()] = value.strip()
+        return env_vars
+
+    def write_env(path, data):
+        """Escribe los cambios al archivo .env preservando los comentarios del encabezado."""
+        header = """# =====================================================================
+# AUTOSERVI PRO — Archivo de Variables de Entorno
+# =====================================================================
+# IMPORTANTE:
+# - Este archivo NO debe subirse a Git o compartirse públicamente.
+# - Contiene credenciales sensibles del sistema.
+# =====================================================================
+
+"""
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(header)
+            f.write("# --- Seguridad y Django ---\n")
+            for key in ['SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS']:
+                if key in data:
+                    f.write(f"{key}={data[key]}\n")
+            f.write("\n# --- Base de Datos ---\n")
+            for key in ['DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']:
+                if key in data:
+                    f.write(f"{key}={data[key]}\n")
+            f.write("\n# --- Correo Electrónico (SMTP) ---\n")
+            for key in ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USE_TLS', 'EMAIL_HOST_USER', 'EMAIL_HOST_PASSWORD', 'DEFAULT_FROM_EMAIL']:
+                if key in data:
+                    f.write(f"{key}={data[key]}\n")
+
+    if request.method == 'POST':
+        env_data = parse_env(env_path)
+        
+        # Actualizar con los valores del formulario
+        campos = [
+            'SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS',
+            'DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT',
+            'EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USE_TLS', 'EMAIL_HOST_USER', 'EMAIL_HOST_PASSWORD', 'DEFAULT_FROM_EMAIL',
+        ]
+        for campo in campos:
+            val = request.POST.get(campo, '').strip()
+            if val:
+                env_data[campo] = val
+
+        write_env(env_path, env_data)
+        messages.success(request, '✅ Configuración guardada exitosamente en el archivo .env. Recuerda reiniciar el servidor para que los cambios surtan efecto.')
+        return redirect('configuracion_sistema')
+
+    env_data = parse_env(env_path)
+    return render(request, 'usuarios/configuracion_sistema.html', {'env': env_data})

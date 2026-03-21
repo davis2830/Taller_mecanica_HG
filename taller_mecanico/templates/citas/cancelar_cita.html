@@ -1,32 +1,36 @@
-<!-- citas/templates/citas/cancelar_cita.html -->
 {% extends "base.html" %}
-
-{% block title %}Cancelar Cita - Taller Mecánico{% endblock %}
-
+{% block title %}
+Cancelar Cita - AutoServi Pro
+{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-danger text-white">
-                <h2 class="mb-0">Cancelar Cita</h2>
-            </div>
-            <div class="card-body">
-                <p>¿Estás seguro de que deseas cancelar la siguiente cita?</p>
+<div class="cancel-wrapper my-5 d-flex justify-content-center">    
+<div class="card shadow-lg border-0" style="max-width: 550px; width: 100%; border-radius: 12px; overflow: hidden;">                
+<div class="card-header bg-dark text-white text-center py-4 border-bottom-0">            <h3 class="mb-0 fw-bold"><i class="fas fa-calendar-times text-danger me-2"></i>Cancelar Cita</h3>        </div>
                 
-                <div class="alert alert-warning">
-                    <strong>Servicio:</strong> {{ cita.servicio.nombre }}<br>
-                    <strong>Fecha:</strong> {{ cita.fecha }}<br>
-                    <strong>Hora:</strong> {{ cita.hora_inicio }}<br>
-                    <strong>Vehículo:</strong> {{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} ({{ cita.vehiculo.placa }})
-                </div>
-                
-                <form method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Sí, Cancelar Cita</button>
-                    <a href="{% url 'mis_citas' %}" class="btn btn-outline-secondary">No, Volver</a>
-                </form>
-            </div>
-        </div>
+<div class="card-body p-4 bg-light">            
+<div class="alert alert-danger border-danger border-start border-5 bg-white text-dark shadow-sm p-4 mb-4" style="border-radius: 8px;">                <h5 class="alert-heading text-danger mb-3 fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>¿Estás seguro?</h5>                
+<p class="mb-0 text-muted" style="font-size: 1.05rem;">Esta acción es irreversible. Se cancelará la siguiente cita programada en tu agenda:</p>            </div>
+                        
+<div class="cita-details-box bg-white p-4 rounded shadow-sm border mb-4">                <dl class="row mb-0" style="font-size: 1.1rem;">                    <dt class="col-sm-4 text-muted fw-bold mb-3">Servicio:</dt>                    <dd class="col-sm-8 text-dark mb-3">
+{{ cita.servicio.nombre }}
+</dd>                                        <dt class="col-sm-4 text-muted fw-bold mb-3">Fecha:</dt>                    <dd class="col-sm-8 text-dark mb-3 text-capitalize">
+{{ cita.fecha|date:"l, j \d\e F \d\e Y" }}
+</dd>                                        <dt class="col-sm-4 text-muted fw-bold mb-3">Hora:</dt>                    <dd class="col-sm-8 text-dark mb-3">
+{{ cita.hora_inicio|time:"g:i A" }}
+</dd>                                        <dt class="col-sm-4 text-muted fw-bold">Vehículo:</dt>                    <dd class="col-sm-8 text-dark mb-0">                        {{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} <br>                        <span class="badge bg-secondary mt-1 py-2 px-3 shadow-sm fs-6">
+{{ cita.vehiculo.placa }}
+</span>                    </dd>                </dl>            </div>
+                        
+<form method="POST" class="d-flex justify-content-between align-items-center mt-4">                
+{% csrf_token %}
+                <a href="
+{% url 'mis_citas' %}
+" class="btn border px-4 py-2 fw-bold text-muted shadow-sm rounded-pill btn-hover-gray" style="background-color: #f8fafc;">                    <i class="fas fa-arrow-left me-2"></i>No, Volver                </a>                
+<button type="submit" class="btn btn-danger px-4 py-2 fw-bold shadow-sm rounded-pill btn-hover-danger">                    <i class="fas fa-trash-alt me-2"></i>Sí, Cancelar                </button>            </form>                    </div>
     </div>
 </div>
+
+<style>.cancel-wrapper {    animation: slideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;}@keyframes slideIn {    from { opacity: 0; transform: translateY(30px) scale(0.98); }    to { opacity: 1; transform: translateY(0) scale(1); }}.btn-hover-gray { transition: all 0.2s; }.btn-hover-gray:hover { background-color: #e2e8f0 !important; border-color: #cbd5e1; transform: translateY(-2px); }.btn-hover-danger { transition: all 0.2s; }.btn-hover-danger:hover { background-color: #b91c1c; transform: translateY(-2px); }
+</style>
+
 {% endblock %}

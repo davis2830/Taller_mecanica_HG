@@ -1,175 +1,84 @@
-{% extends 'base.html' %}
-{% load static %}
-{% load crispy_forms_tags %}
-
-{% block page_title %}Crear Orden de Compra{% endblock %}
-
-{% block extra_css %}
-<style>
-    .detalles-formset table th { background: #f8fafc; border-top: none; }
-    .remove-row-btn {
-        color: #ef4444; background: none; border: none; font-size: 1.1rem; cursor: pointer;
-        transition: transform 0.2s;
-    }
-    .remove-row-btn:hover { transform: scale(1.1); color: #dc2626; }
-</style>
+{% extends 'base.html' %}{% load static %}{% load crispy_forms_tags %}
+{% block page_title %}Crear Orden de Compra
 {% endblock %}
+{% block extra_css %}
+<style>    .detalles-formset table th { background: #f8fafc; border-top: none; }    .remove-row-btn {        color: #ef4444; background: none; border: none; font-size: 1.1rem; cursor: pointer;        transition: transform 0.2s;    }    .remove-row-btn:hover { transform: scale(1.1); color: #dc2626; }</style>
 
+{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card">
-            <div class="card-header">
-                <span><i class="fas fa-cart-shopping mr-2"></i>Nueva Orden de Compra</span>
-            </div>
-            <div class="card-body">
-                <form method="POST" id="ordenForm">
-                    {% csrf_token %}
-                    
-                    <h5 class="mb-3 font-weight-bold" style="color: var(--primary);">Datos del Proveedor</h5>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.proveedor|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            {{ form.fecha_esperada|as_crispy_field }}
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            {{ form.observaciones|as_crispy_field }}
-                        </div>
+<div class="row justify-content-center">    
+<div class="col-lg-10">        
+<div class="card">            
+<div class="card-header">                <span><i class="fas fa-cart-shopping mr-2"></i>Nueva Orden de Compra</span>            </div>
+            
+<div class="card-body">                
+<form method="POST" id="ordenForm">                    {% csrf_token %}                                        <h5 class="mb-3 font-weight-bold" style="color: var(--primary);">Datos del Proveedor</h5>                    
+<div class="row">                        
+<div class="col-md-6 mb-3">                            {{ form.proveedor|as_crispy_field }}                        </div>
+                        
+<div class="col-md-6 mb-3">                            {{ form.fecha_esperada|as_crispy_field }}                        </div>
+                        
+<div class="col-md-12 mb-3">                            {{ form.observaciones|as_crispy_field }}                        </div>
                     </div>
+                    <h5 class="mt-4 mb-3 font-weight-bold" style="color: var(--primary);">Productos a Pedir</h5>                                        {{ formset.management_form }}                    
+<div class="table-responsive detalles-formset">                        
+<table class="table table-bordered mb-0" id="detallesTable">                            
+<thead>                                
+<tr>                                    
+<th width="45%">Producto</th>                                    
+<th width="20%">Ctd. Solicitada</th>                                    
+<th width="25%">Precio Unit. (Q)</th>                                    
+<th width="10%" class="text-center"><i class="fas fa-trash"></i></th>                                </tr>                            </thead>                            <tbody id="detallesBody">                                
+{% for inline_form in formset %}                                
+<tr class="detalle-row">                                    
+<td>                                        
+{% for hidden in inline_form.hidden_fields %}{{ hidden }}
+{% endfor %}                                        {{ inline_form.producto }}                                        
+{% if inline_form.producto.errors %}
+<div class="text-danger small">{{ inline_form.producto.errors }}</div>
 
-                    <h5 class="mt-4 mb-3 font-weight-bold" style="color: var(--primary);">Productos a Pedir</h5>
-                    
-                    {{ formset.management_form }}
-                    <div class="table-responsive detalles-formset">
-                        <table class="table table-bordered mb-0" id="detallesTable">
-                            <thead>
-                                <tr>
-                                    <th width="45%">Producto</th>
-                                    <th width="20%">Ctd. Solicitada</th>
-                                    <th width="25%">Precio Unit. (Q)</th>
-                                    <th width="10%" class="text-center"><i class="fas fa-trash"></i></th>
-                                </tr>
-                            </thead>
-                            <tbody id="detallesBody">
-                                {% for inline_form in formset %}
-                                <tr class="detalle-row">
-                                    <td>
-                                        {% for hidden in inline_form.hidden_fields %}{{ hidden }}{% endfor %}
-                                        {{ inline_form.producto }}
-                                        {% if inline_form.producto.errors %}<div class="text-danger small">{{ inline_form.producto.errors }}</div>{% endif %}
-                                    </td>
-                                    <td>
-                                        {{ inline_form.cantidad_solicitada }}
-                                        {% if inline_form.cantidad_solicitada.errors %}<div class="text-danger small">{{ inline_form.cantidad_solicitada.errors }}</div>{% endif %}
-                                    </td>
-                                    <td>
-                                        {{ inline_form.precio_unitario }}
-                                        {% if inline_form.precio_unitario.errors %}<div class="text-danger small">{{ inline_form.precio_unitario.errors }}</div>{% endif %}
-                                    </td>
-                                    <td class="text-center align-middle">
-                                        {% if formset.can_delete %}
-                                            <div class="d-none">{{ inline_form.DELETE }}</div>
-                                        {% endif %}
-                                        <button type="button" class="remove-row-btn" onclick="removeRow(this)"><i class="fas fa-times-circle"></i></button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <button type="button" class="btn btn-light mt-3" id="add-row" style="border: 1px dashed #cbd5e1; border-radius: 8px; width: 100%;">
-                        <i class="fas fa-plus mr-1"></i> Añadir Otro Producto
-                    </button>
+{% endif %}                                    </td>                                    
+<td>                                        {{ inline_form.cantidad_solicitada }}                                        
+{% if inline_form.cantidad_solicitada.errors %}
+<div class="text-danger small">{{ inline_form.cantidad_solicitada.errors }}</div>
 
-                    <hr class="my-4">
-                    
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="{% url 'lista_ordenes_compra' %}" class="btn btn-light">Cancelar</a>
-                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save mr-2"></i>Guardar y Solicitar</button>
-                    </div>
-                </form>
-            </div>
+{% endif %}                                    </td>                                    
+<td>                                        {{ inline_form.precio_unitario }}                                        
+{% if inline_form.precio_unitario.errors %}
+<div class="text-danger small">{{ inline_form.precio_unitario.errors }}</div>
+
+{% endif %}                                    </td>                                    
+<td class="text-center align-middle">                                        
+{% if formset.can_delete %}                                            
+<div class="d-none">{{ inline_form.DELETE }}</div>
+                                        
+{% endif %}                                        
+<button type="button" class="remove-row-btn" onclick="removeRow(this)"><i class="fas fa-times-circle"></i></button>                                    </td>                                </tr>                                
+{% endfor %}                            </tbody>                        </table>                    </div>
+                                        
+<button type="button" class="btn btn-light mt-3" id="add-row" style="border: 1px dashed #cbd5e1; border-radius: 8px; width: 100%;">                        <i class="fas fa-plus mr-1"></i> Añadir Otro Producto                    </button>                    <hr class="my-4">                                        
+<div class="d-flex justify-content-end gap-2">                        <a href="{% url 'lista_ordenes_compra' %}" class="btn btn-light">Cancelar</a>                        
+<button type="submit" class="btn btn-primary px-4"><i class="fas fa-save mr-2"></i>Guardar y Solicitar</button>                    </div>
+                </form>            </div>
         </div>
     </div>
 </div>
-
 <!-- Template oculto para agregar nuevas filas -->
-<table style="display: none;">
-    <tbody id="empty-form-template">
-        <tr class="detalle-row">
-            <td>
-                {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
-                {{ formset.empty_form.producto }}
-            </td>
-            <td>{{ formset.empty_form.cantidad_solicitada }}</td>
-            <td>{{ formset.empty_form.precio_unitario }}</td>
-            <td class="text-center align-middle">
-                {% if formset.can_delete %}<div class="d-none">{{ formset.empty_form.DELETE }}</div>{% endif %}
-                <button type="button" class="remove-row-btn" onclick="removeRow(this)"><i class="fas fa-times-circle"></i></button>
-            </td>
-        </tr>
-    </tbody>
-</table>
+<table style="display: none;">    <tbody id="empty-form-template">        
+<tr class="detalle-row">            
+<td>                
+{% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}
+{% endfor %}                {{ formset.empty_form.producto }}            </td>            
+<td>{{ formset.empty_form.cantidad_solicitada }}</td>            
+<td>{{ formset.empty_form.precio_unitario }}</td>            
+<td class="text-center align-middle">                
+{% if formset.can_delete %}
+<div class="d-none">{{ formset.empty_form.DELETE }}</div>
 
+{% endif %}                
+<button type="button" class="remove-row-btn" onclick="removeRow(this)"><i class="fas fa-times-circle"></i></button>            </td>        </tr>    </tbody></table>
 {% endblock %}
-
 {% block extra_js %}
-<script>
-    const formsetPrefix = '{{ formset.prefix }}';
-    
-    document.getElementById('add-row').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        let totalFormsInput = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
-        let currentFormCount = parseInt(totalFormsInput.value);
-        
-        // Clonar la fila vacía del template
-        let templateHtml = document.getElementById('empty-form-template').innerHTML;
-        let newRowHtml = templateHtml.replace(/__prefix__/g, currentFormCount);
-        
-        // Insertar en la tabla
-        let tbody = document.getElementById('detallesBody');
-        tbody.insertAdjacentHTML('beforeend', newRowHtml);
-        
-        // Actualizar el contador
-        totalFormsInput.value = currentFormCount + 1;
-        
-        // Aplicar estilos/clases si es necesario a los nuevos inputs
-        let newTr = tbody.lastElementChild;
-        let selects = newTr.querySelectorAll('select');
-        let inputs = newTr.querySelectorAll('input');
-        selects.forEach(s => s.classList.add('form-control'));
-        inputs.forEach(i => i.classList.add('form-control'));
-    });
+<script>    const formsetPrefix = '{{ formset.prefix }}';        document.getElementById('add-row').addEventListener('click', function(e) {        e.preventDefault();                let totalFormsInput = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);        let currentFormCount = parseInt(totalFormsInput.value);                // Clonar la fila vacía del template        let templateHtml = document.getElementById('empty-form-template').innerHTML;        let newRowHtml = templateHtml.replace(/__prefix__/g, currentFormCount);                // Insertar en la tabla        let tbody = document.getElementById('detallesBody');        tbody.insertAdjacentHTML('beforeend', newRowHtml);                // Actualizar el contador        totalFormsInput.value = currentFormCount + 1;                // Aplicar estilos/clases si es necesario a los nuevos inputs        let newTr = tbody.lastElementChild;        let selects = newTr.querySelectorAll('select');        let inputs = newTr.querySelectorAll('input');        selects.forEach(s => s.classList.add('form-control'));        inputs.forEach(i => i.classList.add('form-control'));    });    function removeRow(btn) {        let row = btn.closest('.detalle-row');        let deleteInput = row.querySelector('input[type="checkbox"][id$="-DELETE"]');                if (deleteInput) {            // Si tiene input de borrar, lo marcamos y ocultamos la fila            deleteInput.checked = true;            row.style.display = 'none';        } else {            // Si es una fila nueva sin guardar, simplemente la removemos del DOM            // Ojo: También habría que reajustar los índices si queremos ser super precisos,            // pero Django ignora las que enviamos vacías. Por precaución:            row.remove();                        // Reajustar TOTAL_FORMS            let totalFormsInput = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);            totalFormsInput.value = parseInt(totalFormsInput.value) - 1;        }    }        // Aplicar form-control classes to initial forms manually since Crispy doesn't handle inline factory widgets perfectly    document.addEventListener('DOMContentLoaded', () => {        document.querySelectorAll('#detallesTable select, #detallesTable input[type="number"]').forEach(el => {            el.classList.add('form-control');        });    });</script>
 
-    function removeRow(btn) {
-        let row = btn.closest('.detalle-row');
-        let deleteInput = row.querySelector('input[type="checkbox"][id$="-DELETE"]');
-        
-        if (deleteInput) {
-            // Si tiene input de borrar, lo marcamos y ocultamos la fila
-            deleteInput.checked = true;
-            row.style.display = 'none';
-        } else {
-            // Si es una fila nueva sin guardar, simplemente la removemos del DOM
-            // Ojo: También habría que reajustar los índices si queremos ser super precisos,
-            // pero Django ignora las que enviamos vacías. Por precaución:
-            row.remove();
-            
-            // Reajustar TOTAL_FORMS
-            let totalFormsInput = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
-            totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
-        }
-    }
-    
-    // Aplicar form-control classes to initial forms manually since Crispy doesn't handle inline factory widgets perfectly
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('#detallesTable select, #detallesTable input[type="number"]').forEach(el => {
-            el.classList.add('form-control');
-        });
-    });
-</script>
 {% endblock %}

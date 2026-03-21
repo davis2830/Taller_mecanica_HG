@@ -1,772 +1,243 @@
 {% extends "base.html" %}
-
-{% block title %}Dashboard — AutoServi Pro{% endblock %}
-
+{% block title %}Dashboard — AutoServi Pro
+{% endblock %}
 {% block content %}
-<style>
-/* ═══════════════════════════════════════
-   DASHBOARD STYLES
-═══════════════════════════════════════ */
-.db-wrap { padding: 0; }
+<style>/* ═══════════════════════════════════════   DASHBOARD STYLES═══════════════════════════════════════ */.db-wrap { padding: 0; }/* ── Welcome Banner ── */.db-banner {    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0c2340 100%);    border-radius: 20px;    padding: 36px 40px;    margin-bottom: 28px;    position: relative;    overflow: hidden;    color: #fff;}.db-banner::before {    content: '';    position: absolute;    inset: 0;    background-image:        linear-gradient(rgba(249,115,22,.06) 1px, transparent 1px),        linear-gradient(90deg, rgba(249,115,22,.06) 1px, transparent 1px);    background-size: 36px 36px;}.db-banner::after {    content: '';    position: absolute;    width: 320px; height: 320px;    border-radius: 50%;    background: radial-gradient(circle, rgba(249,115,22,.15) 0%, transparent 70%);    top: -80px; right: -40px;    pointer-events: none;}.db-banner-content { position: relative; z-index: 1; }.db-banner h1 {    font-family: 'Oswald', sans-serif;    font-size: 2.2rem;    font-weight: 600;    margin-bottom: 6px;}.db-banner h1 span { color: #f97316; }.db-banner p { color: #94a3b8; font-size: 1rem; margin-bottom: 16px; }.db-badges { display: flex; gap: 10px; flex-wrap: wrap; }.db-badge {    display: inline-flex;    align-items: center;    gap: 7px;    background: rgba(255,255,255,.1);    border: 1px solid rgba(255,255,255,.12);    padding: 6px 14px;    border-radius: 50px;    font-size: 0.83rem;    backdrop-filter: blur(6px);}.db-banner-icon {    position: absolute;    right: 40px; top: 50%;    transform: translateY(-50%);    width: 110px; height: 110px;    border-radius: 50%;    background: rgba(255,255,255,.06);    border: 2px solid rgba(255,255,255,.12);    display: flex; align-items: center; justify-content: center;    font-size: 3rem;    animation: iconPulse 3s ease-in-out infinite;    z-index: 1;}@keyframes iconPulse {    0%, 100% { transform: translateY(-50%) scale(1); }    50%       { transform: translateY(-50%) scale(1.07); }}@media (max-width: 680px) {    .db-banner-icon { display: none; }    .db-banner { padding: 28px 24px; }    .db-banner h1 { font-size: 1.7rem; }}/* ── Section headers ── */.db-section-label {    font-family: 'Oswald', sans-serif;    font-size: 1.25rem;    font-weight: 600;    color: #0f172a;    margin-bottom: 16px;    display: flex;    align-items: center;    gap: 8px;}.db-section-label i { color: #f97316; font-size: 1rem; }/* ── Stat cards ── */.stat-grid {    display: grid;    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));    gap: 16px;    margin-bottom: 28px;}.stat-card {    background: #fff;    border-radius: 16px;    padding: 22px 20px;    box-shadow: 0 2px 12px rgba(0,0,0,.07);    border-top: 4px solid var(--sc-color, #e2e8f0);    transition: box-shadow .25s, transform .25s;    display: flex;    align-items: flex-start;    gap: 16px;}.stat-card:hover {    box-shadow: 0 8px 28px rgba(0,0,0,.12);    transform: translateY(-3px);}.stat-icon-box {    width: 52px; height: 52px;    flex-shrink: 0;    border-radius: 12px;    background: var(--sc-bg, #f1f5f9);    color: var(--sc-color, #64748b);    display: flex; align-items: center; justify-content: center;    font-size: 1.3rem;}.stat-info {}.stat-number {    font-family: 'Oswald', sans-serif;    font-size: 1.9rem;    font-weight: 700;    color: #0f172a;    line-height: 1.1;}.stat-label {    font-size: 0.82rem;    color: #64748b;    font-weight: 500;    margin-top: 2px;}.stat-badge {    display: inline-block;    font-size: 0.72rem;    font-weight: 600;    padding: 3px 8px;    border-radius: 20px;    margin-top: 6px;}.badge-ok  { background: #d1fae5; color: #065f46; }.badge-warn{ background: #fef3c7; color: #92400e; }.badge-info{ background: #dbeafe; color: #1e40af; }.badge-danger{ background: #fee2e2; color: #991b1b; }/* Color presets */.sc-blue   { --sc-color:#3b82f6; --sc-bg:#eff6ff; }.sc-green  { --sc-color:#10b981; --sc-bg:#ecfdf5; }.sc-amber  { --sc-color:#f59e0b; --sc-bg:#fffbeb; }.sc-rose   { --sc-color:#f43f5e; --sc-bg:#fff1f2; }.sc-violet { --sc-color:#8b5cf6; --sc-bg:#f5f3ff; }.sc-orange { --sc-color:#f97316; --sc-bg:#fff7ed; }/* ── Upcoming Citas table ── */.db-upcoming {    background: #fff;    border-radius: 16px;    box-shadow: 0 2px 12px rgba(0,0,0,.07);    margin-bottom: 28px;    overflow: hidden;}.db-upcoming-header {    padding: 18px 22px;    border-bottom: 1px solid #f1f5f9;    display: flex;    align-items: center;    justify-content: space-between;}.db-upcoming-header h3 {    font-family: 'Oswald', sans-serif;    font-size: 1.1rem;    font-weight: 600;    color: #0f172a;    display: flex;    align-items: center;    gap: 8px;    margin: 0;}.db-upcoming-header h3 i { color: #f97316; }.db-table { width: 100%; border-collapse: collapse; }.db-table th {    font-size: 0.72rem;    font-weight: 700;    text-transform: uppercase;    letter-spacing: .8px;    color: #94a3b8;    padding: 10px 22px;    background: #f8fafc;    border-bottom: 1px solid #e2e8f0;    text-align: left;}.db-table td {    padding: 14px 22px;    font-size: 0.88rem;    color: #334155;    border-bottom: 1px solid #f1f5f9;    vertical-align: middle;}.db-table tr:last-child td { border-bottom: none; }.db-table tr:hover td { background: #f8fafc; }.cita-estado {    display: inline-flex;    align-items: center;    gap: 5px;    padding: 4px 10px;    border-radius: 20px;    font-size: 0.75rem;    font-weight: 600;}.estado-PENDIENTE  { background: #fef3c7; color: #92400e; }.estado-CONFIRMADA { background: #d1fae5; color: #065f46; }.estado-COMPLETADA { background: #dbeafe; color: #1e40af; }.estado-CANCELADA  { background: #fee2e2; color: #991b1b; }.empty-state {    text-align: center;    padding: 40px 20px;    color: #94a3b8;}.empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; }.empty-state p { margin: 0; font-size: 0.9rem; }/* ── Two-column layout for bottom section ── */.db-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }@media (max-width: 900px) { .db-bottom { grid-template-columns: 1fr; } }/* ── Action cards ── */.db-actions { display: flex; flex-direction: column; gap: 12px; }.action-link {    display: flex;    align-items: center;    gap: 14px;    padding: 16px 18px;    background: #fff;    border-radius: 14px;    box-shadow: 0 2px 10px rgba(0,0,0,.06);    text-decoration: none !important;    color: #334155;    transition: all .25s;    border: 1.5px solid transparent;}.action-link:hover {    border-color: #f97316;    background: #fff7ed;    transform: translateX(6px);    color: #0f172a;}.action-link-icon {    width: 44px; height: 44px;    border-radius: 10px;    display: flex; align-items: center; justify-content: center;    font-size: 1.1rem;    color: #fff;    flex-shrink: 0;}.action-link-body { flex: 1; }.action-link-body strong { display: block; font-size: 0.92rem; font-weight: 600; }.action-link-body span  { font-size: 0.8rem; color: #64748b; }.action-link .arrow { color: #cbd5e1; transition: color .2s; }.action-link:hover .arrow { color: #f97316; }/* ── Movements / Activity feed ── */.activity-feed {    background: #fff;    border-radius: 16px;    box-shadow: 0 2px 12px rgba(0,0,0,.07);    overflow: hidden;    height: 100%;}.activity-header {    padding: 18px 22px;    border-bottom: 1px solid #f1f5f9;    display: flex;    align-items: center;    justify-content: space-between;}.activity-header h3 {    font-family: 'Oswald', sans-serif;    font-size: 1.1rem;    font-weight: 600;    color: #0f172a;    display: flex;    align-items: center;    gap: 8px;    margin: 0;}.activity-header h3 i { color: #f97316; }.activity-list { padding: 8px 0; max-height: 320px; overflow-y: auto; }.activity-item {    display: flex;    align-items: flex-start;    gap: 12px;    padding: 12px 22px;    transition: background .2s;}.activity-item:hover { background: #f8fafc; }.activity-dot {    width: 36px; height: 36px;    border-radius: 50%;    display: flex; align-items: center; justify-content: center;    font-size: 0.8rem;    color: #fff;    flex-shrink: 0;    margin-top: 2px;}.dot-entrada { background: #10b981; }.dot-salida  { background: #ef4444; }.dot-ajuste  { background: #f59e0b; }.activity-item-body { flex: 1; min-width: 0; }.activity-item-body strong {    display: block;    font-size: 0.88rem;    font-weight: 600;    color: #0f172a;    white-space: nowrap;    overflow: hidden;    text-overflow: ellipsis;}.activity-item-body span {    font-size: 0.78rem;    color: #94a3b8;}.activity-qty {    font-size: 0.82rem;    font-weight: 700;    padding: 3px 9px;    border-radius: 20px;    flex-shrink: 0;}.qty-entrada { background: #d1fae5; color: #065f46; }.qty-salida  { background: #fee2e2; color: #991b1b; }.qty-ajuste  { background: #fef3c7; color: #92400e; }/* ── Admin mini-stats ── */.admin-stats-grid {    display: grid;    grid-template-columns: repeat(3, 1fr);    gap: 12px;    margin-bottom: 28px;}.admin-mini-card {    background: #fff;    border-radius: 14px;    padding: 18px 16px;    box-shadow: 0 2px 10px rgba(0,0,0,.07);    text-align: center;    border-bottom: 3px solid var(--amc, #e2e8f0);    transition: all .25s;}.admin-mini-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }.amc-icon {    font-size: 1.4rem;    color: var(--amc, #64748b);    margin-bottom: 8px;}.amc-num {    font-family: 'Oswald', sans-serif;    font-size: 1.6rem;    font-weight: 700;    color: #0f172a;    line-height: 1;}.amc-label { font-size: 0.76rem; color: #94a3b8; font-weight: 500; margin-top: 4px; }</style>
 
-/* ── Welcome Banner ── */
-.db-banner {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0c2340 100%);
-    border-radius: 20px;
-    padding: 36px 40px;
-    margin-bottom: 28px;
-    position: relative;
-    overflow: hidden;
-    color: #fff;
-}
-.db-banner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-        linear-gradient(rgba(249,115,22,.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(249,115,22,.06) 1px, transparent 1px);
-    background-size: 36px 36px;
-}
-.db-banner::after {
-    content: '';
-    position: absolute;
-    width: 320px; height: 320px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(249,115,22,.15) 0%, transparent 70%);
-    top: -80px; right: -40px;
-    pointer-events: none;
-}
-.db-banner-content { position: relative; z-index: 1; }
-.db-banner h1 {
-    font-family: 'Oswald', sans-serif;
-    font-size: 2.2rem;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
-.db-banner h1 span { color: #f97316; }
-.db-banner p { color: #94a3b8; font-size: 1rem; margin-bottom: 16px; }
-.db-badges { display: flex; gap: 10px; flex-wrap: wrap; }
-.db-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    background: rgba(255,255,255,.1);
-    border: 1px solid rgba(255,255,255,.12);
-    padding: 6px 14px;
-    border-radius: 50px;
-    font-size: 0.83rem;
-    backdrop-filter: blur(6px);
-}
-.db-banner-icon {
-    position: absolute;
-    right: 40px; top: 50%;
-    transform: translateY(-50%);
-    width: 110px; height: 110px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.06);
-    border: 2px solid rgba(255,255,255,.12);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 3rem;
-    animation: iconPulse 3s ease-in-out infinite;
-    z-index: 1;
-}
-@keyframes iconPulse {
-    0%, 100% { transform: translateY(-50%) scale(1); }
-    50%       { transform: translateY(-50%) scale(1.07); }
-}
-@media (max-width: 680px) {
-    .db-banner-icon { display: none; }
-    .db-banner { padding: 28px 24px; }
-    .db-banner h1 { font-size: 1.7rem; }
-}
-
-/* ── Section headers ── */
-.db-section-label {
-    font-family: 'Oswald', sans-serif;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #0f172a;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.db-section-label i { color: #f97316; font-size: 1rem; }
-
-/* ── Stat cards ── */
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 28px;
-}
-.stat-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 22px 20px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.07);
-    border-top: 4px solid var(--sc-color, #e2e8f0);
-    transition: box-shadow .25s, transform .25s;
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-}
-.stat-card:hover {
-    box-shadow: 0 8px 28px rgba(0,0,0,.12);
-    transform: translateY(-3px);
-}
-.stat-icon-box {
-    width: 52px; height: 52px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    background: var(--sc-bg, #f1f5f9);
-    color: var(--sc-color, #64748b);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem;
-}
-.stat-info {}
-.stat-number {
-    font-family: 'Oswald', sans-serif;
-    font-size: 1.9rem;
-    font-weight: 700;
-    color: #0f172a;
-    line-height: 1.1;
-}
-.stat-label {
-    font-size: 0.82rem;
-    color: #64748b;
-    font-weight: 500;
-    margin-top: 2px;
-}
-.stat-badge {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 20px;
-    margin-top: 6px;
-}
-.badge-ok  { background: #d1fae5; color: #065f46; }
-.badge-warn{ background: #fef3c7; color: #92400e; }
-.badge-info{ background: #dbeafe; color: #1e40af; }
-.badge-danger{ background: #fee2e2; color: #991b1b; }
-
-/* Color presets */
-.sc-blue   { --sc-color:#3b82f6; --sc-bg:#eff6ff; }
-.sc-green  { --sc-color:#10b981; --sc-bg:#ecfdf5; }
-.sc-amber  { --sc-color:#f59e0b; --sc-bg:#fffbeb; }
-.sc-rose   { --sc-color:#f43f5e; --sc-bg:#fff1f2; }
-.sc-violet { --sc-color:#8b5cf6; --sc-bg:#f5f3ff; }
-.sc-orange { --sc-color:#f97316; --sc-bg:#fff7ed; }
-
-/* ── Upcoming Citas table ── */
-.db-upcoming {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.07);
-    margin-bottom: 28px;
-    overflow: hidden;
-}
-.db-upcoming-header {
-    padding: 18px 22px;
-    border-bottom: 1px solid #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.db-upcoming-header h3 {
-    font-family: 'Oswald', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-}
-.db-upcoming-header h3 i { color: #f97316; }
-.db-table { width: 100%; border-collapse: collapse; }
-.db-table th {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .8px;
-    color: #94a3b8;
-    padding: 10px 22px;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    text-align: left;
-}
-.db-table td {
-    padding: 14px 22px;
-    font-size: 0.88rem;
-    color: #334155;
-    border-bottom: 1px solid #f1f5f9;
-    vertical-align: middle;
-}
-.db-table tr:last-child td { border-bottom: none; }
-.db-table tr:hover td { background: #f8fafc; }
-.cita-estado {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.estado-PENDIENTE  { background: #fef3c7; color: #92400e; }
-.estado-CONFIRMADA { background: #d1fae5; color: #065f46; }
-.estado-COMPLETADA { background: #dbeafe; color: #1e40af; }
-.estado-CANCELADA  { background: #fee2e2; color: #991b1b; }
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: #94a3b8;
-}
-.empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; }
-.empty-state p { margin: 0; font-size: 0.9rem; }
-
-/* ── Two-column layout for bottom section ── */
-.db-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
-@media (max-width: 900px) { .db-bottom { grid-template-columns: 1fr; } }
-
-/* ── Action cards ── */
-.db-actions { display: flex; flex-direction: column; gap: 12px; }
-.action-link {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.06);
-    text-decoration: none !important;
-    color: #334155;
-    transition: all .25s;
-    border: 1.5px solid transparent;
-}
-.action-link:hover {
-    border-color: #f97316;
-    background: #fff7ed;
-    transform: translateX(6px);
-    color: #0f172a;
-}
-.action-link-icon {
-    width: 44px; height: 44px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
-    color: #fff;
-    flex-shrink: 0;
-}
-.action-link-body { flex: 1; }
-.action-link-body strong { display: block; font-size: 0.92rem; font-weight: 600; }
-.action-link-body span  { font-size: 0.8rem; color: #64748b; }
-.action-link .arrow { color: #cbd5e1; transition: color .2s; }
-.action-link:hover .arrow { color: #f97316; }
-
-/* ── Movements / Activity feed ── */
-.activity-feed {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.07);
-    overflow: hidden;
-    height: 100%;
-}
-.activity-header {
-    padding: 18px 22px;
-    border-bottom: 1px solid #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.activity-header h3 {
-    font-family: 'Oswald', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-}
-.activity-header h3 i { color: #f97316; }
-.activity-list { padding: 8px 0; max-height: 320px; overflow-y: auto; }
-.activity-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 22px;
-    transition: background .2s;
-}
-.activity-item:hover { background: #f8fafc; }
-.activity-dot {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.8rem;
-    color: #fff;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-.dot-entrada { background: #10b981; }
-.dot-salida  { background: #ef4444; }
-.dot-ajuste  { background: #f59e0b; }
-.activity-item-body { flex: 1; min-width: 0; }
-.activity-item-body strong {
-    display: block;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.activity-item-body span {
-    font-size: 0.78rem;
-    color: #94a3b8;
-}
-.activity-qty {
-    font-size: 0.82rem;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: 20px;
-    flex-shrink: 0;
-}
-.qty-entrada { background: #d1fae5; color: #065f46; }
-.qty-salida  { background: #fee2e2; color: #991b1b; }
-.qty-ajuste  { background: #fef3c7; color: #92400e; }
-
-/* ── Admin mini-stats ── */
-.admin-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 28px;
-}
-.admin-mini-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 18px 16px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.07);
-    text-align: center;
-    border-bottom: 3px solid var(--amc, #e2e8f0);
-    transition: all .25s;
-}
-.admin-mini-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
-.amc-icon {
-    font-size: 1.4rem;
-    color: var(--amc, #64748b);
-    margin-bottom: 8px;
-}
-.amc-num {
-    font-family: 'Oswald', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #0f172a;
-    line-height: 1;
-}
-.amc-label { font-size: 0.76rem; color: #94a3b8; font-weight: 500; margin-top: 4px; }
-</style>
-
-<div class="db-wrap">
-
-    <!-- ══ BANNER ══ -->
-    <div class="db-banner">
-        <div class="db-banner-content">
-            <h1>¡Bienvenido, <span>{{ user.first_name|default:user.username }}</span>!</h1>
-            <p>Tu centro de control para gestionar eficientemente el taller</p>
-            <div class="db-badges">
-                <span class="db-badge">
-                    <i class="fas fa-user-tag"></i>
-                    {{ user.perfil.rol.nombre|default:"Usuario" }}
-                </span>
-                <span class="db-badge">
-                    <i class="fas fa-clock"></i>
-                    <span id="current-time"></span>
-                </span>
-                <span class="db-badge">
-                    <i class="fas fa-calendar-day"></i>
-                    <span id="current-date"></span>
-                </span>
+<div class="db-wrap">    <!-- ══ BANNER ══ -->    
+<div class="db-banner">        
+<div class="db-banner-content">            <h1>¡Bienvenido, <span>{{ user.first_name|default:user.username }}</span>!</h1>            
+<p>Tu centro de control para gestionar eficientemente el taller</p>            
+<div class="db-badges">                <span class="db-badge">                    <i class="fas fa-user-tag"></i>                    {{ user.perfil.rol.nombre|default:"Usuario" }}                </span>                <span class="db-badge">                    <i class="fas fa-clock"></i>                    <span id="current-time"></span>                </span>                <span class="db-badge">                    <i class="fas fa-calendar-day"></i>                    <span id="current-date"></span>                </span>            </div>
+        </div>
+        
+<div class="db-banner-icon" aria-hidden="true">            <i class="fas fa-gauge-high"></i>        </div>
+    </div>
+    <!-- ══ KPI STATS ══ -->    
+<p class="db-section-label"><i class="fas fa-chart-pie"></i> Resumen de hoy</p>    
+<div class="stat-grid">        <!-- Citas hoy -->        
+<div class="stat-card sc-blue">            
+<div class="stat-icon-box"><i class="fas fa-calendar-check"></i></div>
+            
+<div class="stat-info">                
+<div class="stat-number">{{ citas_hoy }}</div>
+                
+<div class="stat-label">
+{% if es_staff %}Citas hoy (taller){% else %}Mis citas hoy
+{% endif %}</div>
+                <span class="stat-badge badge-info">                    <i class="fas fa-check-circle"></i>                    {{ citas_completadas_hoy }} completada{{ citas_completadas_hoy|pluralize }}                </span>            </div>
+        </div>
+        <!-- Pendientes -->        
+<div class="stat-card sc-amber">            
+<div class="stat-icon-box"><i class="fas fa-hourglass-half"></i></div>
+            
+<div class="stat-info">                
+<div class="stat-number">{{ citas_pendientes }}</div>
+                
+<div class="stat-label">Citas pendientes</div>
+                
+{% if citas_pendientes > 0 %}                <span class="stat-badge badge-warn"><i class="fas fa-clock"></i> En espera</span>                {% else %}                <span class="stat-badge badge-ok"><i class="fas fa-thumbs-up"></i> Al día</span>                
+{% endif %}            </div>
+        </div>
+        <!-- Confirmadas -->        
+<div class="stat-card sc-green">            
+<div class="stat-icon-box"><i class="fas fa-circle-check"></i></div>
+            
+<div class="stat-info">                
+<div class="stat-number">{{ citas_confirmadas }}</div>
+                
+<div class="stat-label">Citas confirmadas</div>
+                <span class="stat-badge badge-ok"><i class="fas fa-calendar-alt"></i> Programadas</span>            </div>
+        </div>
+        <!-- Vehículos (mis) -->        
+<div class="stat-card sc-violet">            
+<div class="stat-icon-box"><i class="fas fa-car"></i></div>
+            
+<div class="stat-info">                
+<div class="stat-number">{{ mis_vehiculos }}</div>
+                
+<div class="stat-label">Mis vehículos</div>
+                <span class="stat-badge badge-info">                    <i class="fas fa-car-side"></i>                    
+{% if mis_vehiculos == 0 %}Sin registrar{% else %}Registrado{{ mis_vehiculos|pluralize }}
+{% endif %}                </span>            </div>
+        </div>
+        
+{% if es_staff %}        <!-- Productos -->        
+<div class="stat-card sc-orange">            
+<div class="stat-icon-box"><i class="fas fa-boxes-stacked"></i></div>
+            
+<div class="stat-info">                
+<div class="stat-number">{{ total_productos }}</div>
+                
+<div class="stat-label">Productos activos</div>
+                
+{% if productos_stock_bajo > 0 %}                <span class="stat-badge badge-warn">                    <i class="fas fa-triangle-exclamation"></i> {{ productos_stock_bajo }} stock bajo                </span>                {% else %}                <span class="stat-badge badge-ok"><i class="fas fa-box-open"></i> Stock OK</span>                
+{% endif %}            </div>
+        </div>
+        <!-- Alertas -->        
+<div class="stat-card sc-rose">            
+<div class="stat-icon-box"><i class="fas fa-bell"></i></div>
+            
+<div class="stat-info">                
+<div class="stat-number">{{ alertas_activas }}</div>
+                
+<div class="stat-label">Alertas activas</div>
+                
+{% if alertas_activas > 0 %}                <span class="stat-badge badge-danger">                    <i class="fas fa-exclamation"></i> Requieren atención                </span>                {% else %}                <span class="stat-badge badge-ok"><i class="fas fa-shield-check"></i> Sin alertas</span>                
+{% endif %}            </div>
+        </div>
+        
+{% endif %}    </div>
+    <!-- ══ PRÓXIMAS CITAS ══ -->    
+<div class="db-upcoming">        
+<div class="db-upcoming-header">            <h3><i class="fas fa-calendar-week"></i> Próximas Citas</h3>            <a href="{% url 'mis_citas' %}" class="nav-btn nav-btn-accent" style="font-size:.82rem;height:34px;padding:0 14px">                <i class="fas fa-arrow-right"></i> Ver todas            </a>        </div>
+        
+{% if proximas_citas %}        
+<div class="table-responsive">            
+<table class="db-table">                
+<thead>                    
+<tr>                        
+<th>Fecha</th>                        
+<th>Hora</th>                        
+<th>
+{% if es_staff %}Cliente{% else %}Servicio
+{% endif %}</th>                        
+<th>Vehículo</th>                        
+<th>Estado</th>                        
+<th></th>                    </tr>                </thead>                <tbody>                    
+{% for cita in proximas_citas %}                    
+<tr>                        
+<td>                            <strong>{{ cita.fecha|date:"d M Y" }}</strong>                        </td>                        
+<td>{{ cita.hora_inicio|time:"H:i" }}</td>                        
+<td>                            
+{% if es_staff %}                            <i class="fas fa-user fa-xs text-muted"></i> {{ cita.cliente.get_full_name|default:cita.cliente.username }}                            {% else %}                            {{ cita.servicio.nombre }}                            
+{% endif %}                        </td>                        
+<td>                            <i class="fas fa-car fa-xs text-muted"></i>                            {{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}                        </td>                        
+<td>                            <span class="cita-estado estado-{{ cita.estado }}">                                
+{% if cita.estado == 'PENDIENTE' %}<i class="fas fa-clock fa-xs"></i>                                {% elif cita.estado == 'CONFIRMADA' %}<i class="fas fa-circle-check fa-xs"></i>                                
+{% endif %}                                {{ cita.get_estado_display }}                            </span>                        </td>                        
+<td>                            <a href="{% url 'mis_citas' %}" class="text-muted" style="font-size:.8rem">                                <i class="fas fa-eye"></i>                            </a>                        </td>                    </tr>                    
+{% endfor %}                </tbody>            </table>        </div>
+        {% else %}        
+<div class="empty-state">            <i class="fas fa-calendar-xmark text-muted"></i>            
+<p>No hay citas próximas programadas.</p>            <a href="{% url 'seleccionar_fecha_hora' %}" style="color:#f97316;font-weight:600;font-size:.88rem">                <i class="fas fa-plus"></i> Agendar una cita            </a>        </div>
+        
+{% endif %}    </div>
+    <!-- ══ BOTTOM: ACCIONES + ACTIVIDAD ══ -->    
+<div class="db-bottom">        <!-- Acciones rápidas -->        
+<div>            
+<p class="db-section-label"><i class="fas fa-bolt"></i> Acciones Rápidas</p>            
+<div class="db-actions">                <a href="{% url 'seleccionar_fecha_hora' %}" class="action-link">                    
+<div class="action-link-icon" style="background:#3b82f6">                        <i class="fas fa-calendar-plus"></i>                    </div>
+                    
+<div class="action-link-body">                        <strong>Nueva Cita</strong>                        <span>Agenda un servicio para tu vehículo</span>                    </div>
+                    <i class="fas fa-chevron-right arrow"></i>                </a>                <a href="{% url 'mis_citas' %}" class="action-link">                    
+<div class="action-link-icon" style="background:#10b981">                        <i class="fas fa-list-check"></i>                    </div>
+                    
+<div class="action-link-body">                        <strong>Mis Citas</strong>                        <span>{{ citas_pendientes|add:citas_confirmadas }} cita{{ citas_pendientes|add:citas_confirmadas|pluralize }} activa{{ citas_pendientes|add:citas_confirmadas|pluralize }}</span>                    </div>
+                    <i class="fas fa-chevron-right arrow"></i>                </a>                <a href="{% url 'lista_vehiculos' %}" class="action-link">                    
+<div class="action-link-icon" style="background:#8b5cf6">                        <i class="fas fa-car-side"></i>                    </div>
+                    
+<div class="action-link-body">                        <strong>Mis Vehículos</strong>                        <span>{{ mis_vehiculos }} vehículo{{ mis_vehiculos|pluralize }} registrado{{ mis_vehiculos|pluralize }}</span>                    </div>
+                    <i class="fas fa-chevron-right arrow"></i>                </a>                
+{% if es_staff %}                <a href="{% url 'calendario_citas' %}" class="action-link">                    
+<div class="action-link-icon" style="background:#f59e0b">                        <i class="fas fa-calendar-alt"></i>                    </div>
+                    
+<div class="action-link-body">                        <strong>Calendario</strong>                        <span>Ver todas las citas del taller</span>                    </div>
+                    <i class="fas fa-chevron-right arrow"></i>                </a>                <a href="{% url 'lista_productos' %}" class="action-link">                    
+<div class="action-link-icon" style="background:#f97316">                        <i class="fas fa-boxes-stacked"></i>                    </div>
+                    
+<div class="action-link-body">                        <strong>Inventario</strong>                        <span>{{ total_productos }} producto{{ total_productos|pluralize }} — {{ productos_stock_bajo }} con stock bajo</span>                    </div>
+                    <i class="fas fa-chevron-right arrow"></i>                </a>                
+{% endif %}                
+{% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}                <a href="{% url 'lista_usuarios' %}" class="action-link">                    
+<div class="action-link-icon" style="background:#0f172a">                        <i class="fas fa-users-gear"></i>                    </div>
+                    
+<div class="action-link-body">                        <strong>Gestión de Usuarios</strong>                        <span>{{ total_usuarios }} usuario{{ total_usuarios|pluralize }} registrado{{ total_usuarios|pluralize }}</span>                    </div>
+                    <i class="fas fa-chevron-right arrow"></i>                </a>                
+{% endif %}            </div>
+        </div>
+        <!-- Feed de actividad: últimos movimientos inventario (staff) o empty -->        
+{% if es_staff and ultimos_movimientos %}        
+<div>            
+<p class="db-section-label"><i class="fas fa-rotate"></i> Últimos Movimientos de Inventario</p>            
+<div class="activity-feed">                
+<div class="activity-list">                    
+{% for mov in ultimos_movimientos %}                    
+<div class="activity-item">                        
+<div class="activity-dot                            
+{% if mov.tipo == 'ENTRADA' %}dot-entrada                            {% elif mov.tipo == 'SALIDA' %}dot-salida                            {% else %}dot-ajuste
+{% endif %}">                            <i class="fas                                
+{% if mov.tipo == 'ENTRADA' %}fa-arrow-down                                {% elif mov.tipo == 'SALIDA' %}fa-arrow-up                                {% else %}fa-sliders
+{% endif %}"></i>                        </div>
+                        
+<div class="activity-item-body">                            <strong>{{ mov.producto.nombre }}</strong>                            <span>{{ mov.get_motivo_display }} — {{ mov.fecha|timesince }} atrás</span>                        </div>
+                        <span class="activity-qty                            
+{% if mov.tipo == 'ENTRADA' %}qty-entrada                            {% elif mov.tipo == 'SALIDA' %}qty-salida                            {% else %}qty-ajuste
+{% endif %}">                            
+{% if mov.tipo == 'ENTRADA' %}+{% elif mov.tipo == 'SALIDA' %}-
+{% endif %}{{ mov.cantidad }}                        </span>                    </div>
+                    
+{% endfor %}                </div>
+                
+<div style="padding:12px 22px;border-top:1px solid #f1f5f9;text-align:right">                    <a href="{% url 'dashboard_inventario' %}" style="color:#f97316;font-size:.82rem;font-weight:600">                        Ver inventario completo <i class="fas fa-arrow-right fa-xs"></i>                    </a>                </div>
             </div>
         </div>
-        <div class="db-banner-icon" aria-hidden="true">
-            <i class="fas fa-gauge-high"></i>
+        {% elif not es_staff %}        <!-- Para clientes: historial de sus citas completas -->        
+<div>            
+<p class="db-section-label"><i class="fas fa-history"></i> Mis Servicios Completados</p>            
+<div class="activity-feed">                
+<div class="activity-list">                    {% with historial=user.citas.filter %}                    
+{% for cita in user.citas.all|dictsortreversed:"fecha" %}                    
+{% if cita.estado == 'COMPLETADA' and forloop.counter <= 6 %}                    
+<div class="activity-item">                        
+<div class="activity-dot dot-entrada">                            <i class="fas fa-wrench"></i>                        </div>
+                        
+<div class="activity-item-body">                            <strong>{{ cita.servicio.nombre }}</strong>                            <span>{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} — {{ cita.fecha|date:"d/m/Y" }}</span>                        </div>
+                        <span class="activity-qty qty-entrada">OK</span>                    </div>
+                    
+{% endif %}                    {% empty %}                    
+<div class="empty-state">                        <i class="fas fa-wrench text-muted"></i>                        
+<p>Aún no tienes servicios completados.</p>                    </div>
+                    
+{% endfor %}                    {% endwith %}                </div>
+                
+<div style="padding:12px 22px;border-top:1px solid #f1f5f9;text-align:right">                    <a href="{% url 'mis_citas' %}" style="color:#f97316;font-size:.82rem;font-weight:600">                        Ver todas mis citas <i class="fas fa-arrow-right fa-xs"></i>                    </a>                </div>
+            </div>
+        </div>
+        
+{% endif %}    </div>
+    <!-- ══ MINI-STATS ADMIN ══ -->    
+{% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}    
+<p class="db-section-label"><i class="fas fa-shield-halved"></i> Resumen Administrativo</p>    
+<div class="admin-stats-grid">        
+<div class="admin-mini-card" style="--amc:#3b82f6">            
+<div class="amc-icon"><i class="fas fa-users" style="color:#3b82f6"></i></div>
+            
+<div class="amc-num">{{ total_usuarios }}</div>
+            
+<div class="amc-label">Usuarios</div>
+        </div>
+        
+<div class="admin-mini-card" style="--amc:#8b5cf6">            
+<div class="amc-icon"><i class="fas fa-id-badge" style="color:#8b5cf6"></i></div>
+            
+<div class="amc-num">{{ total_roles }}</div>
+            
+<div class="amc-label">Roles</div>
+        </div>
+        
+<div class="admin-mini-card" style="--amc:#10b981">            
+<div class="amc-icon"><i class="fas fa-screwdriver-wrench" style="color:#10b981"></i></div>
+            
+<div class="amc-num">{{ total_servicios }}</div>
+            
+<div class="amc-label">Servicios</div>
         </div>
     </div>
+    
+{% endif %}</div>
 
-    <!-- ══ KPI STATS ══ -->
-    <p class="db-section-label"><i class="fas fa-chart-pie"></i> Resumen de hoy</p>
-    <div class="stat-grid">
+<script>(function () {    /* ── Live clock ── */    function tick() {        const now = new Date();        document.getElementById('current-time').textContent =            now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });        document.getElementById('current-date').textContent =            now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });    }    tick();    setInterval(tick, 30000);    /* ── Number count-up animation ── */    document.querySelectorAll('.stat-number').forEach(function (el) {        const raw   = parseInt(el.textContent.replace(/\D/g, ''), 10);        if (!raw || isNaN(raw)) return;        let start   = 0;        const step  = Math.ceil(raw / 40);        const timer = setInterval(function () {            start = Math.min(start + step, raw);            el.textContent = start.toLocaleString('es-ES');            if (start >= raw) clearInterval(timer);        }, 30);    });    /* ── Card entrance animation ── */    const cards = document.querySelectorAll('.stat-card, .action-link, .admin-mini-card');    cards.forEach(function (card, i) {        card.style.opacity = '0';        card.style.transform = 'translateY(20px)';        setTimeout(function () {            card.style.transition = 'opacity .45s ease, transform .45s ease';            card.style.opacity    = '1';            card.style.transform  = 'translateY(0)';        }, 80 * i);    });})();</script>
 
-        <!-- Citas hoy -->
-        <div class="stat-card sc-blue">
-            <div class="stat-icon-box"><i class="fas fa-calendar-check"></i></div>
-            <div class="stat-info">
-                <div class="stat-number">{{ citas_hoy }}</div>
-                <div class="stat-label">{% if es_staff %}Citas hoy (taller){% else %}Mis citas hoy{% endif %}</div>
-                <span class="stat-badge badge-info">
-                    <i class="fas fa-check-circle"></i>
-                    {{ citas_completadas_hoy }} completada{{ citas_completadas_hoy|pluralize }}
-                </span>
-            </div>
-        </div>
-
-        <!-- Pendientes -->
-        <div class="stat-card sc-amber">
-            <div class="stat-icon-box"><i class="fas fa-hourglass-half"></i></div>
-            <div class="stat-info">
-                <div class="stat-number">{{ citas_pendientes }}</div>
-                <div class="stat-label">Citas pendientes</div>
-                {% if citas_pendientes > 0 %}
-                <span class="stat-badge badge-warn"><i class="fas fa-clock"></i> En espera</span>
-                {% else %}
-                <span class="stat-badge badge-ok"><i class="fas fa-thumbs-up"></i> Al día</span>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Confirmadas -->
-        <div class="stat-card sc-green">
-            <div class="stat-icon-box"><i class="fas fa-circle-check"></i></div>
-            <div class="stat-info">
-                <div class="stat-number">{{ citas_confirmadas }}</div>
-                <div class="stat-label">Citas confirmadas</div>
-                <span class="stat-badge badge-ok"><i class="fas fa-calendar-alt"></i> Programadas</span>
-            </div>
-        </div>
-
-        <!-- Vehículos (mis) -->
-        <div class="stat-card sc-violet">
-            <div class="stat-icon-box"><i class="fas fa-car"></i></div>
-            <div class="stat-info">
-                <div class="stat-number">{{ mis_vehiculos }}</div>
-                <div class="stat-label">Mis vehículos</div>
-                <span class="stat-badge badge-info">
-                    <i class="fas fa-car-side"></i>
-                    {% if mis_vehiculos == 0 %}Sin registrar{% else %}Registrado{{ mis_vehiculos|pluralize }}{% endif %}
-                </span>
-            </div>
-        </div>
-
-        {% if es_staff %}
-        <!-- Productos -->
-        <div class="stat-card sc-orange">
-            <div class="stat-icon-box"><i class="fas fa-boxes-stacked"></i></div>
-            <div class="stat-info">
-                <div class="stat-number">{{ total_productos }}</div>
-                <div class="stat-label">Productos activos</div>
-                {% if productos_stock_bajo > 0 %}
-                <span class="stat-badge badge-warn">
-                    <i class="fas fa-triangle-exclamation"></i> {{ productos_stock_bajo }} stock bajo
-                </span>
-                {% else %}
-                <span class="stat-badge badge-ok"><i class="fas fa-box-open"></i> Stock OK</span>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Alertas -->
-        <div class="stat-card sc-rose">
-            <div class="stat-icon-box"><i class="fas fa-bell"></i></div>
-            <div class="stat-info">
-                <div class="stat-number">{{ alertas_activas }}</div>
-                <div class="stat-label">Alertas activas</div>
-                {% if alertas_activas > 0 %}
-                <span class="stat-badge badge-danger">
-                    <i class="fas fa-exclamation"></i> Requieren atención
-                </span>
-                {% else %}
-                <span class="stat-badge badge-ok"><i class="fas fa-shield-check"></i> Sin alertas</span>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-    </div>
-
-    <!-- ══ PRÓXIMAS CITAS ══ -->
-    <div class="db-upcoming">
-        <div class="db-upcoming-header">
-            <h3><i class="fas fa-calendar-week"></i> Próximas Citas</h3>
-            <a href="{% url 'mis_citas' %}" class="nav-btn nav-btn-accent" style="font-size:.82rem;height:34px;padding:0 14px">
-                <i class="fas fa-arrow-right"></i> Ver todas
-            </a>
-        </div>
-        {% if proximas_citas %}
-        <div class="table-responsive">
-            <table class="db-table">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>{% if es_staff %}Cliente{% else %}Servicio{% endif %}</th>
-                        <th>Vehículo</th>
-                        <th>Estado</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cita in proximas_citas %}
-                    <tr>
-                        <td>
-                            <strong>{{ cita.fecha|date:"d M Y" }}</strong>
-                        </td>
-                        <td>{{ cita.hora_inicio|time:"H:i" }}</td>
-                        <td>
-                            {% if es_staff %}
-                            <i class="fas fa-user fa-xs text-muted"></i> {{ cita.cliente.get_full_name|default:cita.cliente.username }}
-                            {% else %}
-                            {{ cita.servicio.nombre }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            <i class="fas fa-car fa-xs text-muted"></i>
-                            {{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}
-                        </td>
-                        <td>
-                            <span class="cita-estado estado-{{ cita.estado }}">
-                                {% if cita.estado == 'PENDIENTE' %}<i class="fas fa-clock fa-xs"></i>
-                                {% elif cita.estado == 'CONFIRMADA' %}<i class="fas fa-circle-check fa-xs"></i>
-                                {% endif %}
-                                {{ cita.get_estado_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <a href="{% url 'mis_citas' %}" class="text-muted" style="font-size:.8rem">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <i class="fas fa-calendar-xmark text-muted"></i>
-            <p>No hay citas próximas programadas.</p>
-            <a href="{% url 'seleccionar_fecha_hora' %}" style="color:#f97316;font-weight:600;font-size:.88rem">
-                <i class="fas fa-plus"></i> Agendar una cita
-            </a>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- ══ BOTTOM: ACCIONES + ACTIVIDAD ══ -->
-    <div class="db-bottom">
-
-        <!-- Acciones rápidas -->
-        <div>
-            <p class="db-section-label"><i class="fas fa-bolt"></i> Acciones Rápidas</p>
-            <div class="db-actions">
-                <a href="{% url 'seleccionar_fecha_hora' %}" class="action-link">
-                    <div class="action-link-icon" style="background:#3b82f6">
-                        <i class="fas fa-calendar-plus"></i>
-                    </div>
-                    <div class="action-link-body">
-                        <strong>Nueva Cita</strong>
-                        <span>Agenda un servicio para tu vehículo</span>
-                    </div>
-                    <i class="fas fa-chevron-right arrow"></i>
-                </a>
-                <a href="{% url 'mis_citas' %}" class="action-link">
-                    <div class="action-link-icon" style="background:#10b981">
-                        <i class="fas fa-list-check"></i>
-                    </div>
-                    <div class="action-link-body">
-                        <strong>Mis Citas</strong>
-                        <span>{{ citas_pendientes|add:citas_confirmadas }} cita{{ citas_pendientes|add:citas_confirmadas|pluralize }} activa{{ citas_pendientes|add:citas_confirmadas|pluralize }}</span>
-                    </div>
-                    <i class="fas fa-chevron-right arrow"></i>
-                </a>
-                <a href="{% url 'lista_vehiculos' %}" class="action-link">
-                    <div class="action-link-icon" style="background:#8b5cf6">
-                        <i class="fas fa-car-side"></i>
-                    </div>
-                    <div class="action-link-body">
-                        <strong>Mis Vehículos</strong>
-                        <span>{{ mis_vehiculos }} vehículo{{ mis_vehiculos|pluralize }} registrado{{ mis_vehiculos|pluralize }}</span>
-                    </div>
-                    <i class="fas fa-chevron-right arrow"></i>
-                </a>
-                {% if es_staff %}
-                <a href="{% url 'calendario_citas' %}" class="action-link">
-                    <div class="action-link-icon" style="background:#f59e0b">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="action-link-body">
-                        <strong>Calendario</strong>
-                        <span>Ver todas las citas del taller</span>
-                    </div>
-                    <i class="fas fa-chevron-right arrow"></i>
-                </a>
-                <a href="{% url 'lista_productos' %}" class="action-link">
-                    <div class="action-link-icon" style="background:#f97316">
-                        <i class="fas fa-boxes-stacked"></i>
-                    </div>
-                    <div class="action-link-body">
-                        <strong>Inventario</strong>
-                        <span>{{ total_productos }} producto{{ total_productos|pluralize }} — {{ productos_stock_bajo }} con stock bajo</span>
-                    </div>
-                    <i class="fas fa-chevron-right arrow"></i>
-                </a>
-                {% endif %}
-                {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
-                <a href="{% url 'lista_usuarios' %}" class="action-link">
-                    <div class="action-link-icon" style="background:#0f172a">
-                        <i class="fas fa-users-gear"></i>
-                    </div>
-                    <div class="action-link-body">
-                        <strong>Gestión de Usuarios</strong>
-                        <span>{{ total_usuarios }} usuario{{ total_usuarios|pluralize }} registrado{{ total_usuarios|pluralize }}</span>
-                    </div>
-                    <i class="fas fa-chevron-right arrow"></i>
-                </a>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Feed de actividad: últimos movimientos inventario (staff) o empty -->
-        {% if es_staff and ultimos_movimientos %}
-        <div>
-            <p class="db-section-label"><i class="fas fa-rotate"></i> Últimos Movimientos de Inventario</p>
-            <div class="activity-feed">
-                <div class="activity-list">
-                    {% for mov in ultimos_movimientos %}
-                    <div class="activity-item">
-                        <div class="activity-dot
-                            {% if mov.tipo == 'ENTRADA' %}dot-entrada
-                            {% elif mov.tipo == 'SALIDA' %}dot-salida
-                            {% else %}dot-ajuste{% endif %}">
-                            <i class="fas
-                                {% if mov.tipo == 'ENTRADA' %}fa-arrow-down
-                                {% elif mov.tipo == 'SALIDA' %}fa-arrow-up
-                                {% else %}fa-sliders{% endif %}"></i>
-                        </div>
-                        <div class="activity-item-body">
-                            <strong>{{ mov.producto.nombre }}</strong>
-                            <span>{{ mov.get_motivo_display }} — {{ mov.fecha|timesince }} atrás</span>
-                        </div>
-                        <span class="activity-qty
-                            {% if mov.tipo == 'ENTRADA' %}qty-entrada
-                            {% elif mov.tipo == 'SALIDA' %}qty-salida
-                            {% else %}qty-ajuste{% endif %}">
-                            {% if mov.tipo == 'ENTRADA' %}+{% elif mov.tipo == 'SALIDA' %}-{% endif %}{{ mov.cantidad }}
-                        </span>
-                    </div>
-                    {% endfor %}
-                </div>
-                <div style="padding:12px 22px;border-top:1px solid #f1f5f9;text-align:right">
-                    <a href="{% url 'dashboard_inventario' %}" style="color:#f97316;font-size:.82rem;font-weight:600">
-                        Ver inventario completo <i class="fas fa-arrow-right fa-xs"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% elif not es_staff %}
-        <!-- Para clientes: historial de sus citas completas -->
-        <div>
-            <p class="db-section-label"><i class="fas fa-history"></i> Mis Servicios Completados</p>
-            <div class="activity-feed">
-                <div class="activity-list">
-                    {% with historial=user.citas.filter %}
-                    {% for cita in user.citas.all|dictsortreversed:"fecha" %}
-                    {% if cita.estado == 'COMPLETADA' and forloop.counter <= 6 %}
-                    <div class="activity-item">
-                        <div class="activity-dot dot-entrada">
-                            <i class="fas fa-wrench"></i>
-                        </div>
-                        <div class="activity-item-body">
-                            <strong>{{ cita.servicio.nombre }}</strong>
-                            <span>{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }} — {{ cita.fecha|date:"d/m/Y" }}</span>
-                        </div>
-                        <span class="activity-qty qty-entrada">OK</span>
-                    </div>
-                    {% endif %}
-                    {% empty %}
-                    <div class="empty-state">
-                        <i class="fas fa-wrench text-muted"></i>
-                        <p>Aún no tienes servicios completados.</p>
-                    </div>
-                    {% endfor %}
-                    {% endwith %}
-                </div>
-                <div style="padding:12px 22px;border-top:1px solid #f1f5f9;text-align:right">
-                    <a href="{% url 'mis_citas' %}" style="color:#f97316;font-size:.82rem;font-weight:600">
-                        Ver todas mis citas <i class="fas fa-arrow-right fa-xs"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-    </div>
-
-    <!-- ══ MINI-STATS ADMIN ══ -->
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
-    <p class="db-section-label"><i class="fas fa-shield-halved"></i> Resumen Administrativo</p>
-    <div class="admin-stats-grid">
-        <div class="admin-mini-card" style="--amc:#3b82f6">
-            <div class="amc-icon"><i class="fas fa-users" style="color:#3b82f6"></i></div>
-            <div class="amc-num">{{ total_usuarios }}</div>
-            <div class="amc-label">Usuarios</div>
-        </div>
-        <div class="admin-mini-card" style="--amc:#8b5cf6">
-            <div class="amc-icon"><i class="fas fa-id-badge" style="color:#8b5cf6"></i></div>
-            <div class="amc-num">{{ total_roles }}</div>
-            <div class="amc-label">Roles</div>
-        </div>
-        <div class="admin-mini-card" style="--amc:#10b981">
-            <div class="amc-icon"><i class="fas fa-screwdriver-wrench" style="color:#10b981"></i></div>
-            <div class="amc-num">{{ total_servicios }}</div>
-            <div class="amc-label">Servicios</div>
-        </div>
-    </div>
-    {% endif %}
-
-</div>
-
-<script>
-(function () {
-    /* ── Live clock ── */
-    function tick() {
-        const now = new Date();
-        document.getElementById('current-time').textContent =
-            now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('current-date').textContent =
-            now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-    }
-    tick();
-    setInterval(tick, 30000);
-
-    /* ── Number count-up animation ── */
-    document.querySelectorAll('.stat-number').forEach(function (el) {
-        const raw   = parseInt(el.textContent.replace(/\D/g, ''), 10);
-        if (!raw || isNaN(raw)) return;
-        let start   = 0;
-        const step  = Math.ceil(raw / 40);
-        const timer = setInterval(function () {
-            start = Math.min(start + step, raw);
-            el.textContent = start.toLocaleString('es-ES');
-            if (start >= raw) clearInterval(timer);
-        }, 30);
-    });
-
-    /* ── Card entrance animation ── */
-    const cards = document.querySelectorAll('.stat-card, .action-link, .admin-mini-card');
-    cards.forEach(function (card, i) {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        setTimeout(function () {
-            card.style.transition = 'opacity .45s ease, transform .45s ease';
-            card.style.opacity    = '1';
-            card.style.transform  = 'translateY(0)';
-        }, 80 * i);
-    });
-})();
-</script>
 {% endblock %}

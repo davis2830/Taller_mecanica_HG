@@ -1,143 +1,93 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block page_title %}Cuentas por Pagar{% endblock %}
-
+{% extends 'base.html' %}{% load static %}
+{% block page_title %}Cuentas por Pagar
+{% endblock %}
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col-md-6">
-        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">Cuentas por Pagar</h4>
-        <p class="text-muted mb-0">Control de deudas y saldos con proveedores</p>
-    </div>
+<div class="row mb-4 align-items-center">    
+<div class="col-md-6">        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">Cuentas por Pagar</h4>        
+<p class="text-muted mb-0">Control de deudas y saldos con proveedores</p>    </div>
 </div>
 
-<div class="row mb-4">
-    <!-- Tarjeta Resumen Deuda Total -->
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card shadow-sm h-100 py-2" style="border-left: 4px solid #f59e0b;">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="font-weight-bold text-warning text-uppercase mb-1" style="font-size: 0.8rem;">
-                            Deuda Total Pendiente</div>
-                        <div class="h3 mb-0 font-weight-bold text-gray-800">Q{{ total_deuda|floatformat:2 }}</div>
+<div class="row mb-4">    <!-- Tarjeta Resumen Deuda Total -->    
+<div class="col-xl-4 col-md-6 mb-4">        
+<div class="card shadow-sm h-100 py-2" style="border-left: 4px solid #f59e0b;">            
+<div class="card-body">                
+<div class="row no-gutters align-items-center">                    
+<div class="col mr-2">                        
+<div class="font-weight-bold text-warning text-uppercase mb-1" style="font-size: 0.8rem;">                            Deuda Total Pendiente</div>
+                        
+<div class="h3 mb-0 font-weight-bold text-gray-800">Q{{ total_deuda|floatformat:2 }}</div>
                     </div>
-                    <div class="col-auto">
-                        <i class="fas fa-hand-holding-dollar fa-2x text-gray-300" style="color: #cbd5e1;"></i>
-                    </div>
+                    
+<div class="col-auto">                        <i class="fas fa-hand-holding-dollar fa-2x text-gray-300" style="color: #cbd5e1;"></i>                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-header bg-white py-3 d-flex flex-row align-items-center justify-content-between">
-        <h6 class="m-0 font-weight-bold" style="color: var(--primary);">Historial de Cuentas</h6>
-        <div class="dropdown no-arrow">
-            <a href="?estado=" class="btn btn-sm {% if not estado_filtro %}btn-primary{% else %}btn-outline-primary{% endif %} rounded-pill px-3">Todas</a>
-            <a href="?estado=PENDIENTE" class="btn btn-sm {% if estado_filtro == 'PENDIENTE' %}btn-danger{% else %}btn-outline-danger{% endif %} rounded-pill px-3">Pendientes</a>
-            <a href="?estado=PARCIAL" class="btn btn-sm {% if estado_filtro == 'PARCIAL' %}btn-warning{% else %}btn-outline-warning{% endif %} rounded-pill px-3">Parciales</a>
-            <a href="?estado=PAGADO" class="btn btn-sm {% if estado_filtro == 'PAGADO' %}btn-success{% else %}btn-outline-success{% endif %} rounded-pill px-3">Pagadas</a>
-        </div>
+<div class="card shadow-sm">    
+<div class="card-header bg-white py-3 d-flex flex-row align-items-center justify-content-between">        <h6 class="m-0 font-weight-bold" style="color: var(--primary);">Historial de Cuentas</h6>        
+<div class="dropdown no-arrow">            <a href="?estado=" class="btn btn-sm 
+{% if not estado_filtro %}btn-primary{% else %}btn-outline-primary
+{% endif %} rounded-pill px-3">Todas</a>            <a href="?estado=PENDIENTE" class="btn btn-sm 
+{% if estado_filtro == 'PENDIENTE' %}btn-danger{% else %}btn-outline-danger
+{% endif %} rounded-pill px-3">Pendientes</a>            <a href="?estado=PARCIAL" class="btn btn-sm 
+{% if estado_filtro == 'PARCIAL' %}btn-warning{% else %}btn-outline-warning
+{% endif %} rounded-pill px-3">Parciales</a>            <a href="?estado=PAGADO" class="btn btn-sm 
+{% if estado_filtro == 'PAGADO' %}btn-success{% else %}btn-outline-success
+{% endif %} rounded-pill px-3">Pagadas</a>        </div>
     </div>
-    
-    <div class="card-body p-0">
-        {% if page_obj %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                    <tr>
-                        <th class="border-0 px-4 py-3">Referencia</th>
-                        <th class="border-0 py-3">Proveedor</th>
-                        <th class="border-0 py-3">Fecha Emisión</th>
-                        <th class="border-0 py-3 text-right">Total (Q)</th>
-                        <th class="border-0 py-3 text-right text-success">Abonado (Q)</th>
-                        <th class="border-0 py-3 text-right text-danger">Saldo (Q)</th>
-                        <th class="border-0 py-3 text-center">Estado</th>
-                        <th class="border-0 px-4 py-3 text-center">Detalle</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cuenta in page_obj %}
-                    <tr>
-                        <td class="px-4 py-3 align-middle font-weight-bold" style="color: #475569;">
-                            CT-{{ cuenta.id|stringformat:"05d" }}
-                            {% if cuenta.orden_compra %}
-                            <div class="small text-muted font-weight-normal">OC-{{ cuenta.orden_compra.id|stringformat:"04d" }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="py-3 align-middle font-weight-500">
-                            {{ cuenta.proveedor.nombre }}
-                        </td>
-                        <td class="py-3 align-middle text-muted">
-                            {{ cuenta.fecha_emision|date:"d/m/Y" }}
-                        </td>
-                        <td class="py-3 align-middle text-right font-weight-bold" style="color: #0f172a;">
-                            {{ cuenta.monto_total|floatformat:2 }}
-                        </td>
-                        <td class="py-3 align-middle text-right text-success">
-                            {{ cuenta.monto_pagado|floatformat:2 }}
-                        </td>
-                        <td class="py-3 align-middle text-right font-weight-bold text-danger">
-                            {{ cuenta.saldo_pendiente|floatformat:2 }}
-                        </td>
-                        <td class="py-3 align-middle text-center">
-                            {% if cuenta.estado == 'PENDIENTE' %}
-                                <span class="badge badge-danger px-3 py-2" style="border-radius: 8px;">Pendiente</span>
-                            {% elif cuenta.estado == 'PARCIAL' %}
-                                <span class="badge badge-warning px-3 py-2" style="border-radius: 8px;">Parcial</span>
-                            {% elif cuenta.estado == 'PAGADO' %}
-                                <span class="badge badge-success px-3 py-2" style="border-radius: 8px;">Pagado</span>
-                            {% else %}
-                                <span class="badge badge-secondary px-3 py-2" style="border-radius: 8px;">Cancelada</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 align-middle text-center">
-                            <a href="{% url 'detalle_cuenta_pagar' cuenta.id %}" class="btn btn-sm btn-light" style="border-radius: 8px;" title="Ver Abonos">
-                                <i class="fas fa-hand-holding-dollar text-primary"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
         
-        <!-- Paginación -->
-        {% if page_obj.has_other_pages %}
-        <div class="px-4 py-3 border-top">
-            <nav aria-label="Navegación de páginas">
-                <ul class="pagination pagination-sm mb-0 justify-content-center">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}"><i class="fas fa-chevron-left"></i></a>
-                    </li>
-                    {% endif %}
-                    
-                    <span class="px-3 py-1 font-weight-500 text-muted">
-                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-                    </span>
-                    
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}"><i class="fas fa-chevron-right"></i></a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
+<div class="card-body p-0">        
+{% if page_obj %}        
+<div class="table-responsive">            
+<table class="table table-hover mb-0">                
+<thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">                    
+<tr>                        
+<th class="border-0 px-4 py-3">Referencia</th>                        
+<th class="border-0 py-3">Proveedor</th>                        
+<th class="border-0 py-3">Fecha Emisión</th>                        
+<th class="border-0 py-3 text-right">Total (Q)</th>                        
+<th class="border-0 py-3 text-right text-success">Abonado (Q)</th>                        
+<th class="border-0 py-3 text-right text-danger">Saldo (Q)</th>                        
+<th class="border-0 py-3 text-center">Estado</th>                        
+<th class="border-0 px-4 py-3 text-center">Detalle</th>                    </tr>                </thead>                <tbody>                    
+{% for cuenta in page_obj %}                    
+<tr>                        
+<td class="px-4 py-3 align-middle font-weight-bold" style="color: #475569;">                            CT-{{ cuenta.id|stringformat:"05d" }}                            
+{% if cuenta.orden_compra %}                            
+<div class="small text-muted font-weight-normal">OC-{{ cuenta.orden_compra.id|stringformat:"04d" }}</div>
+                            
+{% endif %}                        </td>                        
+<td class="py-3 align-middle font-weight-500">                            {{ cuenta.proveedor.nombre }}                        </td>                        
+<td class="py-3 align-middle text-muted">                            {{ cuenta.fecha_emision|date:"d/m/Y" }}                        </td>                        
+<td class="py-3 align-middle text-right font-weight-bold" style="color: #0f172a;">                            {{ cuenta.monto_total|floatformat:2 }}                        </td>                        
+<td class="py-3 align-middle text-right text-success">                            {{ cuenta.monto_pagado|floatformat:2 }}                        </td>                        
+<td class="py-3 align-middle text-right font-weight-bold text-danger">                            {{ cuenta.saldo_pendiente|floatformat:2 }}                        </td>                        
+<td class="py-3 align-middle text-center">                            
+{% if cuenta.estado == 'PENDIENTE' %}                                <span class="badge badge-danger px-3 py-2" style="border-radius: 8px;">Pendiente</span>                            {% elif cuenta.estado == 'PARCIAL' %}                                <span class="badge badge-warning px-3 py-2" style="border-radius: 8px;">Parcial</span>                            {% elif cuenta.estado == 'PAGADO' %}                                <span class="badge badge-success px-3 py-2" style="border-radius: 8px;">Pagado</span>                            {% else %}                                <span class="badge badge-secondary px-3 py-2" style="border-radius: 8px;">Cancelada</span>                            
+{% endif %}                        </td>                        
+<td class="px-4 py-3 align-middle text-center">                            <a href="{% url 'detalle_cuenta_pagar' cuenta.id %}" class="btn btn-sm btn-light" style="border-radius: 8px;" title="Ver Abonos">                                <i class="fas fa-hand-holding-dollar text-primary"></i>                            </a>                        </td>                    </tr>                    
+{% endfor %}                </tbody>            </table>        </div>
+                <!-- Paginación -->        
+{% if page_obj.has_other_pages %}        
+<div class="px-4 py-3 border-top">            <nav aria-label="Navegación de páginas">                <ul class="pagination pagination-sm mb-0 justify-content-center">                    
+{% if page_obj.has_previous %}                    <li class="page-item">                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}
+{% if estado_filtro %}&estado={{ estado_filtro }}
+{% endif %}"><i class="fas fa-chevron-left"></i></a>                    </li>                    
+{% endif %}                                        <span class="px-3 py-1 font-weight-500 text-muted">                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}                    </span>                                        
+{% if page_obj.has_next %}                    <li class="page-item">                        <a class="page-link" href="?page={{ page_obj.next_page_number }}
+{% if estado_filtro %}&estado={{ estado_filtro }}
+{% endif %}"><i class="fas fa-chevron-right"></i></a>                    </li>                    
+{% endif %}                </ul>            </nav>        </div>
         
-        {% else %}
-        <div class="text-center py-5">
-            <div class="mb-3">
-                <i class="fas fa-file-invoice-dollar" style="font-size: 3rem; color: #cbd5e1;"></i>
-            </div>
-            <h5 class="text-muted">No hay cuentas por pagar registradas</h5>
-            <p class="text-muted small">Las cuentas por cobrar se generan automáticamente cuando recibes inventario de una Orden de Compra.</p>
-        </div>
-        {% endif %}
-    </div>
+{% endif %}                {% else %}        
+<div class="text-center py-5">            
+<div class="mb-3">                <i class="fas fa-file-invoice-dollar" style="font-size: 3rem; color: #cbd5e1;"></i>            </div>
+            <h5 class="text-muted">No hay cuentas por pagar registradas</h5>            
+<p class="text-muted small">Las cuentas por cobrar se generan automáticamente cuando recibes inventario de una Orden de Compra.</p>        </div>
+        
+{% endif %}    </div>
 </div>
+
 {% endblock %}

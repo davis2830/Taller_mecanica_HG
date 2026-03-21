@@ -1,159 +1,116 @@
 {% extends 'base.html' %}
 {% load static %}
-
-{% block page_title %}Check-in de Vehículo{% endblock %}
-
+{% block page_title %}
+Check-in de Vehículo
+{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card shadow-sm mb-4 border-0" style="border-radius: 12px; overflow: hidden;">
-            <div class="card-header bg-primary text-white py-3 d-flex align-items-center justify-content-between">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-clipboard-check mr-2"></i> Nueva Recepción de Vehículo</h5>
-            </div>
-            
-            <div class="card-body p-4 p-md-5 bg-white">
-                <form method="post" id="recepcionForm">
-                    {% csrf_token %}
-                    
-                    {% if form.non_field_errors %}
-                    <div class="alert alert-danger" style="border-radius: 8px;">
-                        {{ form.non_field_errors }}
-                    </div>
-                    {% endif %}
-
-                    <!-- SECCIÓN 1: DATOS DEL VEHÍCULO -->
-                    <h6 class="text-primary font-weight-bold mb-3 border-bottom pb-2">1. Datos del Ingreso</h6>
-                    <div class="row px-2">
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold small text-muted">Vehículo al que ingresa</label>
-                            {{ form.vehiculo }}
-                            {% if form.vehiculo.errors %}<small class="text-danger">{{ form.vehiculo.errors }}</small>{% endif %}
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold small text-muted">Kilometraje / Millaje Actual</label>
-                            <input type="number" name="{{ form.kilometraje.name }}" id="{{ form.kilometraje.id_for_label }}" 
-                                   class="form-control form-control-lg text-primary font-weight-bold" 
-                                   required placeholder="Ej: 125000"
-                                   {% if form.kilometraje.value %}value="{{ form.kilometraje.value }}"{% endif %}>
-                            {% if form.kilometraje.errors %}<small class="text-danger">{{ form.kilometraje.errors }}</small>{% endif %}
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold small text-muted">Nivel de Gasolina</label>
-                            {{ form.nivel_gasolina }}
-                            {% if form.nivel_gasolina.errors %}<small class="text-danger">{{ form.nivel_gasolina.errors }}</small>{% endif %}
-                            <div class="w-100 mt-2 d-flex justify-content-between text-muted" style="font-size: 0.70rem; padding: 0 4px;">
-                                <span><i class="fas fa-gas-pump text-danger"></i></span>
-                                <span>1/4</span>
-                                <span>1/2</span>
-                                <span>3/4</span>
-                                <span><i class="fas fa-gas-pump text-success"></i></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 2: ESTADO E INSPECCIÓN (CHECKLIST) -->
-                    <h6 class="text-primary font-weight-bold mb-3 mt-4 border-bottom pb-2">2. Inventario a Bordo</h6>
-                    <div class="row px-2">
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">
-                                <div class="custom-control custom-switch">
-                                    {{ form.tiene_llanta_repuesto }}
-                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_llanta_repuesto.id_for_label }}">Llanta de Repuesto</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">
-                                <div class="custom-control custom-switch">
-                                    {{ form.tiene_gata_herramientas }}
-                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_gata_herramientas.id_for_label }}">Tricket / Herramienta</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">
-                                <div class="custom-control custom-switch">
-                                    {{ form.tiene_radio }}
-                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_radio.id_for_label }}">Stéreo / Pantalla</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">
-                                <div class="custom-control custom-switch">
-                                    {{ form.tiene_documentos }}
-                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_documentos.id_for_label }}">Documentos Clave</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 mt-2">
-                            <label class="font-weight-bold small text-muted">Otros objetos de valor dejados por el cliente:</label>
-                            {{ form.otros_objetos }}
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 3: DIAGNÓSTICO -->
-                    <h6 class="text-primary font-weight-bold mb-3 mt-4 border-bottom pb-2">3. Diagnóstico y Observaciones Visuales</h6>
-                    <div class="row px-2">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted"><i class="fas fa-comment-dots text-warning mr-1"></i> Falla Reportada por el Cliente</label>
-                            {{ form.motivo_ingreso }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted"><i class="fas fa-search text-info mr-1"></i> Observación Inicial (Mecánico/Recepción)</label>
-                            {{ form.diagnostico_inicial }}
-                        </div>
-                        <div class="col-12">
-                            <div class="alert alert-warning py-2 px-3 mb-2" style="border-radius: 8px;">
-                                <i class="fas fa-exclamation-triangle mr-1"></i> Inspección de Carrocería (Rayones, Abolladuras, Golpes Previos)
-                            </div>
-                            {{ form.danos_previos }}
-                            <small class="text-muted text-right d-block">Es vital anotar todo daño pre-existente para evitar reclamos.</small>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 4: FIRMA Y CONFORMIDAD -->
-                    <div class="bg-light p-4 mt-4" style="border-radius: 12px; border: 1px dashed #cbd5e1;">
-                        <h6 class="text-dark font-weight-bold mb-3"><i class="fas fa-file-signature text-secondary mr-2"></i> 4. Conformidad del Cliente</h6>
-                        <p class="small text-muted mb-3">El cliente declara que la información arriba plasmada respecto a gasolina, objetos de valor y rayones es correcta.</p>
+<div class="row justify-content-center">    
+<div class="col-lg-10">        
+<div class="card shadow-sm mb-4 border-0" style="border-radius: 12px; overflow: hidden;">            
+<div class="card-header bg-primary text-white py-3 d-flex align-items-center justify-content-between">                <h5 class="m-0 font-weight-bold"><i class="fas fa-clipboard-check mr-2"></i> Nueva Recepción de Vehículo</h5>            </div>
                         
-                        <div class="row align-items-center">
-                            <div class="col-md-8 mb-3 mb-md-0">
-                                <label class="font-weight-bold small text-muted">Nombre/Firma del Cliente que Entrega</label>
-                                {{ form.firma_cliente_text }}
-                                {% if form.firma_cliente_text.errors %}<small class="text-danger">{{ form.firma_cliente_text.errors }}</small>{% endif %}
-                            </div>
-                            <div class="col-md-4 text-right mt-3 mt-md-0 pt-md-4">
-                                <button type="submit" class="btn btn-success btn-lg shadow-sm" style="border-radius: 30px; padding: 10px 30px;">
-                                    <i class="fas fa-check mr-2"></i> Guardar Check-in
-                                </button>
-                            </div>
+<div class="card-body p-4 p-md-5 bg-white">                
+<form method="post" id="recepcionForm">                    
+{% csrf_token %}
+                                        
+{% if form.non_field_errors %}
+                    
+<div class="alert alert-danger" style="border-radius: 8px;">                        {{ form.non_field_errors }}                    </div>
+                    
+{% endif %}
+                    <!-- SECCIÓN 1: DATOS DEL VEHÍCULO -->                    <h6 class="text-primary font-weight-bold mb-3 border-bottom pb-2">1. Datos del Ingreso</h6>                    
+<div class="row px-2">                        
+<div class="col-md-4 mb-3">                            <label class="font-weight-bold small text-muted">Vehículo al que ingresa</label>                            {{ form.vehiculo }}                            
+{% if form.vehiculo.errors %}
+<small class="text-danger">
+{{ form.vehiculo.errors }}
+</small>
+{% endif %}
+                        </div>
+                        
+<div class="col-md-4 mb-3">                            <label class="font-weight-bold small text-muted">Kilometraje / Millaje Actual</label>                            
+<input type="number" name="{{ form.kilometraje.name }}" id="{{ form.kilometraje.id_for_label }}"                                    class="form-control form-control-lg text-primary font-weight-bold"                                    required placeholder="Ej: 125000"                                   
+{% if form.kilometraje.value %}
+value="{{ form.kilometraje.value }}"
+{% endif %}
+>                            
+{% if form.kilometraje.errors %}
+<small class="text-danger">
+{{ form.kilometraje.errors }}
+</small>
+{% endif %}
+                        </div>
+                        
+<div class="col-md-4 mb-3">                            <label class="font-weight-bold small text-muted">Nivel de Gasolina</label>                            {{ form.nivel_gasolina }}                            
+{% if form.nivel_gasolina.errors %}
+<small class="text-danger">
+{{ form.nivel_gasolina.errors }}
+</small>
+{% endif %}
+                            
+<div class="w-100 mt-2 d-flex justify-content-between text-muted" style="font-size: 0.70rem; padding: 0 4px;">                                <span><i class="fas fa-gas-pump text-danger"></i></span>                                <span>1/4</span>                                <span>1/2</span>                                <span>3/4</span>                                <span><i class="fas fa-gas-pump text-success"></i></span>                            </div>
                         </div>
                     </div>
-
-                </form>
-            </div>
+                    <!-- SECCIÓN 2: ESTADO E INSPECCIÓN (CHECKLIST) -->                    <h6 class="text-primary font-weight-bold mb-3 mt-4 border-bottom pb-2">2. Inventario a Bordo</h6>                    
+<div class="row px-2">                        
+<div class="col-md-3 col-6 mb-3">                            
+<div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">                                
+<div class="custom-control custom-switch">                                    {{ form.tiene_llanta_repuesto }}                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_llanta_repuesto.id_for_label }}">Llanta de Repuesto</label>                                </div>
+                            </div>
+                        </div>
+                        
+<div class="col-md-3 col-6 mb-3">                            
+<div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">                                
+<div class="custom-control custom-switch">                                    {{ form.tiene_gata_herramientas }}                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_gata_herramientas.id_for_label }}">Tricket / Herramienta</label>                                </div>
+                            </div>
+                        </div>
+                        
+<div class="col-md-3 col-6 mb-3">                            
+<div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">                                
+<div class="custom-control custom-switch">                                    {{ form.tiene_radio }}                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_radio.id_for_label }}">Stéreo / Pantalla</label>                                </div>
+                            </div>
+                        </div>
+                        
+<div class="col-md-3 col-6 mb-3">                            
+<div class="p-3 rounded" style="background:#f8f9fa; border:1px solid #e2e8f0;">                                
+<div class="custom-control custom-switch">                                    {{ form.tiene_documentos }}                                    <label class="custom-control-label font-weight-bold" style="cursor: pointer;" for="{{ form.tiene_documentos.id_for_label }}">Documentos Clave</label>                                </div>
+                            </div>
+                        </div>
+                        
+<div class="col-12 mt-2">                            <label class="font-weight-bold small text-muted">Otros objetos de valor dejados por el cliente:</label>                            {{ form.otros_objetos }}                        </div>
+                    </div>
+                    <!-- SECCIÓN 3: DIAGNÓSTICO -->                    <h6 class="text-primary font-weight-bold mb-3 mt-4 border-bottom pb-2">3. Diagnóstico y Observaciones Visuales</h6>                    
+<div class="row px-2">                        
+<div class="col-md-6 mb-3">                            <label class="font-weight-bold small text-muted"><i class="fas fa-comment-dots text-warning mr-1"></i> Falla Reportada por el Cliente</label>                            {{ form.motivo_ingreso }}                        </div>
+                        
+<div class="col-md-6 mb-3">                            <label class="font-weight-bold small text-muted"><i class="fas fa-search text-info mr-1"></i> Observación Inicial (Mecánico/Recepción)</label>                            {{ form.diagnostico_inicial }}                        </div>
+                        
+<div class="col-12">                            
+<div class="alert alert-warning py-2 px-3 mb-2" style="border-radius: 8px;">                                <i class="fas fa-exclamation-triangle mr-1"></i> Inspección de Carrocería (Rayones, Abolladuras, Golpes Previos)                            </div>
+                            {{ form.danos_previos }}                            <small class="text-muted text-right d-block">Es vital anotar todo daño pre-existente para evitar reclamos.</small>                        </div>
+                    </div>
+                    <!-- SECCIÓN 4: FIRMA Y CONFORMIDAD -->                    
+<div class="bg-light p-4 mt-4" style="border-radius: 12px; border: 1px dashed #cbd5e1;">                        <h6 class="text-dark font-weight-bold mb-3"><i class="fas fa-file-signature text-secondary mr-2"></i> 4. Conformidad del Cliente</h6>                        
+<p class="small text-muted mb-3">El cliente declara que la información arriba plasmada respecto a gasolina, objetos de valor y rayones es correcta.</p>                                                
+<div class="row align-items-center">                            
+<div class="col-md-8 mb-3 mb-md-0">                                <label class="font-weight-bold small text-muted">Nombre/Firma del Cliente que Entrega</label>                                {{ form.firma_cliente_text }}                                
+{% if form.firma_cliente_text.errors %}
+<small class="text-danger">
+{{ form.firma_cliente_text.errors }}
+</small>
+{% endif %}
+                            </div>
+                            
+<div class="col-md-4 text-right mt-3 mt-md-0 pt-md-4">                                
+<button type="submit" class="btn btn-success btn-lg shadow-sm" style="border-radius: 30px; padding: 10px 30px;">                                    <i class="fas fa-check mr-2"></i> Guardar Check-in                                </button>                            </div>
+                        </div>
+                    </div>
+                </form>            </div>
         </div>
     </div>
 </div>
 
-<style>
-    /* Estilizar selectores */
-    select.form-control, input.form-control, textarea.form-control {
-        border-radius: 8px;
-        border: 1px solid #cbd5e1;
-        padding: 0.5rem 1rem;
-    }
-    select.form-control:focus, input.form-control:focus, textarea.form-control:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);
-    }
-    
-    .custom-switch .custom-control-label::before {
-        cursor: pointer;
-    }
-    .custom-switch .custom-control-label::after {
-        cursor: pointer;
-    }
+<style>    /* Estilizar selectores */    select.form-control, input.form-control, textarea.form-control {        border-radius: 8px;        border: 1px solid #cbd5e1;        padding: 0.5rem 1rem;    }    select.form-control:focus, input.form-control:focus, textarea.form-control:focus {        border-color: var(--primary);        box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);    }        .custom-switch .custom-control-label::before {        cursor: pointer;    }    .custom-switch .custom-control-label::after {        cursor: pointer;    }
 </style>
+
 {% endblock %}

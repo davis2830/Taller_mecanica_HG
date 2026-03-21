@@ -15,6 +15,7 @@ urlpatterns = [
     path('nueva-cita/<str:fecha>/<str:categoria>/', views.nueva_cita, name='nueva_cita'),
     path('cita/<int:cita_id>/', views.detalle_cita, name='detalle_cita'),
     path('cita/<int:cita_id>/cancelar/', views.cancelar_cita, name='cancelar_cita'),
+    path('confirmar-email/<str:token>/', views.confirmar_cita_email, name='confirmar_cita_email'),
     
     # API para horas disponibles
     path('horas-disponibles/', views.horas_disponibles, name='horas_disponibles'),

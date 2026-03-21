@@ -1,177 +1,139 @@
-<!-- inventario/templates/inventario/dashboard.html -->
-{% extends "base.html" %}
-
-{% block title %}Dashboard Inventario - Taller Mecánico{% endblock %}
-
+<!-- inventario/templates/inventario/dashboard.html -->{% extends "base.html" %}
+{% block title %}Dashboard Inventario - AutoServi Pro
+{% endblock %}
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">Dashboard de Inventario</h1>
+<style>/* Dashboard Premium UI Styles */.inv-header {    background: linear-gradient(135deg, var(--primary), var(--primary-light));    border-radius: var(--radius-lg);    padding: 30px;    margin-bottom: 30px;    box-shadow: 0 10px 25px rgba(0,0,0,0.05);    color: white;    position: relative;    overflow: hidden;}.inv-header::after {    content: '\f466';    font-family: 'Font Awesome 6 Free';    font-weight: 900;    position: absolute;    right: -20px;    bottom: -30px;    font-size: 150px;    opacity: 0.05;    transform: rotate(-15deg);}.inv-metric-card {    background: var(--surface);    border: none;    border-radius: var(--radius-lg);    box-shadow: var(--shadow-sm);    transition: transform 0.3s ease, box-shadow 0.3s ease;    height: 100%;    overflow: hidden;}.inv-metric-card:hover {    transform: translateY(-5px);    box-shadow: 0 12px 20px rgba(0,0,0,0.08);}.metric-icon-box {    width: 60px;    height: 60px;    border-radius: 14px;    display: flex;    align-items: center;    justify-content: center;    font-size: 24px;}.metric-value {    font-size: 2rem;    font-weight: 700;    color: var(--primary);    line-height: 1.2;    font-family: 'Oswald', sans-serif;}.metric-label {    color: var(--text-muted);    font-size: 0.9rem;    font-weight: 500;    text-transform: uppercase;    letter-spacing: 0.5px;}/* Acciones Rápidas */.quick-action-card {    background: var(--surface);    border: 1px solid var(--border);    border-radius: var(--radius);    text-align: center;    padding: 25px 15px;    transition: all 0.2s ease;    text-decoration: none !important;    display: block;    height: 100%;}.quick-action-card:hover {    background: var(--surface-alt);    border-color: var(--accent);    transform: translateY(-3px);}.quick-action-icon {    font-size: 28px;    margin-bottom: 15px;    transition: transform 0.3s ease;}.quick-action-card:hover .quick-action-icon {    transform: scale(1.1);}.quick-action-title {    color: var(--primary);    font-weight: 600;    font-size: 1.05rem;    margin: 0;}/* Tablas Premium */.premium-card {    border: none;    box-shadow: var(--shadow-sm);    border-radius: var(--radius-lg);    overflow: hidden;}.premium-card .card-header {    background: #fff;    border-bottom: 1px solid var(--border);    padding: 20px 25px;}.premium-card .card-header h5 {    color: var(--primary);    font-weight: 700;    font-size: 1.15rem;    margin: 0;}.premium-table {    margin: 0;}.premium-table thead th {    background: var(--surface-alt);    color: var(--text-muted);    font-size: 0.85rem;    text-transform: uppercase;    letter-spacing: 0.5px;    border-bottom: 2px solid var(--border);    padding: 15px 25px;}.premium-table tbody td {    padding: 15px 25px;    vertical-align: middle;    color: #334155;    border-bottom: 1px solid var(--border);}/* Alertas estilo feed */.alert-feed-item {    padding: 15px 20px;    border-left: 4px solid var(--warning);    background: #fffbeb;    border-radius: 0 var(--radius) var(--radius) 0;    margin-bottom: 15px;    box-shadow: 0 1px 3px rgba(0,0,0,0.02);}.alert-feed-item.critical {    border-left-color: var(--danger);    background: #fef2f2;}/* Color Mixins */.bg-violet-light { background: #ede9fe; color: #8b5cf6; }.bg-rose-light   { background: #ffe4e6; color: #e11d48; }.bg-emerald-light{ background: #d1fae5; color: #059669; }.bg-amber-light  { background: #fef3c7; color: #d97706; }</style>
+
+<div class="inv-header">    
+<div class="row align-items-center relative z-10">        
+<div class="col-md-8">            <h1 class="mb-2" style="font-family: 'Oswald', sans-serif; font-size: 2.5rem;"><i class="fas fa-boxes-stacked text-accent me-3"></i>Centro de Inventario</h1>            
+<p class="mb-0 text-white-50" style="font-size: 1.1rem;">Supervisa tus existencias, valorización y alertas en tiempo real.</p>        </div>
+        
+<div class="col-md-4 text-md-right mt-3 mt-md-0">            <span class="badge badge-light px-3 py-2 text-primary shadow-sm" style="font-size: 0.9rem;">                <i class="far fa-calendar-alt me-2"></i>{% now "l, j \d\e F Y" %}            </span>        </div>
+    </div>
+</div>
+<!-- Tarjetas de métricas -->
+<div class="row mb-5">    
+<div class="col-xl-3 col-md-6 mb-4 mb-xl-0">        
+<div class="inv-metric-card">            
+<div class="card-body p-4 d-flex align-items-center">                
+<div class="metric-icon-box bg-violet-light mr-4">                    <i class="fas fa-layer-group"></i>                </div>
+                
+<div>                    
+<div class="metric-value">{{ total_productos }}</div>
+                    
+<div class="metric-label">Total Productos</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+<div class="col-xl-3 col-md-6 mb-4 mb-xl-0">        
+<div class="inv-metric-card">            
+<div class="card-body p-4 d-flex align-items-center">                
+<div class="metric-icon-box bg-rose-light mr-4">                    <i class="fas fa-exclamation-circle"></i>                </div>
+                
+<div>                    
+<div class="metric-value text-danger">{{ productos_stock_bajo }}</div>
+                    
+<div class="metric-label">Stock Bajo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+<div class="col-xl-3 col-md-6 mb-4 mb-xl-0">        
+<div class="inv-metric-card">            
+<div class="card-body p-4 d-flex align-items-center">                
+<div class="metric-icon-box bg-emerald-light mr-4">                    <i class="fas fa-wallet"></i>                </div>
+                
+<div>                    
+<div class="metric-value">Q{{ valor_total_inventario|floatformat:0 }}</div>
+                    
+<div class="metric-label">Valor Estimado</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+<div class="col-xl-3 col-md-6">        
+<div class="inv-metric-card">            
+<div class="card-body p-4 d-flex align-items-center">                
+<div class="metric-icon-box bg-amber-light mr-4">                    <i class="fas fa-bell"></i>                </div>
+                
+<div>                    
+<div class="metric-value text-warning">{{ alertas.count }}</div>
+                    
+<div class="metric-label">Alertas Activas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Accesos Rápidos --><h4 class="mb-4 text-primary font-weight-bold" style="font-family: 'Oswald', sans-serif;">ACCESOS RÁPIDOS</h4>
+<div class="row mb-5">    
+<div class="col-md-3 mb-3 mb-md-0">        <a href="{% url 'agregar_producto' %}" class="quick-action-card">            <i class="fas fa-plus-circle quick-action-icon text-primary"></i>            <h5 class="quick-action-title">Nuevo Producto</h5>        </a>    </div>
+    
+<div class="col-md-3 mb-3 mb-md-0">        <a href="{% url 'agregar_movimiento' %}" class="quick-action-card">            <i class="fas fa-exchange-alt quick-action-icon text-success"></i>            <h5 class="quick-action-title">Entrada/Salida</h5>        </a>    </div>
+    
+<div class="col-md-3 mb-3 mb-md-0">        <a href="{% url 'crear_orden_compra' %}" class="quick-action-card">            <i class="fas fa-shopping-cart quick-action-icon" style="color:#8b5cf6;"></i>            <h5 class="quick-action-title">Orden de Compra</h5>        </a>    </div>
+    
+<div class="col-md-3">        <a href="{% url 'reporte_stock_bajo' %}" class="quick-action-card">            <i class="fas fa-chart-pie quick-action-icon text-info"></i>            <h5 class="quick-action-title">Ver Reportes</h5>        </a>    </div>
+</div>
+
+<div class="row">    <!-- Tabla de Productos TOP -->    
+<div class="col-lg-7 mb-4">        
+<div class="card premium-card h-100">            
+<div class="card-header d-flex justify-content-between align-items-center">                <h5 class="mb-0"><i class="fas fa-fire text-danger mr-2"></i> Alta Rotación (30 días)</h5>                <a href="{% url 'lista_productos' %}" class="btn btn-sm btn-light border text-muted">Ver todos</a>            </div>
+            
+<div class="card-body p-0">                
+{% if productos_mas_usados %}                    
+<div class="table-responsive">                        
+<table class="table premium-table table-hover mb-0">                            
+<thead>                                
+<tr>                                    
+<th>Producto</th>                                    
+<th class="text-center">Cant. Usada</th>                                    
+<th class="text-right">Acción</th>                                </tr>                            </thead>                            <tbody>                                
+{% for item in productos_mas_usados %}                                
+<tr>                                    
+<td class="font-weight-bold"><i class="fas fa-cube text-muted mr-2"></i>{{ item.producto__nombre }}</td>                                    
+<td class="text-center"><span class="badge badge-primary px-3 py-2 rounded-pill">{{ item.total_usado }} uds</span></td>                                    
+<td class="text-right">                                        <a href="{% url 'detalle_producto' item.producto__id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>                                    </td>                                </tr>                                
+{% endfor %}                            </tbody>                        </table>                    </div>
+                {% else %}                    
+<div class="p-5 text-center text-muted">                        <i class="fas fa-bed fa-3x mb-3 opacity-50"></i>                        
+<p>No hay registro de uso de productos en los últimos 30 días.</p>                    </div>
+                
+{% endif %}            </div>
+        </div>
+    </div>
+        <!-- Feed de Alertas -->    
+<div class="col-lg-5 mb-4">        
+<div class="card premium-card h-100">            
+<div class="card-header d-flex justify-content-between align-items-center">                <h5 class="mb-0"><i class="fas fa-bell text-warning mr-2"></i> Alertas Recientes</h5>                
+{% if alertas %}<span class="badge badge-warning badge-pill">{{ alertas.count }}</span>
+{% endif %}            </div>
+            
+<div class="card-body bg-light align-content-start" style="max-height: 400px; overflow-y: auto;">                
+{% if alertas %}                    
+{% for alerta in alertas %}                    
+<div class="alert-feed-item 
+{% if alerta.tipo == 'STOCK_CRITICO' %}critical
+{% endif %}">                        
+<div class="d-flex justify-content-between mb-1">                            <strong class="text-dark"><i class="fas fa-exclamation-triangle mr-1"></i>{{ alerta.get_tipo_display }}</strong>                            <small class="text-muted"><i class="far fa-clock mr-1"></i>{{ alerta.fecha_creacion|timesince }}</small>                        </div>
+                        
+<p class="mb-0 text-secondary" style="font-size: 0.95rem;">{{ alerta.mensaje }}</p>                    </div>
+                    
+{% endfor %}                {% else %}                    
+<div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted py-5">                        <i class="fas fa-check-circle fa-4x text-success mb-3 opacity-50"></i>                        <h5>Todo en orden</h5>                        
+<p>No hay alertas en tu inventario.</p>                    </div>
+                
+{% endif %}            </div>
+            
+<div class="card-footer bg-white text-center border-top">                <a href="{% url 'lista_alertas' %}" class="text-primary font-weight-bold text-decoration-none">Administrar Alertas <i class="fas fa-arrow-right ml-1"></i></a>            </div>
+        </div>
     </div>
 </div>
 
-<!-- Tarjetas de estadísticas -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ total_productos }}</h4>
-                        <p class="mb-0">Total Productos</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-box fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ productos_stock_bajo }}</h4>
-                        <p class="mb-0">Stock Bajo</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-exclamation-triangle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>Q{{ valor_total_inventario|floatformat:2 }}</h4>
-                        <p class="mb-0">Valor Inventario</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-dollar-sign fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ alertas.count }}</h4>
-                        <p class="mb-0">Alertas Activas</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-bell fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Accesos rápidos -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
-                <h5>Agregar Producto</h5>
-                <a href="{% url 'agregar_producto' %}" class="btn btn-primary">Agregar</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-exchange-alt fa-3x text-success mb-3"></i>
-                <h5>Registrar Movimiento</h5>
-                <a href="{% url 'agregar_movimiento' %}" class="btn btn-success">Registrar</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-adjust fa-3x text-warning mb-3"></i>
-                <h5>Ajustar Inventario</h5>
-                <a href="{% url 'ajustar_inventario' %}" class="btn btn-warning">Ajustar</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
-                <h5>Reportes</h5>
-                <a href="{% url 'reporte_stock_bajo' %}" class="btn btn-info">Ver Reportes</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Productos más usados -->
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Productos Más Usados (30 días)</h5>
-            </div>
-            <div class="card-body">
-                {% if productos_mas_usados %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Cantidad Usada</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in productos_mas_usados %}
-                                <tr>
-                                    <td>{{ item.producto__nombre }}</td>
-                                    <td>{{ item.total_usado }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-muted">No hay datos disponibles.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0">Alertas Recientes</h5>
-            </div>
-            <div class="card-body">
-                {% if alertas %}
-                    {% for alerta in alertas %}
-                    <div class="alert alert-warning alert-sm mb-2">
-                        <strong>{{ alerta.get_tipo_display }}:</strong> {{ alerta.mensaje }}
-                        <small class="text-muted d-block">{{ alerta.fecha_creacion|date:"d/m/Y H:i" }}</small>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-muted">No hay alertas activas.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}

@@ -1,112 +1,74 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block page_title %}Catálogo Comparativo de Precios{% endblock %}
-
+{% extends 'base.html' %}{% load static %}
+{% block page_title %}Catálogo Comparativo de Precios
+{% endblock %}
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col-md-6">
-        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">
-            <i class="fas fa-search-dollar mr-2"></i>Catálogo Comparativo de Precios
-        </h4>
-        <p class="text-muted mb-0">Descubre quién te vende más barato en tiempo real</p>
-    </div>
-    <div class="col-md-6 mt-3 mt-md-0">
-        <form method="get" class="d-flex w-100">
-            <div class="input-group shadow-sm" style="border-radius: 20px; overflow: hidden;">
-                <input type="text" name="q" value="{{ q }}" class="form-control border-0 bg-white" placeholder="Buscar repuesto por nombre o código...">
-                <div class="input-group-append">
-                    <button class="btn btn-primary px-4 border-0" type="submit">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
-                    {% if q %}
-                    <a href="{% url 'catalogo_precios' %}" class="btn btn-light border-0 px-3">
-                        <i class="fas fa-times"></i>
-                    </a>
-                    {% endif %}
-                </div>
+<div class="row mb-4 align-items-center">    
+<div class="col-md-6">        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">            <i class="fas fa-search-dollar mr-2"></i>Catálogo Comparativo de Precios        </h4>        
+<p class="text-muted mb-0">Descubre quién te vende más barato en tiempo real</p>    </div>
+    
+<div class="col-md-6 mt-3 mt-md-0">        
+<form method="get" class="d-flex w-100">            
+<div class="input-group shadow-sm" style="border-radius: 20px; overflow: hidden;">                
+<input type="text" name="q" value="{{ q }}" class="form-control border-0 bg-white" placeholder="Buscar repuesto por nombre o código...">                
+<div class="input-group-append">                    
+<button class="btn btn-primary px-4 border-0" type="submit">                        <i class="fas fa-search"></i> Buscar                    </button>                    
+{% if q %}                    <a href="{% url 'catalogo_precios' %}" class="btn btn-light border-0 px-3">                        <i class="fas fa-times"></i>                    </a>                    
+{% endif %}                </div>
             </div>
-        </form>
-    </div>
+        </form>    </div>
 </div>
 
-<div class="row">
-    {% if page_obj %}
-        {% for producto in page_obj %}
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100" style="border-radius: 12px; border: none; overflow: hidden;">
-                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
-                    <small class="text-uppercase text-primary font-weight-bold mb-1 d-block" style="letter-spacing: 1px;">
-                        {{ producto.categoria.nombre|default:"Sin Categoría" }}
-                    </small>
-                    <h5 class="font-weight-bold mb-0 text-dark" style="line-height: 1.3;">{{ producto.nombre }}</h5>
-                    <small class="text-muted">Código: {{ producto.codigo|default:"N/A" }}</small>
-                </div>
-                
-                <div class="card-body px-4 pb-4 pt-2">
-                    <h6 class="text-muted small font-weight-bold mb-3 mt-2">OFERTAS DE PROVEEDORES:</h6>
-                    
-                    <div class="list-group list-group-flush rounded" style="border: 1px solid #e2e8f0;">
-                        {% for precio_prov in producto.precios_ordenados %}
-                            {% if forloop.first %}
-                            <!-- El más barato (Mejor Oferta) -->
-                            <div class="list-group-item bg-light pb-2 pt-3 px-3 d-flex justify-content-between align-items-center" style="border-left: 4px solid #10b981;">
-                                <div>
-                                    <div class="font-weight-bold text-dark">{{ precio_prov.proveedor.nombre }}</div>
-                                    <small class="text-muted text-success font-weight-bold"><i class="fas fa-crown text-warning mr-1"></i> Mejor Oferta</small>
+<div class="row">    
+{% if page_obj %}        
+{% for producto in page_obj %}        
+<div class="col-xl-4 col-md-6 mb-4">            
+<div class="card shadow-sm h-100" style="border-radius: 12px; border: none; overflow: hidden;">                
+<div class="card-header bg-white border-0 pt-4 pb-2 px-4">                    <small class="text-uppercase text-primary font-weight-bold mb-1 d-block" style="letter-spacing: 1px;">                        {{ producto.categoria.nombre|default:"Sin Categoría" }}                    </small>                    <h5 class="font-weight-bold mb-0 text-dark" style="line-height: 1.3;">{{ producto.nombre }}</h5>                    <small class="text-muted">Código: {{ producto.codigo|default:"N/A" }}</small>                </div>
+                                
+<div class="card-body px-4 pb-4 pt-2">                    <h6 class="text-muted small font-weight-bold mb-3 mt-2">OFERTAS DE PROVEEDORES:</h6>                                        
+<div class="list-group list-group-flush rounded" style="border: 1px solid #e2e8f0;">                        
+{% for precio_prov in producto.precios_ordenados %}                            
+{% if forloop.first %}                            <!-- El más barato (Mejor Oferta) -->                            
+<div class="list-group-item bg-light pb-2 pt-3 px-3 d-flex justify-content-between align-items-center" style="border-left: 4px solid #10b981;">                                
+<div>                                    
+<div class="font-weight-bold text-dark">{{ precio_prov.proveedor.nombre }}</div>
+                                    <small class="text-muted text-success font-weight-bold"><i class="fas fa-crown text-warning mr-1"></i> Mejor Oferta</small>                                </div>
+                                
+<div class="text-right">                                    <h5 class="mb-0 font-weight-bold text-success">Q{{ precio_prov.precio_ofrecido|floatformat:2 }}</h5>                                    <small class="text-muted" style="font-size: 0.70rem;">Actualizado el {{ precio_prov.ultima_actualizacion|date:"d/m/Y" }}</small>                                </div>
+                            </div>
+                            {% else %}                            <!-- Otras ofertas -->                            
+<div class="list-group-item py-2 px-3 d-flex justify-content-between align-items-center">                                
+<div>                                    
+<div class="font-weight-bold text-secondary" style="font-size: 0.9rem;">{{ precio_prov.proveedor.nombre }}</div>
                                 </div>
-                                <div class="text-right">
-                                    <h5 class="mb-0 font-weight-bold text-success">Q{{ precio_prov.precio_ofrecido|floatformat:2 }}</h5>
-                                    <small class="text-muted" style="font-size: 0.70rem;">Actualizado el {{ precio_prov.ultima_actualizacion|date:"d/m/Y" }}</small>
+                                
+<div class="text-right">                                    
+<div class="mb-0 font-weight-bold text-secondary">Q{{ precio_prov.precio_ofrecido|floatformat:2 }}</div>
                                 </div>
                             </div>
-                            {% else %}
-                            <!-- Otras ofertas -->
-                            <div class="list-group-item py-2 px-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="font-weight-bold text-secondary" style="font-size: 0.9rem;">{{ precio_prov.proveedor.nombre }}</div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="mb-0 font-weight-bold text-secondary">Q{{ precio_prov.precio_ofrecido|floatformat:2 }}</div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
+                            
+{% endif %}                        
+{% endfor %}                    </div>
                 </div>
             </div>
         </div>
-        {% endfor %}
         
-        <!-- Paginación -->
-        <div class="col-12 mt-4">
-            {% if page_obj.has_other_pages %}
-            <nav aria-label="Navegación de páginas">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">Anterior</a>
-                    </li>
-                    {% endif %}
-                    
-                    <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
-                    
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Siguiente</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
-        </div>
-        
-    {% else %}
-        <div class="col-12 text-center py-5">
-            <i class="fas fa-boxes fa-4x text-light mb-4"></i>
-            <h4 class="text-muted font-weight-bold">Aún no hay comparativas registradas</h4>
-            <p class="text-muted">El catálogo aprende automáticamente leyendo las <a href="{% url 'lista_ordenes_compra' %}">Órdenes de Compra</a> recibidas.<br>Cuando recibas una orden, el precio ofertado quedará guardado aquí.</p>
-        </div>
-    {% endif %}
-</div>
+{% endfor %}                <!-- Paginación -->        
+<div class="col-12 mt-4">            
+{% if page_obj.has_other_pages %}            <nav aria-label="Navegación de páginas">                <ul class="pagination justify-content-center">                    
+{% if page_obj.has_previous %}                    <li class="page-item">                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}
+{% if q %}&q={{ q }}
+{% endif %}">Anterior</a>                    </li>                    
+{% endif %}                                        <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>                                        
+{% if page_obj.has_next %}                    <li class="page-item">                        <a class="page-link" href="?page={{ page_obj.next_page_number }}
+{% if q %}&q={{ q }}
+{% endif %}">Siguiente</a>                    </li>                    
+{% endif %}                </ul>            </nav>            
+{% endif %}        </div>
+            {% else %}        
+<div class="col-12 text-center py-5">            <i class="fas fa-boxes fa-4x text-light mb-4"></i>            <h4 class="text-muted font-weight-bold">Aún no hay comparativas registradas</h4>            
+<p class="text-muted">El catálogo aprende automáticamente leyendo las <a href="{% url 'lista_ordenes_compra' %}">Órdenes de Compra</a> recibidas.<br>Cuando recibas una orden, el precio ofertado quedará guardado aquí.</p>        </div>
+    
+{% endif %}</div>
+
 {% endblock %}

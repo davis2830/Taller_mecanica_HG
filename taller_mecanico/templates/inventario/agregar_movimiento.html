@@ -1,107 +1,56 @@
-<!-- inventario/templates/inventario/agregar_movimiento.html -->
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-
-{% block title %}Registrar Movimiento - Inventario{% endblock %}
-
+<!-- inventario/templates/inventario/agregar_movimiento.html -->{% extends "base.html" %}{% load crispy_forms_tags %}
+{% block title %}Registrar Movimiento - AutoServi Pro
+{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h2 class="mb-0">Registrar Movimiento de Inventario</h2>
+<style>.form-card {    border: none;    border-radius: var(--radius-lg);    box-shadow: 0 10px 30px rgba(0,0,0,0.05);    overflow: hidden;}.form-header {    background: linear-gradient(135deg, var(--primary), #1e293b);    padding: 2rem;    color: white;    border-bottom: 0;}.form-body {    padding: 2.5rem;    background: var(--surface);}.info-panel {    background: #f8fafc;    border-left: 4px solid var(--info);    border-radius: 0 var(--radius) var(--radius) 0;    padding: 1.25rem;    margin-top: 0.5rem;    margin-bottom: 1.5rem;    box-shadow: 0 2px 5px rgba(0,0,0,0.02);}.btn-action {    padding: 12px 25px;    font-weight: 600;    border-radius: 50px;    letter-spacing: 0.5px;    transition: all 0.2s;}.btn-action:hover {    transform: translateY(-2px);    box-shadow: 0 5px 15px rgba(0,0,0,0.1);}</style>
+
+<div class="row justify-content-center my-4">    
+<div class="col-xl-8 col-lg-10">        
+<div class="card form-card">            
+<div class="card-header form-header d-flex align-items-center">                
+<div class="bg-white text-primary rounded-circle d-flex justify-content-center align-items-center mr-3 shadow-sm" style="width: 50px; height: 50px;">                    <i class="fas fa-exchange-alt fa-lg"></i>                </div>
+                
+<div>                    <h2 class="mb-0 font-weight-bold" style="font-family: 'Oswald', sans-serif;">Registrar Movimiento</h2>                    
+<p class="mb-0 text-white-50 small">Registra entradas, salidas o ajustes de inventario</p>                </div>
             </div>
-            <div class="card-body">
-                <form method="POST" id="movimientoForm">
-                    {% csrf_token %}
-                    
-                    <div class="form-group">
-                        {{ form.producto.label_tag }}
-                        {{ form.producto }}
-                        <div id="infoProducto" class="mt-2" style="display: none;">
-                            <div class="alert alert-info">
-                                <strong>Stock actual:</strong> <span id="stockActual">-</span><br>
-                                <strong>Stock mínimo:</strong> <span id="stockMinimo">-</span>
+                        
+<div class="card-body form-body">                
+<form method="POST" id="movimientoForm">                    {% csrf_token %}                                        <h5 class="text-primary font-weight-bold border-bottom pb-2 mb-4"><i class="fas fa-box text-muted mr-2"></i>Selección de Producto</h5>                                        
+<div class="form-group mb-4">                        {{ form.producto|as_crispy_field }}                                                
+<div id="infoProducto" style="display: none; animation: fadeIn 0.3s ease;">                            
+<div class="info-panel d-flex justify-content-around text-center">                                
+<div>                                    <span class="d-block text-muted small text-uppercase font-weight-bold mb-1">Stock Actual</span>                                    <h4 id="stockActual" class="mb-0 text-primary font-weight-bold">-</h4>                                </div>
+                                
+<div>                                    <span class="d-block text-muted small text-uppercase font-weight-bold mb-1">Nivel Mínimo</span>                                    <h4 id="stockMinimo" class="mb-0 text-secondary">-</h4>                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form.tipo.label_tag }}
-                                {{ form.tipo }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form.motivo.label_tag }}
-                                {{ form.motivo }}
-                            </div>
-                        </div>
+                                        <h5 class="text-primary font-weight-bold border-bottom pb-2 mb-4 mt-5"><i class="fas fa-sliders-h text-muted mr-2"></i>Detalles del Movimiento</h5>                                        
+<div class="row">                        
+<div class="col-md-6 mb-3">                            {{ form.tipo|as_crispy_field }}                        </div>
+                        
+<div class="col-md-6 mb-3">                            {{ form.motivo|as_crispy_field }}                        </div>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form.cantidad.label_tag }}
-                                {{ form.cantidad }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form.precio_unitario.label_tag }}
-                                {{ form.precio_unitario }}
-                            </div>
-                        </div>
+                                        
+<div class="row">                        
+<div class="col-md-6 mb-3">                            {{ form.cantidad|as_crispy_field }}                        </div>
+                        
+<div class="col-md-6 mb-3">                            {{ form.precio_unitario|as_crispy_field }}                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        {{ form.observaciones.label_tag }}
-                        {{ form.observaciones }}
+                                        
+<div class="row mt-3">                        
+<div class="col-12 mb-4">                            {{ form.observaciones|as_crispy_field }}                        </div>
                     </div>
-                    
-                    <button type="submit" class="btn btn-success">Registrar Movimiento</button>
-                    <a href="{% url 'lista_productos' %}" class="btn btn-outline-secondary">Cancelar</a>
-                </form>
-            </div>
+                                        
+<div class="d-flex justify-content-end mt-4 pt-4 border-top">                        <a href="{% url 'lista_productos' %}" class="btn btn-light btn-action text-muted border mr-2">                            <i class="fas fa-times mr-2"></i>Cancelar                        </a>                        
+<button type="submit" class="btn btn-success btn-action px-5">                            <i class="fas fa-save mr-2"></i>Procesar Movimiento                        </button>                    </div>
+                </form>            </div>
         </div>
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const productoSelect = document.querySelector('select[name="producto"]');
-    const infoProducto = document.getElementById('infoProducto');
-    const stockActual = document.getElementById('stockActual');
-    const stockMinimo = document.getElementById('stockMinimo');
-    const precioUnitario = document.querySelector('input[name="precio_unitario"]');
-    
-    productoSelect.addEventListener('change', function() {
-        const productoId = this.value;
-        
-        if (productoId) {
-            fetch(`/inventario/api/stock/${productoId}/`)
-                .then(response => response.json())
-                .then(data => {
-                    stockActual.textContent = data.stock_actual;
-                    stockMinimo.textContent = data.stock_minimo;
-                    precioUnitario.value = data.precio_compra;
-                    infoProducto.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    infoProducto.style.display = 'none';
-                });
-        } else {
-            infoProducto.style.display = 'none';
-        }
-    });
-    
-    // Si hay un producto preseleccionado (desde URL), cargar su info
-    if (productoSelect.value) {
-        productoSelect.dispatchEvent(new Event('change'));
-    }
-});
-</script>
+<style>@keyframes fadeIn {    from { opacity: 0; transform: translateY(-10px); }    to { opacity: 1; transform: translateY(0); }}</style>
+
+<script>document.addEventListener('DOMContentLoaded', function() {    const productoSelect = document.querySelector('select[name="producto"]');    const infoProducto = document.getElementById('infoProducto');    const stockActual = document.getElementById('stockActual');    const stockMinimo = document.getElementById('stockMinimo');    const precioUnitario = document.querySelector('input[name="precio_unitario"]');        // Add custom styling to all selects generated by crispy    document.querySelectorAll('select').forEach(el => el.classList.add('custom-select'));        if(productoSelect) {        productoSelect.addEventListener('change', function() {            const productoId = this.value;                        if (productoId) {                fetch(`/inventario/api/stock/${productoId}/`)                    .then(response => response.json())                    .then(data => {                        stockActual.textContent = data.stock_actual;                        stockMinimo.textContent = data.stock_minimo;                        // Determine color for current stock                        if (data.stock_actual <= data.stock_minimo) {                            stockActual.className = "mb-0 text-warning font-weight-bold";                        } else {                            stockActual.className = "mb-0 text-success font-weight-bold";                        }                                                precioUnitario.value = data.precio_compra;                        infoProducto.style.display = 'block';                    })                    .catch(error => {                        console.error('Error:', error);                        infoProducto.style.display = 'none';                    });            } else {                infoProducto.style.display = 'none';            }        });                // Si hay un producto preseleccionado (desde URL), cargar su info        if (productoSelect.value) {            productoSelect.dispatchEvent(new Event('change'));        }    }});</script>
+
 {% endblock %}

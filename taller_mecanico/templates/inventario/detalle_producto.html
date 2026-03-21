@@ -1,162 +1,125 @@
-<!-- inventario/templates/inventario/detalle_producto.html -->
-{% extends "base.html" %}
-
-{% block title %}{{ producto.nombre }} - Inventario{% endblock %}
-
+<!-- inventario/templates/inventario/detalle_producto.html -->{% extends "base.html" %}
+{% block title %}{{ producto.nombre }} - AutoServi Pro
+{% endblock %}
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">{{ producto.nombre }}</h2>
-                <div>
-                    <a href="{% url 'editar_producto' producto.id %}" class="btn btn-light btn-sm">Editar</a>
-                    <a href="{% url 'agregar_movimiento' %}?producto={{ producto.id }}" class="btn btn-success btn-sm">Nuevo Movimiento</a>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <table class="table">
-                            <tr>
-                                <th>Código:</th>
-                                <td>{{ producto.codigo }}</td>
-                            </tr>
-                            <tr>
-                                <th>Tipo:</th>
-                                <td>{{ producto.get_tipo_display }}</td>
-                            </tr>
-                            <tr>
-                                <th>Categoría:</th>
-                                <td>{{ producto.categoria.nombre|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th>Proveedor:</th>
-                                <td>{{ producto.proveedor_principal.nombre|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th>Unidad:</th>
-                                <td>{{ producto.unidad_medida }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <table class="table">
-                            <tr>
-                                <th>Stock Actual:</th>
-                                <td>
-                                    <span class="badge badge-{{ producto.necesita_reposicion|yesno:'warning,success' }} badge-lg">
-                                        {{ producto.stock_actual }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Stock Mínimo:</th>
-                                <td>{{ producto.stock_minimo }}</td>
-                            </tr>
-                            <tr>
-                                <th>Precio Compra:</th>
-                                <td>Q{{ producto.precio_compra }}</td>
-                            </tr>
-                            <tr>
-                                <th>Precio Venta:</th>
-                                <td>Q{{ producto.precio_venta }}</td>
-                            </tr>
-                            <tr>
-                                <th>Valor Inventario:</th>
-                                <td><strong>Q{{ producto.valor_inventario|floatformat:2 }}</strong></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                
-                {% if producto.descripcion %}
-                <div class="alert alert-info">
-                    <strong>Descripción:</strong> {{ producto.descripcion }}
-                </div>
-                {% endif %}
-                
-                {% if producto.necesita_reposicion %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>¡Atención!</strong> Este producto necesita reposición. Stock actual: {{ producto.stock_actual }}, Stock mínimo: {{ producto.stock_minimo }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Historial de movimientos -->
-        <div class="card mt-3">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">Últimos Movimientos</h5>
-            </div>
-            <div class="card-body">
-                {% if movimientos %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Tipo</th>
-                                <th>Motivo</th>
-                                <th>Cantidad</th>
-                                <th>Stock Anterior</th>
-                                <th>Stock Nuevo</th>
-                                <th>Usuario</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for movimiento in movimientos %}
-                            <tr>
-                                <td>{{ movimiento.fecha|date:"d/m/Y H:i" }}</td>
-                                <td>
-                                    <span class="badge badge-{% if movimiento.tipo == 'ENTRADA' %}success{% elif movimiento.tipo == 'SALIDA' %}danger{% else %}warning{% endif %}">
-                                        {{ movimiento.get_tipo_display }}
-                                    </span>
-                                </td>
-                                <td>{{ movimiento.get_motivo_display }}</td>
-                                <td>{{ movimiento.cantidad }}</td>
-                                <td>{{ movimiento.stock_anterior }}</td>
-                                <td>{{ movimiento.stock_nuevo }}</td>
-                                <td>{{ movimiento.usuario.username|default:"-" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <a href="{% url 'historial_movimientos' %}?producto={{ producto.id }}" class="btn btn-outline-primary btn-sm">Ver Historial Completo</a>
-                {% else %}
-                <p class="text-muted">No hay movimientos registrados para este producto.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Sidebar con acciones rápidas -->
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">Acciones Rápidas</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'agregar_movimiento' %}?producto={{ producto.id }}" class="btn btn-success btn-block">Registrar Movimiento</a>
-                    <a href="{% url 'editar_producto' producto.id %}" class="btn btn-primary btn-block">Editar Producto</a>
-                    <a href="{% url 'lista_productos' %}" class="btn btn-outline-secondary btn-block">Volver a Lista</a>
-                </div>
-            </div>
-             </div>
-        </div>
-        
-        <!-- Card de estadísticas del producto -->
-        <div class="card mt-3">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0">Estadísticas</h5>
-            </div>
-            <div class="card-body">
-                <small class="text-muted">Próximamente: estadísticas de uso y rotación</small>
-            </div>
-        </div>
-    </div>
+<style>/* Product Profile Styles */.profile-card {    border: none;    border-radius: var(--radius-lg);    box-shadow: 0 8px 30px rgba(0,0,0,0.04);    overflow: hidden;    margin-bottom: 2rem;}.profile-header {    background: linear-gradient(135deg, var(--primary), #1e293b);    padding: 2.5rem 2rem;    color: white;    position: relative;}.product-icon-wrapper {    width: 80px;    height: 80px;    background: rgba(255,255,255,0.1);    border-radius: 20px;    display: flex;    align-items: center;    justify-content: center;    font-size: 2.5rem;    backdrop-filter: blur(10px);    border: 1px solid rgba(255,255,255,0.2);    box-shadow: 0 8px 16px rgba(0,0,0,0.1);}.data-label {    font-size: 0.85rem;    text-transform: uppercase;    letter-spacing: 0.5px;    font-weight: 600;    color: var(--text-muted);    margin-bottom: 0.3rem;}.data-value {    font-size: 1.15rem;    font-weight: 500;    color: var(--primary);    margin-bottom: 1.5rem;}.action-panel {    background: var(--surface);    border-radius: var(--radius-lg);    box-shadow: var(--shadow-sm);    padding: 1.5rem;    border: 1px solid var(--border);}.action-btn {    display: flex;    align-items: center;    justify-content: flex-start;    padding: 12px 20px;    border-radius: 10px;    font-weight: 600;    transition: all 0.2s ease;    margin-bottom: 10px;    border: 1px solid transparent;}.action-btn i {    width: 24px;    font-size: 1.1rem;    margin-right: 10px;    text-align: center;}.action-btn.primary {    background: rgba(15, 23, 42, 0.05);    color: var(--primary);}.action-btn.primary:hover {    background: var(--primary);    color: white;    transform: translateX(5px);}.action-btn.success {    background: rgba(16, 185, 129, 0.1);    color: #059669;}.action-btn.success:hover {    background: var(--success);    color: white;    transform: translateX(5px);}.action-btn.outline {    border-color: var(--border);    color: var(--text-muted);}.action-btn.outline:hover {    background: var(--surface-alt);    color: var(--primary);    transform: translateX(5px);}.history-table th {    background: var(--surface-alt);    border-bottom: 2px solid var(--border);    font-size: 0.85rem;    text-transform: uppercase;    color: var(--text-muted);    padding: 15px;}.history-table td {    padding: 15px;    vertical-align: middle;}</style>
+<!-- Alerta de Reposición (si aplica) -->
+{% if producto.necesita_reposicion %}
+<div class="alert alert-warning border-0 border-start border-warning border-5 shadow-sm rounded-lg d-flex align-items-center p-4 mb-4" style="background-color: #fffbeb;">    <i class="fas fa-exclamation-triangle fa-2x text-warning mr-4"></i>    
+<div>        <h5 class="alert-heading text-warning mb-1 font-weight-bold">Requiere Reposición Inmediata</h5>        
+<p class="mb-0 text-dark">El nivel de stock actual (<strong>{{ producto.stock_actual }}</strong>) ha caído por debajo del margen mínimo de seguridad (<strong>{{ producto.stock_minimo }}</strong>).</p>    </div>
 </div>
+
+{% endif %}
+<div class="row">    <!-- Columna Principal -->    
+<div class="col-lg-8">                <!-- Tarjeta Maestra del Producto -->        
+<div class="card profile-card">            
+<div class="profile-header d-flex align-items-center">                
+<div class="product-icon-wrapper mr-4">                    <i class="fas fa-box-open text-white"></i>                </div>
+                
+<div class="flex-grow-1">                    
+<div class="d-flex justify-content-between align-items-start">                        
+<div>                            <span class="badge badge-light text-primary mb-2 px-3 py-1 rounded-pill shadow-sm" style="font-size: 0.8rem; letter-spacing: 1px;">CÓDIGO: {{ producto.codigo }}</span>                            <h2 class="mb-1 font-weight-bold" style="font-family: 'Oswald', sans-serif; font-size: 2.2rem;">{{ producto.nombre }}</h2>                            
+<p class="mb-0 opacity-75"><i class="fas fa-tag mr-2"></i>{{ producto.categoria.nombre|default:"Sin Categoría" }}</p>                        </div>
+                        
+<div>                            
+{% if producto.activo %}                                <span class="badge bg-success text-white px-3 py-2 rounded-pill shadow-sm"><i class="fas fa-circle mr-2" style="font-size:8px;"></i>ACTIVO</span>                            {% else %}                                <span class="badge bg-secondary text-white px-3 py-2 rounded-pill shadow-sm"><i class="fas fa-circle mr-2" style="font-size:8px;"></i>INACTIVO</span>                            
+{% endif %}                        </div>
+                    </div>
+                </div>
+            </div>
+                        
+<div class="card-body p-4 p-md-5">                <h5 class="text-primary font-weight-bold border-bottom pb-3 mb-4"><i class="fas fa-info-circle mr-2"></i>Información Técnica y Comercial</h5>                                
+<div class="row">                    <!-- Columna Izquierda (Clasificación) -->                    
+<div class="col-md-6 border-right px-md-4">                        
+<div class="data-label">Tipo de Producto</div>
+                        
+<div class="data-value">{{ producto.get_tipo_display }}</div>
+                                                
+<div class="data-label">Proveedor Principal</div>
+                        
+<div class="data-value">                            
+{% if producto.proveedor_principal %}                                <i class="far fa-building text-muted mr-2"></i>{{ producto.proveedor_principal.nombre }}                            {% else %}                                <span class="text-muted font-italic">No asignado</span>                            
+{% endif %}                        </div>
+                                                
+<div class="data-label">Unidad de Medida</div>
+                        
+<div class="data-value">{{ producto.unidad_medida }}</div>
+                                                
+<div class="data-label">Descripción</div>
+                        
+<div class="data-value" style="font-size: 1rem; color: #475569;">                            {{ producto.descripcion|default:"<span class='text-muted font-italic'>Sin descripción detallada.</span>"|safe }}                        </div>
+                    </div>
+                                        <!-- Columna Derecha (Finanzas y Stock) -->                    
+<div class="col-md-6 px-md-4">                        
+<div class="p-4 rounded-lg mb-4" style="background-color: #f8fafc; border: 1px dashed #cbd5e1;">                            
+<div class="row text-center mb-3">                                
+<div class="col-6 border-right">                                    <h3 class="mb-0 font-weight-bold 
+{% if producto.necesita_reposicion %}text-warning{% else %}text-success
+{% endif %}" style="font-size: 2.5rem;">{{ producto.stock_actual }}</h3>                                    <span class="text-muted small text-uppercase font-weight-bold">Stock Actual</span>                                </div>
+                                
+<div class="col-6">                                    <h3 class="mb-0 font-weight-bold text-muted" style="font-size: 1.8rem; line-height: 2.5rem;">{{ producto.stock_minimo }}</h3>                                    <span class="text-muted small text-uppercase font-weight-bold">Mínimo Ideal</span>                                </div>
+                            </div>
+                        </div>
+                                                
+<div class="d-flex justify-content-between mb-2">                            <span class="data-label mb-0">Precio de Compra</span>                            <span class="font-weight-bold text-danger">Q{{ producto.precio_compra }}</span>                        </div>
+                        
+<div class="d-flex justify-content-between mb-4 pb-3 border-bottom">                            <span class="data-label mb-0">Precio de Venta</span>                            <span class="font-weight-bold text-success" style="font-size: 1.25rem;">Q{{ producto.precio_venta }}</span>                        </div>
+                                                
+<div class="d-flex justify-content-between align-items-center bg-light p-3 rounded">                            <span class="data-label text-primary mb-0"><i class="fas fa-coins mr-2"></i>Valor Bruto en Bodega</span>                            <span class="font-weight-bold text-dark" style="font-size: 1.4rem;">Q{{ producto.valor_inventario|floatformat:2 }}</span>                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+                <!-- Historial de Movimientos -->        
+<div class="card profile-card">            
+<div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">                <h5 class="mb-0 text-primary font-weight-bold"><i class="fas fa-history mr-2"></i>Últimos Movimientos</h5>                <a href="{% url 'historial_movimientos' %}?producto={{ producto.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">Ver Todo</a>            </div>
+            
+<div class="card-body p-0">                
+{% if movimientos %}                
+<div class="table-responsive">                    
+<table class="table history-table table-hover mb-0">                        
+<thead>                            
+<tr>                                
+<th>Fecha</th>                                
+<th>Tipo de Ajuste</th>                                
+<th>Causa</th>                                
+<th class="text-center">Cant.</th>                                
+<th class="text-right">Usuario</th>                            </tr>                        </thead>                        <tbody>                            
+{% for movimiento in movimientos %}                            
+<tr>                                
+<td class="text-muted font-weight-bold">{{ movimiento.fecha|date:"j M Y - g:i A" }}</td>                                
+<td>                                    
+{% if movimiento.tipo == 'ENTRADA' %}                                        <span class="badge badge-success px-3 py-2 rounded-pill"><i class="fas fa-arrow-down mr-1"></i>ENTRADA</span>                                    {% elif movimiento.tipo == 'SALIDA' %}                                        <span class="badge badge-danger px-3 py-2 rounded-pill"><i class="fas fa-arrow-up mr-1"></i>SALIDA</span>                                    {% else %}                                        <span class="badge badge-warning text-dark px-3 py-2 rounded-pill"><i class="fas fa-sliders-h mr-1"></i>AJUSTE</span>                                    
+{% endif %}                                </td>                                
+<td><span class="text-dark">{{ movimiento.get_motivo_display }}</span></td>                                
+<td class="text-center font-weight-bold" style="font-size: 1.1rem;">                                    
+{% if movimiento.tipo == 'ENTRADA' %}                                        <span class="text-success">+{{ movimiento.cantidad }}</span>                                    {% else %}                                        <span class="text-danger">-{{ movimiento.cantidad }}</span>                                    
+{% endif %}                                    
+<div class="small text-muted" style="font-size: 0.75rem;">(Quedan {{ movimiento.stock_nuevo }})</div>
+                                </td>                                
+<td class="text-right">                                    
+<div class="badge badge-light border text-muted px-2 py-1"><i class="fas fa-user-circle mr-1"></i>{{ movimiento.usuario.username|default:"Sistema" }}</div>
+                                </td>                            </tr>                            
+{% endfor %}                        </tbody>                    </table>                </div>
+                {% else %}                
+<div class="p-5 text-center">                    <i class="fas fa-clipboard-list fa-3x text-muted opacity-50 mb-3"></i>                    <h5 class="text-muted">Sin Movimientos</h5>                    
+<p class="text-muted mb-0">Este producto aún no tiene entradas o salidas registradas en el kardex.</p>                </div>
+                
+{% endif %}            </div>
+        </div>
+            </div>
+        <!-- Columna Lateral (Panel de Control) -->    
+<div class="col-lg-4">        <h5 class="text-uppercase text-muted font-weight-bold mb-3" style="font-size: 0.85rem; letter-spacing: 1px;">Panel Operativo</h5>                
+<div class="action-panel mb-4">            <a href="{% url 'agregar_movimiento' %}?producto={{ producto.id }}" class="action-btn success text-decoration-none">                <i class="fas fa-plus-circle"></i> Agregar Existencias / Salidas            </a>            <a href="{% url 'editar_producto' producto.id %}" class="action-btn primary text-decoration-none">                <i class="fas fa-pen"></i> Editar Datos del Producto            </a>            <a href="{% url 'lista_productos' %}" class="action-btn outline text-decoration-none mt-4">                <i class="fas fa-arrow-left"></i> Regresar al Catálogo            </a>        </div>
+                <!-- Tarjeta de Desempeño (Placeholder) -->        
+<div class="card profile-card bg-primary text-white" style="background: linear-gradient(135deg, #0f172a, #334155);">            
+<div class="card-body p-4 text-center">                
+<div class="opacity-50 mb-3">                    <i class="fas fa-chart-line fa-3x"></i>                </div>
+                <h5 class="font-weight-bold mb-2">Analítica Próximamente</h5>                
+<p class="small text-white-50 mb-0">Aquí visualizaremos gráficos de rotación y predicción de demanda para este artículo.</p>            </div>
+        </div>
+            </div>
+</div>
+
 {% endblock %}

@@ -1,71 +1,43 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block page_title %}Recibir Mercancía - OC-{{ orden.id|stringformat:"04d" }}{% endblock %}
-
+{% extends 'base.html' %}{% load static %}
+{% block page_title %}Recibir Mercancía - OC-{{ orden.id|stringformat:"04d" }}
+{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-clipboard-check mr-2"></i> Recepción de Mercancía (OC-{{ orden.id|stringformat:"04d" }})</h5>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle mr-2"></i> Al confirmar esta recepción, <strong>el stock de estos productos aumentará automáticamente</strong> en el inventario general y se guardará el registro del movimiento.
-                </div>
-                
-                <h6 class="font-weight-bold text-secondary mb-3 mt-4">Proveedor: {{ orden.proveedor.nombre }}</h6>
-                
-                <form method="POST">
-                    {% csrf_token %}
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th>Producto</th>
-                                    <th class="text-center">Pedidas</th>
-                                    <th class="text-center">Ya recibidas</th>
-                                    <th class="text-center text-success">Pendientes a recibir</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for detalle in orden.detalles.all %}
-                                <tr>
-                                    {% if detalle.cantidad_solicitada > detalle.cantidad_recibida %}
-                                    <td>{{ detalle.producto.nombre }}</td>
-                                    <td class="text-center">{{ detalle.cantidad_solicitada }}</td>
-                                    <td class="text-center">{{ detalle.cantidad_recibida }}</td>
-                                    <td class="text-center">
-                                        <!-- En una versión básica asumimos que recibe todo lo faltante -->
-                                        {% with calculo=detalle.cantidad_solicitada %}
-                                            <span class="badge badge-success px-3 py-1" style="font-size: 0.95rem;">
-                                                Subirá Stock
-                                            </span>
-                                        {% endwith %}
-                                    </td>
-                                    {% else %}
-                                    <td>{{ detalle.producto.nombre }}</td>
-                                    <td class="text-center">{{ detalle.cantidad_solicitada }}</td>
-                                    <td class="text-center text-success"><i class="fas fa-check"></i> {{ detalle.cantidad_recibida }}</td>
-                                    <td class="text-center text-muted">Completo</td>
-                                    {% endif %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <hr class="mt-4 mb-4">
-                    <div class="d-flex justify-content-end gap-3">
-                        <a href="{% url 'ver_orden_compra' orden.id %}" class="btn btn-light">Cancelar</a>
-                        <button type="submit" class="btn btn-success px-4 font-weight-bold">
-                            <i class="fas fa-check-circle mr-2"></i> Confirmar Entrada a Inventario
-                        </button>
-                    </div>
-                </form>
-            </div>
+<div class="row justify-content-center">    
+<div class="col-lg-8">        
+<div class="card border-0 shadow-sm">            
+<div class="card-header bg-success text-white">                <h5 class="mb-0"><i class="fas fa-clipboard-check mr-2"></i> Recepción de Mercancía (OC-{{ orden.id|stringformat:"04d" }})</h5>            </div>
+            
+<div class="card-body">                
+<div class="alert alert-info">                    <i class="fas fa-info-circle mr-2"></i> Al confirmar esta recepción, <strong>el stock de estos productos aumentará automáticamente</strong> en el inventario general y se guardará el registro del movimiento.                </div>
+                                <h6 class="font-weight-bold text-secondary mb-3 mt-4">Proveedor: {{ orden.proveedor.nombre }}</h6>                                
+<form method="POST">                    {% csrf_token %}                    
+<div class="table-responsive">                        
+<table class="table">                            
+<thead class="bg-light">                                
+<tr>                                    
+<th>Producto</th>                                    
+<th class="text-center">Pedidas</th>                                    
+<th class="text-center">Ya recibidas</th>                                    
+<th class="text-center text-success">Pendientes a recibir</th>                                </tr>                            </thead>                            <tbody>                                
+{% for detalle in orden.detalles.all %}                                
+<tr>                                    
+{% if detalle.cantidad_solicitada > detalle.cantidad_recibida %}                                    
+<td>{{ detalle.producto.nombre }}</td>                                    
+<td class="text-center">{{ detalle.cantidad_solicitada }}</td>                                    
+<td class="text-center">{{ detalle.cantidad_recibida }}</td>                                    
+<td class="text-center">                                        <!-- En una versión básica asumimos que recibe todo lo faltante -->                                        {% with calculo=detalle.cantidad_solicitada %}                                            <span class="badge badge-success px-3 py-1" style="font-size: 0.95rem;">                                                Subirá Stock                                            </span>                                        {% endwith %}                                    </td>                                    {% else %}                                    
+<td>{{ detalle.producto.nombre }}</td>                                    
+<td class="text-center">{{ detalle.cantidad_solicitada }}</td>                                    
+<td class="text-center text-success"><i class="fas fa-check"></i> {{ detalle.cantidad_recibida }}</td>                                    
+<td class="text-center text-muted">Completo</td>                                    
+{% endif %}                                </tr>                                
+{% endfor %}                            </tbody>                        </table>                    </div>
+                                        <hr class="mt-4 mb-4">                    
+<div class="d-flex justify-content-end gap-3">                        <a href="{% url 'ver_orden_compra' orden.id %}" class="btn btn-light">Cancelar</a>                        
+<button type="submit" class="btn btn-success px-4 font-weight-bold">                            <i class="fas fa-check-circle mr-2"></i> Confirmar Entrada a Inventario                        </button>                    </div>
+                </form>            </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
