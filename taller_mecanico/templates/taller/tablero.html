@@ -1,0 +1,307 @@
+<!-- templates/taller/tablero.html -->
+{% extends "base.html" %}
+
+{% block title %}Tablero del Taller - Taller Mecánico{% endblock %}
+
+{% block content %}
+<style>
+/* Override default max-width for Kanban */
+.page-content {
+    max-width: 100% !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+}
+
+/* Kanban Board Premium Styles */
+.kanban-board {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    align-items: flex-start;
+    min-height: calc(100vh - 250px);
+}
+
+.kanban-column {
+    flex: 0 0 320px;
+    background: #f1f5f9;
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 250px);
+    border: 1px solid #e2e8f0;
+}
+
+.kanban-header {
+    padding: 16px 20px;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.bg-es { background: white; border-top: 4px solid var(--warning); }
+.bg-rev { background: white; border-top: 4px solid var(--info); }
+.bg-rep { background: white; border-top: 4px solid #8b5cf6; }
+.bg-lis { background: white; border-top: 4px solid var(--success); }
+
+.kanban-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--primary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kanban-count {
+    background: #e2e8f0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.kanban-cards {
+    padding: 15px;
+    overflow-y: auto;
+    flex-grow: 1;
+    min-height: 150px;
+}
+
+.kanban-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    border: 1px solid #e2e8f0;
+    cursor: grab;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.kanban-card:hover {
+    box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+}
+.kanban-card:active {
+    cursor: grabbing;
+}
+.kanban-card.sortable-ghost {
+    opacity: 0.4;
+    background: #e2e8f0;
+}
+
+.card-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    color: white;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+.tag-mecanico { background: var(--info); }
+.tag-carwash { background: var(--success); }
+
+.card-title {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    line-height: 1.2;
+}
+
+.card-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 10px;
+    background: transparent;
+    border-radius: 0;
+    padding-bottom: 0;
+}
+
+.mechanic-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.btn-open {
+    font-size: 0.8rem;
+    color: var(--primary);
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.btn-open:hover {
+    background: #e2e8f0;
+    text-decoration: none;
+    color: var(--primary);
+}
+
+/* Header principal */
+.page-header {
+    background: linear-gradient(135deg, var(--primary) 0%, #1e1b4b 100%);
+    border-radius: var(--radius-lg);
+    padding: 25px 30px;
+    color: white;
+    margin-bottom: 25px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+}
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="mb-1" style="font-family: 'Oswald', sans-serif; font-weight: 700;">
+            <i class="fas fa-columns text-warning mr-3"></i>Tablero Kanban del Taller
+        </h1>
+        <p class="mb-0 text-light" style="opacity: 0.8;">Arrastra las órdenes de trabajo para actualizarlas en tiempo real.</p>
+    </div>
+</div>
+
+<div class="kanban-board">
+    
+    <!-- En Espera -->
+    <div class="kanban-column bg-es">
+        <div class="kanban-header">
+            <h3 class="kanban-title"><i class="fas fa-hourglass-start mr-2 text-warning"></i>En Espera</h3>
+            <span class="kanban-count">{{ columnas.EN_ESPERA.count }}</span>
+        </div>
+        <div class="kanban-cards" data-estado="EN_ESPERA" id="col-en-espera">
+            {% for orden in columnas.EN_ESPERA %}
+                {% include "taller/includes/kanban_card.html" with orden=orden %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- En Revisión -->
+    <div class="kanban-column bg-rev">
+        <div class="kanban-header">
+            <h3 class="kanban-title"><i class="fas fa-tools mr-2 text-info"></i>En Revisión</h3>
+            <span class="kanban-count">{{ columnas.EN_REVISION.count }}</span>
+        </div>
+        <div class="kanban-cards" data-estado="EN_REVISION" id="col-en-revision">
+            {% for orden in columnas.EN_REVISION %}
+                {% include "taller/includes/kanban_card.html" with orden=orden %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Esperando Repuestos -->
+    <div class="kanban-column bg-rep">
+        <div class="kanban-header">
+            <h3 class="kanban-title"><i class="fas fa-box-open mr-2" style="color: #8b5cf6;"></i>En Pausa</h3>
+            <span class="kanban-count" title="Esperando Repuestos">{{ columnas.ESPERANDO_REPUESTOS.count }}</span>
+        </div>
+        <div class="kanban-cards" data-estado="ESPERANDO_REPUESTOS" id="col-en-pausa">
+            {% for orden in columnas.ESPERANDO_REPUESTOS %}
+                {% include "taller/includes/kanban_card.html" with orden=orden %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Listo -->
+    <div class="kanban-column bg-lis">
+        <div class="kanban-header">
+            <h3 class="kanban-title"><i class="fas fa-check-circle mr-2 text-success"></i>Listo / Entrega</h3>
+            <span class="kanban-count">{{ columnas.LISTO.count }}</span>
+        </div>
+        <div class="kanban-cards" data-estado="LISTO" id="col-listo">
+            {% for orden in columnas.LISTO %}
+                {% include "taller/includes/kanban_card.html" with orden=orden %}
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>
+
+{% block extra_js %}
+<!-- SortableJS para Drag & Drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const token = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '{{ csrf_token }}';
+    
+    // Configurar libreria Sortable para las 4 columnas
+    const columns = document.querySelectorAll('.kanban-cards');
+    
+    columns.forEach(col => {
+        new Sortable(col, {
+            group: 'kanban', // set both lists to same group
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                const itemEl = evt.item;  // dragged element
+                const toList = evt.to;    // target list
+                
+                // Obtener ID de la orden y el nuevo estado
+                const ordenId = itemEl.getAttribute('data-id');
+                const nuevoEstado = toList.getAttribute('data-estado');
+                
+                // Si movemos a la misma columna, no hacemos nada
+                if (evt.from === toList) return;
+                
+                // Peticion AJAX para guardar estado
+                fetch("{% url 'actualizar_estado_orden' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': token
+                    },
+                    body: JSON.stringify({
+                        orden_id: ordenId,
+                        nuevo_estado: nuevoEstado
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        // Actualizar contadores
+                        actualizarContadores();
+                        
+                        // Opcional: Mostrar toast de éxito pequeño
+                        console.log('Orden actualizada a:', nuevoEstado);
+                    } else {
+                        alert('Error al actualizar la orden: ' + data.error);
+                        // Revertir drag a nivel UI si falla
+                        evt.from.appendChild(itemEl);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            },
+        });
+    });
+    
+    function actualizarContadores() {
+        columns.forEach(col => {
+            const countBadge = col.parentElement.querySelector('.kanban-count');
+            const totalCards = col.querySelectorAll('.kanban-card').length;
+            countBadge.textContent = totalCards;
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

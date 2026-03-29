@@ -244,7 +244,7 @@
                             <div>
                                 <div class="cita-date">
                                     <i class="far fa-calendar-alt"></i> 
-                                    {{ cita.fecha|date:"l, d de F Y"|title }}
+                                    {{ cita.fecha|date:"l, d"|title }} de {{ cita.fecha|date:"F Y"|title }}
                                 </div>
                                 <div class="cita-time">
                                     {{ cita.hora_inicio|time:"g:i A" }} - {{ cita.hora_fin|time:"g:i A" }}
@@ -320,7 +320,7 @@
                             <div>
                                 <div class="cita-date">
                                     <i class="far fa-calendar-check text-success"></i> 
-                                    {{ cita.fecha|date:"l, d de F Y"|title }}
+                                    {{ cita.fecha|date:"l, d"|title }} de {{ cita.fecha|date:"F Y"|title }}
                                 </div>
                             </div>
                             <div>

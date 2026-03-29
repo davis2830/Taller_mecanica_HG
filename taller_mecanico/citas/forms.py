@@ -76,15 +76,24 @@ class CitaForm(forms.ModelForm):
         categoria = kwargs.pop('categoria', None)
         super(CitaForm, self).__init__(*args, **kwargs)
         
-        # Filtrar vehículos del usuario actual
+        # Filtrar vehículos
         if user:
-            self.fields['vehiculo'].queryset = Vehiculo.objects.filter(propietario=user)
+            es_staff = user.is_superuser or (hasattr(user, 'perfil') and user.perfil.rol and user.perfil.rol.nombre in ['Administrador', 'Recepcionista', 'Recepción', 'Mecánico'])
+            if es_staff:
+                self.fields['vehiculo'].queryset = Vehiculo.objects.all().select_related('propietario')
+                self.fields['vehiculo'].label = "Vehículo a Reparar (Cualquier Cliente)"
+            else:
+                self.fields['vehiculo'].queryset = Vehiculo.objects.filter(propietario=user)
         
         # Filtrar servicios por categoría
         if categoria:
             self.fields['servicio'].queryset = TipoServicio.objects.filter(categoria=categoria)
         else:
             self.fields['servicio'].queryset = TipoServicio.objects.all()
+            
+        # Aplicar clases de Bootstrap a los selects
+        self.fields['vehiculo'].widget.attrs.update({'class': 'form-control form-select'})
+        self.fields['servicio'].widget.attrs.update({'class': 'form-control form-select'})
     
     def clean_hora_inicio(self):
         hora_str = self.cleaned_data['hora_inicio']

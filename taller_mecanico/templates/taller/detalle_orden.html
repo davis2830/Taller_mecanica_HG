@@ -1,0 +1,301 @@
+<!-- templates/taller/detalle_orden.html -->
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Orden #{{ orden.id }} - Taller Mecánico{% endblock %}
+
+{% block content %}
+<style>
+/* Estilos Premium para Detalle de Orden */
+.order-header {
+    background: linear-gradient(135deg, var(--surface) 0%, #f8fafc 100%);
+    border-radius: var(--radius-lg);
+    padding: 25px 30px;
+    margin-bottom: 25px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.order-id {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.order-car {
+    font-size: 2rem;
+    font-family: 'Oswald', sans-serif;
+    color: var(--primary);
+    margin: 0;
+    line-height: 1.1;
+}
+.order-placa {
+    display: inline-block;
+    background: #fbbf24;
+    color: #78350f;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-weight: 800;
+    font-family: monospace;
+    letter-spacing: 1px;
+    border: 2px solid #b45309;
+    margin-top: 10px;
+}
+.status-badge-large {
+    font-size: 1rem;
+    padding: 8px 18px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.status-EN_ESPERA { background: #fffbeb; color: #b45309; border: 2px solid #fde68a; }
+.status-EN_REVISION { background: #eff6ff; color: #1e40af; border: 2px solid #bfdbfe; }
+.status-ESPERANDO_REPUESTOS { background: #f5f3ff; color: #6d28d9; border: 2px solid #ddd6fe; }
+.status-LISTO { background: #ecfdf5; color: #065f46; border: 2px solid #a7f3d0; }
+
+.section-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+.section-header {
+    background: #f8fafc;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.section-body { padding: 25px; }
+
+/* Formulario Diagnostico */
+.diag-textarea {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 1rem;
+    line-height: 1.6;
+    background: #fbfbfc;
+    transition: all 0.3s ease;
+    resize: vertical;
+    min-height: 150px;
+}
+.diag-textarea:focus {
+    border-color: var(--info);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Lista de repuestos */
+.parts-list { margin: 0; padding: 0; list-style: none; }
+.part-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px dashed var(--border);
+}
+.part-item:last-child { border-bottom: none; padding-bottom: 0; }
+.part-info { display: flex; align-items: center; gap: 15px; }
+.part-qty {
+    background: #e2e8f0;
+    color: var(--primary);
+    font-weight: 800;
+    width: 35px; height: 35px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+}
+.part-name { font-weight: 700; color: var(--primary-light); margin-bottom: 2px; }
+.part-price { font-size: 0.85rem; color: var(--text-muted); }
+.part-total { font-weight: 800; font-size: 1.1rem; color: var(--primary); }
+
+.add-part-form {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+    border: 1px dashed #cbd5e1;
+}
+
+.total-row {
+    background: var(--primary);
+    color: white;
+    padding: 15px 25px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.total-label { font-size: 1.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.total-amount { font-size: 1.8rem; font-weight: 800; font-family: 'Oswald', sans-serif; }
+</style>
+
+<div class="mb-3">
+    <a href="{% url 'tablero_kanban' %}" class="btn btn-outline-secondary font-weight-bold rounded-pill">
+        <i class="fas fa-arrow-left mr-2"></i>Volver al Tablero
+    </a>
+</div>
+
+<div class="order-header">
+    <div>
+        <div class="order-id">ORDEN #{{ orden.id|stringformat:"05d" }}</div>
+        <h1 class="order-car">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</h1>
+        <div class="order-placa">{{ orden.vehiculo.placa }}</div>
+    </div>
+    <div class="text-right">
+        <div class="mb-2 text-muted font-weight-bold uppercase" style="font-size: 0.8rem; letter-spacing:1px;">Estado Actual</div>
+        <div class="status-badge-large status-{{ orden.estado }}">
+            {% if orden.estado == 'EN_ESPERA' %}<i class="fas fa-hourglass-start"></i>En Espera
+            {% elif orden.estado == 'EN_REVISION' %}<i class="fas fa-tools"></i>En Revisión
+            {% elif orden.estado == 'ESPERANDO_REPUESTOS' %}<i class="fas fa-box-open"></i>En Pausa
+            {% elif orden.estado == 'LISTO' %}<i class="fas fa-check-circle"></i>Listo
+            {% endif %}
+        </div>
+        
+        {% if orden.cita %}
+        <div class="mt-3">
+            <a href="{% url 'detalle_cita' orden.cita.id %}" class="btn btn-sm btn-info rounded-pill font-weight-bold">
+                <i class="fas fa-calendar-check mr-1"></i>Ver Cita Original
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Columna Izquierda: Diagnóstico -->
+    <div class="col-lg-7 mb-4">
+        
+        <!-- Info del Cliente / Cita (Solo lectura) -->
+        {% if orden.cita %}
+        <div class="section-card">
+            <div class="section-header"><i class="fas fa-clipboard-list mr-2"></i>Reporte Original del Cliente</div>
+            <div class="section-body bg-light">
+                <p class="mb-2"><strong>Servicio Solicitado:</strong> {{ orden.cita.servicio.nombre }}</p>
+                <p class="mb-0 text-muted"><em>"{{ orden.cita.notas|default:'Sin notas adicionales por parte del cliente.' }}"</em></p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Formulario Mecánico -->
+        <div class="section-card">
+            <div class="section-header">
+                <div><i class="fas fa-stethoscope mr-2"></i>Diagnóstico Técnico</div>
+                {% if save_success %}
+                <span class="badge badge-success"><i class="fas fa-check mr-1"></i>Guardado</span>
+                {% endif %}
+            </div>
+            <div class="section-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="guardar_diagnostico" value="1">
+                    <div class="form-group">
+                        <label class="font-weight-bold text-muted text-uppercase" style="font-size: 0.85rem; letter-spacing:1px;">Anotaciones del Mecánico:</label>
+                        <textarea class="form-control diag-textarea" name="diagnostico" placeholder="Describe los problemas encontrados, trabajos a realizar...">{{ orden.diagnostico|default:'' }}</textarea>
+                    </div>
+                    <div class="text-right mt-3">
+                        <button type="submit" class="btn btn-primary font-weight-bold px-4 rounded-pill shadow-sm">
+                            <i class="fas fa-save mr-2"></i>Guardar Diagnóstico
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Columna Derecha: Repuestos -->
+    <div class="col-lg-5 mb-4">
+        <div class="section-card h-100 d-flex flex-column">
+            <div class="section-header">
+                <div><i class="fas fa-cogs mr-2"></i>Repuestos e Insumos</div>
+                <span class="badge badge-primary badge-pill">{{ repuestos.count }} items</span>
+            </div>
+            
+            <div class="section-body flex-grow-1">
+                {% if repuestos %}
+                <ul class="parts-list">
+                    {% for item in repuestos %}
+                    <li class="part-item">
+                        <div class="part-info">
+                            <div class="part-qty">{{ item.cantidad }}x</div>
+                            <div>
+                                <div class="part-name">{{ item.producto.nombre }}</div>
+                                <div class="part-price">Q{{ item.precio_unitario|floatformat:2 }} c/u</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3" style="gap: 15px;">
+                            <div class="part-total">Q{{ item.subtotal|floatformat:2|intcomma }}</div>
+                            <form method="POST" action="{% url 'eliminar_repuesto_orden' item.id %}" class="m-0" onsubmit="return confirm('¿Seguro que deseas quitar este repuesto? El stock se devolverá al inventario.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Quitar de la orden">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 opacity-50">
+                    <i class="fas fa-toolbox fa-3x mb-3 text-muted"></i>
+                    <p class="mb-0">No se han utilizado repuestos en esta orden.</p>
+                </div>
+                {% endif %}
+                
+                <!-- Añadir repuesto -->
+                <div class="add-part-form">
+                    <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-plus-circle mr-1"></i>Agregar Repuesto del Inventario</h6>
+                    <form method="POST" class="row no-gutters align-items-center">
+                        {% csrf_token %}
+                        <input type="hidden" name="agregar_repuesto" value="1">
+                        
+                        <div class="col-md-7 pr-2 mb-2 mb-md-0">
+                            <select name="producto_id" class="form-control bg-white" required style="width: 100%;">
+                                <option value="">Buscar repuesto...</option>
+                                {% for prod in productos %}
+                                <option value="{{ prod.id }}">{{ prod.nombre }} (Stock: {{ prod.stock_actual }}) - Q{{ prod.precio_venta }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 pr-2 mb-2 mb-md-0">
+                            <input type="number" name="cantidad" value="1" min="1" class="form-control bg-white text-center" required title="Cantidad">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-success font-weight-bold w-100"><i class="fas fa-plus mr-1"></i>Añadir</button>
+                        </div>
+                    </form>
+                    <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i>Al agregar, se descontará automáticamente del stock del taller.</small>
+                </div>
+            </div>
+            
+            <div class="total-row">
+                <span class="total-label">Subtotal Repuestos</span>
+                <span class="total-amount">Q{{ orden.total_repuestos|floatformat:2|intcomma }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<!-- Initialize Select2 if available for better product searching -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('select[name="producto_id"]').select2({
+        placeholder: "Buscar repuesto...",
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}

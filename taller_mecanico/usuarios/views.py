@@ -232,6 +232,59 @@ def agregar_cliente(request):
     return render(request, 'usuarios/agregar_cliente.html', {'form': form})
 
 @login_required
+def editar_cliente(request, cliente_id):
+    es_staff = request.user.is_superuser or (hasattr(request.user, 'perfil') and request.user.perfil.rol and request.user.perfil.rol.nombre in ['Administrador', 'Recepcionista'])
+    if not es_staff:
+        messages.error(request, 'No tienes permiso para editar clientes.')
+        return redirect('lista_clientes')
+        
+    cliente = get_object_or_404(User, id=cliente_id, perfil__rol__nombre='Cliente')
+    
+    if request.method == 'POST':
+        from .forms import ClienteRapidoForm
+        form = ClienteRapidoForm(request.POST, instance=cliente)
+        if form.is_valid():
+            user = form.save()
+            telefono = form.cleaned_data.get('telefono')
+            if telefono and hasattr(user, 'perfil'):
+                perfil = user.perfil
+                perfil.telefono = telefono
+                perfil.save()
+            elif not telefono and hasattr(user, 'perfil'):
+                perfil = user.perfil
+                perfil.telefono = ''
+                perfil.save()
+                
+            messages.success(request, f'Cliente {user.get_full_name()} actualizado exitosamente.')
+            return redirect('lista_clientes')
+    else:
+        from .forms import ClienteRapidoForm
+        initial_data = {}
+        if hasattr(cliente, 'perfil') and cliente.perfil.telefono:
+            initial_data['telefono'] = cliente.perfil.telefono
+        form = ClienteRapidoForm(instance=cliente, initial=initial_data)
+        
+    return render(request, 'usuarios/editar_cliente.html', {'form': form, 'cliente': cliente})
+
+@login_required
+def eliminar_cliente(request, cliente_id):
+    es_staff = request.user.is_superuser or (hasattr(request.user, 'perfil') and request.user.perfil.rol and request.user.perfil.rol.nombre in ['Administrador', 'Recepcionista'])
+    if not es_staff:
+        messages.error(request, 'No tienes permiso para eliminar clientes.')
+        return redirect('lista_clientes')
+        
+    cliente = get_object_or_404(User, id=cliente_id, perfil__rol__nombre='Cliente')
+    
+    if request.method == 'POST':
+        nombre = cliente.get_full_name() or cliente.username
+        cliente.delete()
+        messages.success(request, f'Cliente {nombre} eliminado correctamente. Todos sus registros asociados también fueron borrados.')
+        return redirect('lista_clientes')
+        
+    return redirect('lista_clientes')
+
+
+@login_required
 def dashboard(request):
     from django.utils import timezone
     from django.db.models import Count, Sum, Q, F

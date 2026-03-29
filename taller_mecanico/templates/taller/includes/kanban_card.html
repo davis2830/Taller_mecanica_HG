@@ -1,0 +1,28 @@
+<!-- templates/taller/includes/kanban_card.html -->
+<div class="kanban-card" data-id="{{ orden.id }}">
+    {% if orden.cita and orden.cita.servicio %}
+        <span class="card-tag {% if orden.cita.servicio.categoria == 'CARWASH' %}tag-carwash{% else %}tag-mecanico{% endif %}">
+            <i class="fas {% if orden.cita.servicio.categoria == 'CARWASH' %}fa-shower{% else %}fa-wrench{% endif %} mr-1"></i>
+            {{ orden.cita.servicio.get_categoria_display }}
+        </span>
+    {% else %}
+        <span class="card-tag tag-mecanico"><i class="fas fa-clipboard-list mr-1"></i>Taller</span>
+    {% endif %}
+    
+    <div class="card-title">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</div>
+    <div class="card-subtitle"><i class="fas fa-hashtag mr-1"></i>{{ orden.vehiculo.placa }}</div>
+    
+    <div class="card-footer">
+        {% if orden.mecanico_asignado %}
+            <div class="mechanic-avatar" title="Mecánico: {{ orden.mecanico_asignado.username }}">
+                {{ orden.mecanico_asignado.first_name|default:orden.mecanico_asignado.username|slice:":1"|upper }}
+            </div>
+        {% else %}
+            <div class="mechanic-avatar" style="background:#cbd5e1; color:#94a3b8;" title="Sin asignar">
+                <i class="fas fa-user-times"></i>
+            </div>
+        {% endif %}
+        
+        <a href="{% url 'detalle_orden' orden.id %}" class="btn-open">Abrir <i class="fas fa-arrow-right ml-1"></i></a>
+    </div>
+</div>

@@ -10,6 +10,7 @@ urlpatterns = [
     path('usuarios/', include('usuarios.urls')),
     path('citas/', include('citas.urls')),
     path('inventario/', include('inventario.urls')), 
+    path('taller/', include('taller.urls')),
     path('', RedirectView.as_view(url='usuarios/dashboard/', permanent=True)),  # Redirección a dashboard
 ]
 

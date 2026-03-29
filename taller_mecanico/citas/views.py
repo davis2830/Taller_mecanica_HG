@@ -89,8 +89,11 @@ def eliminar_vehiculo(request, vehiculo_id):
 # Vistas para citas
 @login_required
 def mis_citas(request):
-    # Obtener las citas del usuario actual
-    citas = Cita.objects.filter(cliente=request.user).order_by('-fecha', 'hora_inicio')
+    es_staff = request.user.is_superuser or (hasattr(request.user, 'perfil') and request.user.perfil.rol and request.user.perfil.rol.nombre in ['Administrador', 'Recepcionista', 'Recepción', 'Mecánico'])
+    if es_staff:
+        citas = Cita.objects.all().order_by('-fecha', 'hora_inicio')
+    else:
+        citas = Cita.objects.filter(cliente=request.user).order_by('-fecha', 'hora_inicio')
     return render(request, 'citas/mis_citas.html', {'citas': citas})
 
 @login_required
@@ -191,7 +194,8 @@ def nueva_cita(request, fecha, categoria):
         return redirect('seleccionar_fecha_hora')
     
     # Verificar que el usuario tenga al menos un vehículo
-    if not Vehiculo.objects.filter(propietario=request.user).exists():
+    es_staff = request.user.is_superuser or (hasattr(request.user, 'perfil') and request.user.perfil.rol and request.user.perfil.rol.nombre in ['Administrador', 'Recepcionista', 'Recepción', 'Mecánico'])
+    if not es_staff and not Vehiculo.objects.filter(propietario=request.user).exists():
         messages.warning(request, 'Debes registrar al menos un vehículo antes de agendar una cita.')
         return redirect('agregar_vehiculo')
     
@@ -199,7 +203,8 @@ def nueva_cita(request, fecha, categoria):
         form = CitaForm(request.POST, user=request.user, categoria=categoria)
         if form.is_valid():
             cita = form.save(commit=False)
-            cita.cliente = request.user
+            # El cliente será el dueño del vehículo, no quien llena el formulario (para que el Admin no quede como cliente)
+            cita.cliente = cita.vehiculo.propietario
             cita.fecha = fecha_obj  # Asegurar que se use la fecha seleccionada
             
             # Calcular la hora de fin basada en la duración del servicio
@@ -226,7 +231,8 @@ def nueva_cita(request, fecha, categoria):
                 dominio = request.get_host()
                 
                 try:
-                    if request.user.email and enviar_email_cita(cita, 'confirmacion', dominio=dominio):
+                    cliente_email = cita.cliente.email if cita.cliente else None
+                    if cliente_email and enviar_email_cita(cita, 'confirmacion', dominio=dominio):
                         # Marcar la notificación como enviada
                         notificacion = Notificacion.objects.filter(
                             cita=cita,
@@ -236,11 +242,14 @@ def nueva_cita(request, fecha, categoria):
                             notificacion.enviado = True
                             notificacion.save()
                         
-                        messages.success(request, 'Cita agendada correctamente. Se ha enviado una confirmación a tu email.')
+                        messages.success(request, f'Cita agendada correctamente. Se ha enviado una confirmación de correo electrónico al cliente ({cliente_email}).')
                     else:
                         messages.success(request, 'Cita agendada correctamente.')
-                        if not request.user.email:
-                            messages.info(request, 'No tienes email registrado. Por favor actualiza tu perfil para recibir confirmaciones.')
+                        if not cliente_email:
+                            if es_staff:
+                                messages.info(request, 'El cliente no tiene email registrado; no se envió confirmación por correo.')
+                            else:
+                                messages.info(request, 'No tienes email registrado. Por favor actualiza tu perfil para recibir confirmaciones.')
                         
                 except Exception as e:
                     print(f"Error al enviar email de confirmación: {e}")

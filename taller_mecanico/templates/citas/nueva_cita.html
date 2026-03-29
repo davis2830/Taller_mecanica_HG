@@ -119,10 +119,15 @@
 .form-control, .form-select {
     border: 2px solid #e2e8f0;
     border-radius: 10px;
-    padding: 12px 15px;
+    padding: 10px 15px; /* Reduje el padding vertical para acomodar la altura en el select */
+    height: 48px; /* Altura fija para alinear textos */
     font-size: 0.95rem;
     transition: all 0.3s ease;
     background: #f8fafc;
+}
+textarea.form-control {
+    height: auto;
+    padding: 15px;
 }
 .form-control:focus, .form-select:focus {
     border-color: var(--success);
@@ -186,8 +191,7 @@
                         <i class="far fa-calendar-alt"></i>
                     </div>
                     <div class="summary-details">
-                        <h4>Formato de Reserva</h4>
-                        <p>Has seleccionado el <strong>{{ fecha|date:"l d de F Y"|title }}</strong> para un servicio de la categoría <strong>{{ categoria }}</strong>.</p>
+                        <p>Has seleccionado el <strong>{{ fecha|date:"l d"|title }} de {{ fecha|date:"F Y"|title }}</strong> para un servicio de la categoría <strong>{{ categoria }}</strong>.</p>
                     </div>
                 </div>
                 

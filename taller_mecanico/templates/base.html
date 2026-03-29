@@ -675,6 +675,14 @@
                 {% endif %}
             </div>
 
+            <!-- ── Taller (Solo Administrador / Mecánico) ── -->
+            {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Mecánico' %}
+            <a class="sidebar-link" href="{% url 'tablero_kanban' %}" id="nav-taller">
+                <span class="sl-icon"><i class="fas fa-columns text-warning"></i></span>
+                <span class="sl-label">Tablero del Taller</span>
+            </a>
+            {% endif %}
+
             <!-- ── Inventario (solo Admin/Mecánico) ── -->
             {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' or user.perfil.rol.nombre == 'Mecánico' %}
             <button class="sidebar-toggle-btn" data-target="sub-inventario" id="btn-inventario" type="button">

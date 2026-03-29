@@ -20,6 +20,8 @@ urlpatterns = [
     path('usuarios/<int:user_id>/asignar-rol/', views.asignar_rol, name='asignar_rol'),
     path('clientes/', views.lista_clientes, name='lista_clientes'),
     path('clientes/nuevo/', views.agregar_cliente, name='agregar_cliente'),
+    path('clientes/editar/<int:cliente_id>/', views.editar_cliente, name='editar_cliente'),
+    path('clientes/eliminar/<int:cliente_id>/', views.eliminar_cliente, name='eliminar_cliente'),
     # Panel de Configuración del Sistema (solo Admins)
     path('configuracion/', views.configuracion_sistema, name='configuracion_sistema'),
 ]
