@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Historial de Órdenes — AutoServi Pro{% endblock %}
+{% block page_title %}Historial de Órdenes de Trabajo{% endblock %}
+
+{% block content %}
+<style>
+.hist-header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border-radius: 16px; padding: 28px; margin-bottom: 28px;
+    border-left: 5px solid var(--accent);
+}
+.hist-header h1 { font-family: 'Oswald', sans-serif; font-size: 2rem; color: #fff; margin: 0 0 6px; }
+.hist-header p  { color: #94a3b8; margin: 0; }
+
+.filter-bar {
+    background: #fff; border-radius: 12px; padding: 18px 22px;
+    box-shadow: var(--shadow-sm); margin-bottom: 24px;
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+}
+.filter-bar input, .filter-bar select {
+    border: 1.5px solid #e2e8f0; border-radius: 9px;
+    padding: 8px 14px; font-size: 0.85rem; color: #334155;
+    outline: none; transition: border-color .2s;
+    background: #f8fafc;
+}
+.filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); background: #fff; }
+.filter-bar .btn-filter {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 9px; padding: 9px 20px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: background .2s;
+}
+.filter-bar .btn-filter:hover { background: var(--accent-hover); }
+
+.ord-table { width: 100%; border-collapse: collapse; background: #fff;
+    border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.ord-table thead th {
+    background: #f8fafc; color: #64748b; font-size: 0.75rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+    padding: 14px 18px; text-align: left; border-bottom: 2px solid #e2e8f0;
+}
+.ord-table tbody tr { transition: background .15s; }
+.ord-table tbody tr:hover { background: #f8fafc; }
+.ord-table tbody td {
+    padding: 14px 18px; border-bottom: 1px solid #f1f5f9;
+    font-size: 0.88rem; color: #334155; vertical-align: middle;
+}
+
+.badge-estado {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+}
+.badge-EN_ESPERA          { background:#fef3c7; color:#92400e; }
+.badge-EN_REVISION        { background:#ede9fe; color:#6d28d9; }
+.badge-ESPERANDO_REPUESTOS{ background:#fef3c7; color:#b45309; }
+.badge-LISTO              { background:#d1fae5; color:#065f46; }
+.badge-ENTREGADO          { background:#e0f2fe; color:#0369a1; }
+.badge-CANCELADO          { background:#fee2e2; color:#991b1b; }
+
+.btn-ver {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; background: var(--accent); color: #fff;
+    border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+    text-decoration: none; transition: background .2s;
+}
+.btn-ver:hover { background: var(--accent-hover); color: #fff; }
+
+.ord-placa {
+    background: #1e293b; color: #f97316; font-family: monospace;
+    padding: 3px 8px; border-radius: 5px; font-size: 0.82rem; font-weight: 700;
+}
+.empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+.empty-state i { font-size: 3.5rem; margin-bottom: 16px; display: block; opacity: .3; }
+</style>
+
+<!-- Header -->
+<div class="hist-header">
+    <h1><i class="fas fa-clock-rotate-left me-3" style="color:var(--accent)"></i>Historial de Órdenes</h1>
+    <p>Registro completo de todas las órdenes de trabajo del taller.</p>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="filter-bar">
+    <i class="fas fa-magnifying-glass" style="color:#94a3b8"></i>
+    <input type="text" name="q" value="{{ busqueda }}" placeholder="Buscar por placa, cliente o diagnóstico..." style="flex:1;min-width:200px">
+    <select name="estado">
+        <option value="">— Todos los estados —</option>
+        {% for val, label in estados %}
+        <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn-filter"><i class="fas fa-filter me-1"></i>Filtrar</button>
+    {% if busqueda or estado_filtro %}
+    <a href="{% url 'historial_ordenes' %}" style="color:#ef4444;font-size:.83rem;text-decoration:none"><i class="fas fa-xmark me-1"></i>Limpiar</a>
+    {% endif %}
+</form>
+
+<!-- Tabla -->
+{% if page_obj %}
+<div style="overflow-x:auto">
+<table class="ord-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Placa</th>
+            <th>Cliente</th>
+            <th>Servicio</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Mecánico</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for orden in page_obj %}
+    <tr>
+        <td><strong style="color:#64748b">#{{ orden.id }}</strong></td>
+        <td><span class="ord-placa">{{ orden.vehiculo.placa }}</span></td>
+        <td>
+            {% if orden.cita %}
+            <div style="font-weight:600">{{ orden.cita.cliente.get_full_name|default:orden.cita.cliente.username }}</div>
+            <div style="font-size:.75rem;color:#94a3b8">{{ orden.cita.cliente.email }}</div>
+            {% else %}<span style="color:#94a3b8">—</span>{% endif %}
+        </td>
+        <td>
+            {% if orden.cita %}
+            <div style="font-weight:500">{{ orden.cita.servicio.nombre }}</div>
+            <div style="font-size:.75rem;color:#94a3b8">{{ orden.cita.fecha|date:"d M Y" }}</div>
+            {% else %}<span style="color:#94a3b8">Sin cita</span>{% endif %}
+        </td>
+        <td>
+            <span class="badge-estado badge-{{ orden.estado }}">
+                <i class="fas fa-circle" style="font-size:.5rem"></i>
+                {{ orden.get_estado_display }}
+            </span>
+        </td>
+        <td style="color:#64748b;font-size:.82rem">
+            {{ orden.fecha_creacion|date:"d/m/Y" }}<br>
+            <span style="font-size:.7rem">{{ orden.fecha_actualizacion|date:"H:i" }}</span>
+        </td>
+        <td style="font-size:.83rem">
+            {% if orden.mecanico_asignado %}
+                {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
+            {% else %}
+                <span style="color:#94a3b8">—</span>
+            {% endif %}
+        </td>
+        <td>
+            <a href="{% url 'detalle_orden' orden.id %}" class="btn-ver">
+                <i class="fas fa-eye"></i> Ver
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No hay órdenes que coincidan con los filtros.</p>
+    </td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<div style="display:flex;justify-content:center;gap:8px;margin-top:24px;align-items:center">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ busqueda }}&estado={{ estado_filtro }}" style="padding:7px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;color:#334155;font-size:.83rem"><i class="fas fa-chevron-left"></i></a>
+    {% endif %}
+    <span style="font-size:.83rem;color:#64748b">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ busqueda }}&estado={{ estado_filtro }}" style="padding:7px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;color:#334155;font-size:.83rem"><i class="fas fa-chevron-right"></i></a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state" style="background:#fff;border-radius:14px;box-shadow:var(--shadow-sm)">
+    <i class="fas fa-folder-open"></i>
+    <h5>No hay órdenes registradas aún</h5>
+    <p>Cuando se creen órdenes de trabajo aparecerán aquí.</p>
+</div>
+{% endif %}
+
+{% endblock %}

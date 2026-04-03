@@ -176,7 +176,13 @@
         <h1 class="mb-1" style="font-family: 'Oswald', sans-serif; font-weight: 700;">
             <i class="fas fa-columns text-warning mr-3"></i>Tablero Kanban del Taller
         </h1>
+        {% if solo_lectura_kanban %}
+        <p class="mb-0" style="opacity:.9;color:#fed7aa;font-size:.9rem">
+            <i class="fas fa-eye mr-2"></i>Vista de solo lectura — puedes ver el progreso de las órdenes pero no moverlas.
+        </p>
+        {% else %}
         <p class="mb-0 text-light" style="opacity: 0.8;">Arrastra las órdenes de trabajo para actualizarlas en tiempo real.</p>
+        {% endif %}
     </div>
 </div>
 
@@ -236,72 +242,50 @@
     
 </div>
 
-{% block extra_js %}
-<!-- SortableJS para Drag & Drop -->
+{% if not solo_lectura_kanban %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    
     const token = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '{{ csrf_token }}';
-    
-    // Configurar libreria Sortable para las 4 columnas
     const columns = document.querySelectorAll('.kanban-cards');
-    
     columns.forEach(col => {
         new Sortable(col, {
-            group: 'kanban', // set both lists to same group
+            group: 'kanban',
             animation: 150,
             ghostClass: 'sortable-ghost',
             onEnd: function (evt) {
-                const itemEl = evt.item;  // dragged element
-                const toList = evt.to;    // target list
-                
-                // Obtener ID de la orden y el nuevo estado
+                const itemEl = evt.item;
+                const toList = evt.to;
                 const ordenId = itemEl.getAttribute('data-id');
                 const nuevoEstado = toList.getAttribute('data-estado');
-                
-                // Si movemos a la misma columna, no hacemos nada
                 if (evt.from === toList) return;
-                
-                // Peticion AJAX para guardar estado
                 fetch("{% url 'actualizar_estado_orden' %}", {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': token
-                    },
-                    body: JSON.stringify({
-                        orden_id: ordenId,
-                        nuevo_estado: nuevoEstado
-                    })
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+                    body: JSON.stringify({ orden_id: ordenId, nuevo_estado: nuevoEstado })
                 })
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
-                    if(data.success) {
-                        // Actualizar contadores
-                        actualizarContadores();
-                        
-                        // Opcional: Mostrar toast de éxito pequeño
-                        console.log('Orden actualizada a:', nuevoEstado);
-                    } else {
-                        alert('Error al actualizar la orden: ' + data.error);
-                        // Revertir drag a nivel UI si falla
-                        evt.from.appendChild(itemEl);
-                    }
+                    if (data.success) { actualizarContadores(); }
+                    else { alert('Error: ' + data.error); evt.from.appendChild(itemEl); }
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(e => console.error(e));
             },
         });
     });
-    
     function actualizarContadores() {
         columns.forEach(col => {
-            const countBadge = col.parentElement.querySelector('.kanban-count');
-            const totalCards = col.querySelectorAll('.kanban-card').length;
-            countBadge.textContent = totalCards;
+            const badge = col.parentElement.querySelector('.kanban-count');
+            badge.textContent = col.querySelectorAll('.kanban-card').length;
         });
     }
 });
 </script>
-{% endblock %}
+{% else %}
+<style>
+/* Modo lectura: sin cursor grab */
+.kanban-card { cursor: default !important; }
+.kanban-card:hover { transform: none !important; }
+</style>
+{% endif %}
 {% endblock %}

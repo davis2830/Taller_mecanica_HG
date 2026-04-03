@@ -155,8 +155,21 @@ def lista_roles(request):
 @login_required
 @user_passes_test(es_admin)
 def lista_usuarios(request):
-    usuarios = User.objects.all()
-    return render(request, 'usuarios/lista_usuarios.html', {'usuarios': usuarios})
+    from django.db.models import Count
+    usuarios = User.objects.select_related('perfil__rol').all().order_by('id')
+    # Conteos precisos por rol para los chips de estadísticas
+    conteos = {
+        'total': usuarios.count(),
+        'admin': usuarios.filter(perfil__rol__nombre='Administrador').count(),
+        'recepcionista': usuarios.filter(perfil__rol__nombre='Recepcionista').count(),
+        'mecanico': usuarios.filter(perfil__rol__nombre='Mec\u00e1nico').count(),
+        'cliente': usuarios.filter(perfil__rol__nombre='Cliente').count(),
+        'sin_rol': usuarios.filter(perfil__rol__isnull=True).count(),
+    }
+    return render(request, 'usuarios/lista_usuarios.html', {
+        'usuarios': usuarios,
+        'conteos': conteos,
+    })
 
 @login_required
 @user_passes_test(es_admin)

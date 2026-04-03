@@ -1,304 +1,159 @@
-<!-- citas/templates/citas/calendario_citas.html -->
 {% extends "base.html" %}
-
-{% block title %}Calendario de Citas - Taller Mecánico{% endblock %}
+{% block title %}Agenda Maestra — AutoServi Pro{% endblock %}
+{% block page_title %}Agenda Maestra{% endblock %}
 
 {% block content %}
-<style>
-/* Estilos Premium para Calendario de Citas */
-.cal-header {
-    background: linear-gradient(135deg, var(--primary) 0%, #1e1b4b 100%);
-    border-radius: var(--radius-lg);
-    padding: 30px;
-    color: white;
-    margin-bottom: 25px;
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-}
-.cal-header::before {
-    content: '';
-    position: absolute;
-    bottom: -30px; right: 5%;
-    font-size: 10rem;
-    color: rgba(255,255,255,0.03);
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    content: "\f133"; /* fa-calendar */
-    transform: rotate(10deg);
-    pointer-events: none;
-}
-.cal-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0;
-    font-family: 'Oswald', sans-serif;
-    letter-spacing: 0.5px;
-}
-.cal-subtitle {
-    font-size: 0.95rem;
-    color: #94a3b8;
-    margin-top: 5px;
-}
+{# ── CERO CSS propio — todo viene del Design System en base.html ── #}
 
-/* Filtros */
-.filter-card {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: 20px 25px;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 25px;
-    border: 1px solid var(--border);
-}
-.filter-card form .form-group label {
-    font-weight: 600;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-}
-.filter-card .form-control {
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px 15px;
-    background: #f8fafc;
-    transition: all 0.3s ease;
-}
-.filter-card .form-control:focus {
-    border-color: var(--info);
-    background: white;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-}
-.btn-filter, .btn-clear {
-    padding: 10px 24px;
-    font-weight: 600;
-    border-radius: 10px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-}
-.btn-filter {
-    background: var(--primary);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
-}
-.btn-filter:hover {
-    background: var(--primary-light);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
-}
-.btn-clear {
-    background: white;
-    color: var(--text-muted);
-    border: 2px solid #e2e8f0;
-}
-.btn-clear:hover {
-    background: #f1f5f9;
-    color: var(--primary);
-    border-color: #cbd5e1;
-}
-
-/* Tabla Premium */
-.table-card {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border);
-    overflow: hidden;
-}
-.table-responsive {
-    margin: 0;
-}
-.table-premium {
-    margin: 0;
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-.table-premium thead th {
-    background: #f8fafc;
-    color: var(--text-muted);
-    font-weight: 700;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 16px 20px;
-    border-bottom: 2px solid var(--border);
-    border-top: none;
-    white-space: nowrap;
-}
-.table-premium tbody td {
-    padding: 18px 20px;
-    vertical-align: middle;
-    border-bottom: 1px dashed var(--border);
-    color: var(--primary-light);
-    font-size: 0.95rem;
-}
-.table-premium tbody tr {
-    transition: background 0.2s ease;
-}
-.table-premium tbody tr:hover {
-    background: #f8fafc;
-}
-
-/* Detalles celda */
-.cell-fecha { font-weight: 700; color: var(--primary); }
-.cell-hora { color: var(--text-muted); font-size: 0.85rem; font-family: monospace; }
-.cell-user { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-.cell-auto { display: flex; flex-direction: column; }
-.cell-auto-marca { font-weight: 600; }
-.cell-auto-placa { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; }
-
-/* Badges de estado */
-.st-badge {
-    padding: 6px 12px;
-    border-radius: 50px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.st-pendiente { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-.st-confirmada { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-.st-listo { background: #fdf4ff; color: #86198f; border: 1px solid #f5d0fe; }
-.st-completada { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-.st-cancelada { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-
-/* Empty state */
-.table-empty {
-    padding: 60px 20px;
-    text-align: center;
-}
-.table-empty i { font-size: 3.5rem; color: #cbd5e1; margin-bottom: 15px; }
-.table-empty h4 { color: var(--primary); font-weight: 700; }
-</style>
-
-<div class="cal-header">
-    <div style="z-index: 1;">
-        <h1 class="cal-title"><i class="fas fa-calendar-alt mr-3 text-warning"></i>Agenda Maestra</h1>
-        <p class="cal-subtitle mb-0">Revisa y gestiona todas las citas programadas en el taller.</p>
+<!-- Hero -->
+<div class="ds-hero">
+    <div>
+        <h1><i class="fas fa-calendar-alt" style="color:var(--accent);margin-right:12px"></i>Agenda Maestra</h1>
+        <p>Revisa y gestiona todas las citas programadas en el taller.</p>
+    </div>
+    <div class="ds-hero-actions">
+        <div style="text-align:center;background:rgba(249,115,22,.12);border:1.5px solid rgba(249,115,22,.25);border-radius:12px;padding:10px 20px;">
+            <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1">{{ citas|length }}</div>
+            <div style="font-size:.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px">citas</div>
+        </div>
+        <a href="{% url 'seleccionar_fecha_hora' %}" class="ds-btn ds-btn-primary">
+            <i class="fas fa-plus"></i> Nueva Cita
+        </a>
     </div>
 </div>
 
 <!-- Filtros -->
-<div class="filter-card">
+<div class="ds-filters">
     <form method="GET" class="mb-0">
-        <div class="d-flex flex-wrap align-items-end" style="gap: 15px;">
-            <div class="flex-grow-1" style="min-width: 180px; max-width: 250px;">
-                <div class="form-group mb-0">
-                    <label for="fecha"><i class="far fa-calendar mr-1"></i>Día Específico:</label>
-                    <input type="date" id="fecha" name="fecha" class="form-control" value="{{ fecha_filtro }}">
-                </div>
-            </div>
-            
-            <div style="min-width: 160px; max-width: 220px;">
-                <div class="form-group mb-0">
-                    <label for="categoria"><i class="fas fa-tag mr-1"></i>Categoría:</label>
-                    <select id="categoria" name="categoria" class="form-control">
-                        <option value="">Todas</option>
-                        <option value="MECANICO" {% if categoria_filtro == 'MECANICO' %}selected{% endif %}>Mecánica General</option>
-                        <option value="CARWASH" {% if categoria_filtro == 'CARWASH' %}selected{% endif %}>Carwash / Estética</option>
-                    </select>
-                </div>
+        <div class="ds-filter-row">
+
+            <div class="ds-fgroup" style="max-width:200px">
+                <label for="fecha"><i class="fas fa-calendar-day"></i> Día específico</label>
+                <input type="date" id="fecha" name="fecha" class="ds-fcontrol"
+                       value="{{ fecha_filtro|default:'' }}">
             </div>
 
-            <div style="min-width: 160px; max-width: 220px;">
-                <div class="form-group mb-0">
-                    <label for="estado"><i class="fas fa-flag mr-1"></i>Estado:</label>
-                    <select id="estado" name="estado" class="form-control">
-                        <option value="">(Citas Activas)</option>
-                        <option value="PENDIENTE" {% if estado_filtro == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
-                        <option value="CONFIRMADA" {% if estado_filtro == 'CONFIRMADA' %}selected{% endif %}>Confirmada</option>
-                        <option value="LISTO" {% if estado_filtro == 'LISTO' %}selected{% endif %}>Listo para Recoger</option>
-                        <option value="COMPLETADA" {% if estado_filtro == 'COMPLETADA' %}selected{% endif %}>Completada</option>
-                        <option value="CANCELADA" {% if estado_filtro == 'CANCELADA' %}selected{% endif %}>Cancelada</option>
-                    </select>
-                </div>
+            <div class="ds-fgroup" style="max-width:210px">
+                <label for="categoria"><i class="fas fa-layer-group"></i> Categoría</label>
+                <select id="categoria" name="categoria" class="ds-fcontrol">
+                    <option value="">— Todas —</option>
+                    <option value="MECANICO" {% if categoria_filtro == 'MECANICO' %}selected{% endif %}>🔧 Mecánica General</option>
+                    <option value="CARWASH"  {% if categoria_filtro == 'CARWASH'  %}selected{% endif %}>🚿 Carwash / Estética</option>
+                </select>
             </div>
-            
-            <div class="d-flex ml-auto" style="gap: 10px;">
-                <button type="submit" class="btn-filter px-4">
-                    <i class="fas fa-search"></i> Filtrar
+
+            <div class="ds-fgroup" style="max-width:210px">
+                <label for="estado"><i class="fas fa-traffic-light"></i> Estado</label>
+                <select id="estado" name="estado" class="ds-fcontrol">
+                    <option value="">— Activas (todas) —</option>
+                    <option value="PENDIENTE"  {% if estado_filtro == 'PENDIENTE'  %}selected{% endif %}>⏳ Pendiente</option>
+                    <option value="CONFIRMADA" {% if estado_filtro == 'CONFIRMADA' %}selected{% endif %}>✅ Confirmada</option>
+                    <option value="LISTO"      {% if estado_filtro == 'LISTO'      %}selected{% endif %}>🔑 Listo para recoger</option>
+                    <option value="COMPLETADA" {% if estado_filtro == 'COMPLETADA' %}selected{% endif %}>🏁 Completada</option>
+                    <option value="CANCELADA"  {% if estado_filtro == 'CANCELADA'  %}selected{% endif %}>🚫 Cancelada</option>
+                </select>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:flex-end">
+                <button type="submit" class="ds-btn ds-btn-dark">
+                    <i class="fas fa-magnifying-glass"></i> Filtrar
                 </button>
-                <a href="{% url 'calendario_citas' %}" class="btn-clear px-3" title="Quitar Filtros">
-                    <i class="fas fa-eraser"></i>
+                <a href="{% url 'calendario_citas' %}" class="ds-btn ds-btn-ghost">
+                    <i class="fas fa-rotate-left"></i> Limpiar
                 </a>
             </div>
         </div>
+
+        {% if fecha_filtro or categoria_filtro or estado_filtro %}
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px">
+            <span style="font-size:.72rem;color:#94a3b8;align-self:center">Filtros activos:</span>
+            {% if fecha_filtro %}<span class="ds-badge ds-badge-info"><i class="fas fa-calendar-day"></i>{{ fecha_filtro }}</span>{% endif %}
+            {% if categoria_filtro == 'MECANICO' %}<span class="ds-badge ds-badge-warning">🔧 Mecánica</span>{% endif %}
+            {% if categoria_filtro == 'CARWASH'  %}<span class="ds-badge ds-badge-info">🚿 Carwash</span>{% endif %}
+            {% if estado_filtro %}<span class="ds-badge ds-badge-gray"><i class="fas fa-traffic-light"></i>{{ estado_filtro|capfirst }}</span>{% endif %}
+        </div>
+        {% endif %}
     </form>
 </div>
 
-<!-- Tabla de citas -->
-<div class="table-card">
-    <div class="table-responsive">
-        <table class="table table-premium">
+<!-- Tabla -->
+<div class="ds-card">
+    <div class="ds-card-header">
+        <h5>
+            <i class="fas fa-list-check"></i>
+            {% if citas %}{{ citas|length }} cita{% if citas|length != 1 %}s{% endif %} encontrada{% if citas|length != 1 %}s{% endif %}
+            {% else %}Sin resultados{% endif %}
+        </h5>
+    </div>
+
+    <div class="ds-table-wrap">
+        <table class="ds-table">
             <thead>
                 <tr>
                     <th>Fecha y Hora</th>
                     <th>Cliente</th>
                     <th>Vehículo</th>
-                    <th>Servicio Solicitado</th>
+                    <th>Servicio</th>
                     <th>Estado</th>
-                    <th class="text-right">Acciones</th>
+                    <th class="col-actions">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cita in citas %}
                 <tr>
                     <td>
-                        <div class="cell-fecha">{{ cita.fecha|date:"d M Y" }}</div>
-                        <div class="cell-hora"><i class="far fa-clock mr-1"></i>{{ cita.hora_inicio|time:"g:i A" }} - {{ cita.hora_fin|time:"g:i A" }}</div>
+                        <div style="font-weight:700;color:#1e293b;font-size:.9rem">{{ cita.fecha|date:"d M Y" }}</div>
+                        <div style="font-size:.78rem;color:#64748b;margin-top:3px">
+                            <i class="far fa-clock" style="color:#cbd5e1;margin-right:3px"></i>
+                            {{ cita.hora_inicio|time:"g:i A" }} — {{ cita.hora_fin|time:"g:i A" }}
+                        </div>
                     </td>
                     <td>
-                        <div class="cell-user">
-                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; display:flex; align-items:center; justify-content:center; color: var(--primary); font-size:0.8rem;">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div class="ds-avatar">
                                 {{ cita.cliente.first_name|default:cita.cliente.username|slice:":1"|upper }}
                             </div>
-                            <span>{{ cita.cliente.get_full_name|default:cita.cliente.username }}</span>
+                            <span style="font-weight:600;color:#1e293b">
+                                {{ cita.cliente.get_full_name|default:cita.cliente.username }}
+                            </span>
                         </div>
                     </td>
                     <td>
-                        <div class="cell-auto">
-                            <span class="cell-auto-marca">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</span>
-                            <span class="cell-auto-placa"><i class="fas fa-hashtag mr-1"></i>{{ cita.vehiculo.placa }}</span>
-                        </div>
+                        <div style="font-weight:600;color:#334155">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</div>
+                        <span class="ds-placa">{{ cita.vehiculo.placa|upper }}</span>
                     </td>
                     <td>
-                        <strong>{{ cita.servicio.nombre|truncatechars:30 }}</strong>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);"><i class="fas fa-circle fa-xs mr-1 {% if cita.servicio.categoria == 'CARWASH' %}text-info{% else %}text-warning{% endif %}"></i>{{ cita.servicio.get_categoria_display }}</div>
+                        <div style="font-weight:600;color:#1e293b;margin-bottom:4px">{{ cita.servicio.nombre }}</div>
+                        <span class="ds-cat {% if cita.servicio.categoria == 'CARWASH' %}ds-cat-carwash{% else %}ds-cat-mecanico{% endif %}">
+                            {% if cita.servicio.categoria == 'CARWASH' %}
+                                <i class="fas fa-droplet"></i> Carwash
+                            {% else %}
+                                <i class="fas fa-wrench"></i> Mecánica
+                            {% endif %}
+                        </span>
                     </td>
                     <td>
                         {% if cita.estado == 'PENDIENTE' %}
-                            <span class="st-badge st-pendiente"><i class="fas fa-hourglass-half"></i>Pendiente</span>
+                            <span class="ds-badge ds-badge-pendiente"><i class="fas fa-hourglass-half"></i> Pendiente</span>
                         {% elif cita.estado == 'CONFIRMADA' %}
-                            <span class="st-badge st-confirmada"><i class="fas fa-check-double"></i>Confirmada</span>
+                            <span class="ds-badge ds-badge-confirmada"><i class="fas fa-check-double"></i> Confirmada</span>
                         {% elif cita.estado == 'LISTO' %}
-                            <span class="st-badge st-listo"><i class="fas fa-key"></i>Listo p/ Recoger</span>
+                            <span class="ds-badge ds-badge-listo"><i class="fas fa-key"></i> Listo p/ Recoger</span>
                         {% elif cita.estado == 'COMPLETADA' %}
-                            <span class="st-badge st-completada"><i class="fas fa-flag-checkered"></i>Completada</span>
+                            <span class="ds-badge ds-badge-completada"><i class="fas fa-flag-checkered"></i> Completada</span>
                         {% elif cita.estado == 'CANCELADA' %}
-                            <span class="st-badge st-cancelada"><i class="fas fa-ban"></i>Cancelada</span>
+                            <span class="ds-badge ds-badge-cancelada"><i class="fas fa-ban"></i> Cancelada</span>
                         {% endif %}
                     </td>
-                    <td class="text-right">
-                        <div class="d-inline-flex gap-2" style="gap: 5px;">
-                            <a href="{% url 'detalle_cita' cita.id %}" class="btn btn-sm btn-light text-primary border rounded-lg font-weight-bold shadow-sm" title="Ver Detalles">
+                    <td class="col-actions">
+                        <div style="display:inline-flex;gap:6px">
+                            <a href="{% url 'detalle_cita' cita.id %}" class="ds-btn ds-btn-icon btn-view" title="Ver detalles">
                                 <i class="fas fa-eye"></i>
                             </a>
                             {% if cita.estado != 'CANCELADA' %}
-                                <a href="{% url 'gestionar_cita' cita.id %}" class="btn btn-sm text-white rounded-lg font-weight-bold shadow-sm" style="background: var(--info);" title="Gestionar (Aprobar/Finalizar)">
-                                    <i class="fas fa-clipboard-check"></i>
-                                </a>
+                            <a href="{% url 'gestionar_cita' cita.id %}" class="ds-btn ds-btn-icon btn-edit" title="Gestionar cita">
+                                <i class="fas fa-clipboard-check"></i>
+                            </a>
                             {% endif %}
                         </div>
                     </td>
@@ -306,10 +161,13 @@
                 {% empty %}
                 <tr>
                     <td colspan="6">
-                        <div class="table-empty">
-                            <i class="far fa-folder-open"></i>
-                            <h4>Sin resultados</h4>
-                            <p class="text-muted mb-0">No se encontraron citas agendadas para los filtros seleccionados.</p>
+                        <div class="ds-empty">
+                            <i class="far fa-calendar-xmark"></i>
+                            <h5>Sin citas encontradas</h5>
+                            <p>No hay citas para los filtros seleccionados.</p>
+                            <a href="{% url 'seleccionar_fecha_hora' %}" class="ds-btn ds-btn-primary">
+                                <i class="fas fa-calendar-plus"></i> Agendar Nueva Cita
+                            </a>
                         </div>
                     </td>
                 </tr>

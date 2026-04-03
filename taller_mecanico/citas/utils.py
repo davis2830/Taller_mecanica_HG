@@ -80,9 +80,60 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None, dominio=None):
         mensaje_principal = f'El estado de tu cita ha cambiado a: <strong>{cita.get_estado_display()}</strong>'
         color_principal = '#3b82f6'  # Azul
         cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
-        
+
+    elif tipo_email == 'en_revision':
+        emoji = '🔍'
+        asunto = f'🔍 Tu vehículo está en revisión — {cita.servicio.nombre}'
+        titulo = 'Revisión en Progreso'
+        mensaje_principal = (
+            'Nuestro equipo de mecánicos ha comenzado la revisión de tu vehículo. '
+            'Te notificaremos si se requieren refacciones adicionales o cuando esté listo para entrega.'
+        )
+        color_principal = '#8b5cf6'  # Violeta
+        cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
+
+    elif tipo_email == 'listo':
+        emoji = '🚗'
+        asunto = f'🚗 ¡Tu vehículo está listo para recoger! — {cita.servicio.nombre}'
+        titulo = '¡Vehículo Listo!'
+        mensaje_principal = (
+            'El servicio de tu vehículo ha <strong>concluido satisfactoriamente</strong>. '
+            'Ya puedes pasar a nuestras instalaciones a recogerlo y completar el pago en caja.'
+        )
+        color_principal = '#10b981'  # Verde esmeralda
+        cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
+        boton_confirmar = '''
+        <div style="text-align: center; margin: 35px 0;">
+            <p style="color:#6b7280;font-size:14px;margin-bottom:12px;">¿Tienes dudas sobre tu vehículo?</p>
+            <a href="tel:+50212345678" style="background-color:#10b981;color:white;padding:14px 28px;text-decoration:none;border-radius:30px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(16,185,129,0.3);">
+                📞 Llámanos al +502 1234-5678
+            </a>
+        </div>
+        '''
+
+    elif tipo_email == 'encuesta':
+        emoji = '⭐'
+        asunto = f'⭐ ¡Gracias por visitarnos! Cuéntanos tu experiencia'
+        titulo = '¡Gracias por confiar en nosotros!'
+        mensaje_principal = (
+            'Fue un placer atenderte. Tu opinión es muy valiosa para seguir mejorando nuestro servicio. '
+            '¿Podrías tomarte un momento para completar nuestra encuesta de satisfacción?'
+        )
+        color_principal = '#f59e0b'  # Ámbar
+        cuando = f"el {formato_fecha_es(cita.fecha)}"
+        boton_confirmar = '''
+        <div style="text-align: center; margin: 35px 0;">
+            <p style="color:#6b7280;font-size:14px;margin-bottom:12px;">Solo toma 1 minuto ⏱</p>
+            <a href="#" style="background-color:#f59e0b;color:white;padding:16px 32px;text-decoration:none;border-radius:30px;font-weight:bold;font-size:16px;display:inline-block;box-shadow:0 4px 10px rgba(245,158,11,0.35);">
+                ⭐ Llenar Encuesta de Satisfacción
+            </a>
+            <p style="margin-top:16px;font-size:12px;color:#9ca3af;">(Demo — próximamente disponible)</p>
+        </div>
+        '''
+
     else:
         return False
+
     
     # Determinar el color del estado
     color_estado = {

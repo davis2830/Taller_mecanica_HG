@@ -292,6 +292,20 @@
             <span>{{ orden.vehiculo.propietario.get_full_name|default:orden.vehiculo.propietario.username }}</span>
         </div>
         {% endif %}
+
+        <!-- Mecánico asignado -->
+        {% if orden.mecanico_asignado %}
+        <div class="owner-pill mt-1" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);">
+            <i class="fas fa-wrench" style="color:#10b981"></i>
+            <span style="color:#065f46">{{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}</span>
+            <span style="font-size:.72rem;color:#6b7280;font-weight:400">&nbsp;&middot; Mecánico</span>
+        </div>
+        {% else %}
+        <div class="owner-pill mt-1" style="background:#f9fafb;border-color:#e5e7eb;">
+            <i class="fas fa-user-clock" style="color:#9ca3af"></i>
+            <span style="color:#9ca3af;font-weight:500">Sin mecánico asignado</span>
+        </div>
+        {% endif %}
     </div>
     <div class="text-right">
         <div class="mb-2 text-muted font-weight-bold uppercase" style="font-size: 0.8rem; letter-spacing:1px;">Estado Actual</div>

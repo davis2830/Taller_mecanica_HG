@@ -2,17 +2,24 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.db import models, transaction
+from django.db.models import Q
 import json
-from django.db import transaction
 from .models import OrdenTrabajo, OrdenRepuesto
 from inventario.models import Producto
 from inventario.models import MovimientoInventario
 
+from usuarios.permisos import es_admin_o_mecanico, es_staff_operativo
+
 def es_mecanico_o_admin(user):
-    return user.is_superuser or (hasattr(user, 'perfil') and user.perfil.rol.nombre in ['Administrador', 'Mecanico'])
+    return es_admin_o_mecanico(user)
+
+def es_staff_con_acceso_taller(user):
+    """Admin + Mecánico (pueden mover Kanban) + Secretaria (solo vista)."""
+    return es_staff_operativo(user)
 
 @login_required
-@user_passes_test(es_mecanico_o_admin)
+@user_passes_test(es_staff_con_acceso_taller)
 def tablero_kanban(request):
     # Excluir tarjetas de citas canceladas, completadas o huérfanas
     ordenes = OrdenTrabajo.objects.exclude(
@@ -27,7 +34,11 @@ def tablero_kanban(request):
         'LISTO': ordenes.filter(estado='LISTO'),
     }
     
-    return render(request, 'taller/tablero.html', {'columnas': columnas})
+    from usuarios.permisos import es_secretaria
+    return render(request, 'taller/tablero.html', {
+        'columnas': columnas,
+        'solo_lectura_kanban': es_secretaria(request.user),
+    })
 
 @login_required
 @user_passes_test(es_mecanico_o_admin)
@@ -118,9 +129,29 @@ def actualizar_estado_orden(request):
         if hasattr(orden, 'cita') and orden.cita and orden.cita.estado in ['CANCELADA', 'COMPLETADA']:
             return JsonResponse({'success': False, 'error': f'Movimiento bloqueado: La cita se encuentra {orden.cita.estado}.'})
 
+        estado_anterior = orden.estado
         orden.estado = nuevo_estado
+
+        # ── Auto-asignar mecánico cuando toma la orden ──
+        # Si pasa a EN_REVISION y aún no tiene mecánico asignado,
+        # se asigna automáticamente el usuario que hizo el movimiento.
+        if nuevo_estado == 'EN_REVISION' and not orden.mecanico_asignado:
+            orden.mecanico_asignado = request.user
+
         orden.save()
-        
+
+        # ── Notificaciones automáticas al cliente ──
+        if hasattr(orden, 'cita') and orden.cita and orden.cita.cliente.email:
+            cita = orden.cita
+            from citas.utils import enviar_email_cita
+            try:
+                if nuevo_estado == 'EN_REVISION' and estado_anterior != 'EN_REVISION':
+                    enviar_email_cita(cita, 'en_revision')
+                elif nuevo_estado == 'LISTO' and estado_anterior != 'LISTO':
+                    enviar_email_cita(cita, 'listo')
+            except Exception as email_err:
+                print(f"[Notificación Kanban] Error al enviar email: {email_err}")
+
         return JsonResponse({'success': True, 'estado': orden.estado})
         
     except Exception as e:
@@ -182,3 +213,42 @@ def crear_orden_desde_cita(request, cita_id):
     
     # Redirigir al detalle de la nueva orden
     return redirect('detalle_orden', orden_id=orden.id)
+@login_required
+def historial_ordenes(request):
+    """Historial completo de órdenes de trabajo. Admin ve todas; Mecánico y Secretaria las ven también;"""
+    from usuarios.permisos import es_staff_operativo
+    if not es_staff_operativo(request.user):
+        from django.contrib import messages
+        messages.error(request, 'No tienes permiso para acceder a esta sección.')
+        return redirect('dashboard')
+
+    ordenes = OrdenTrabajo.objects.select_related(
+        'cita', 'cita__cliente', 'cita__servicio', 'vehiculo', 'mecanico_asignado'
+    ).order_by('-fecha_creacion')
+
+    # Filtros
+    estado_filtro = request.GET.get('estado', '')
+    busqueda = request.GET.get('q', '')
+
+    if estado_filtro:
+        ordenes = ordenes.filter(estado=estado_filtro)
+
+    if busqueda:
+        ordenes = ordenes.filter(
+            Q(vehiculo__placa__icontains=busqueda) |
+            Q(cita__cliente__first_name__icontains=busqueda) |
+            Q(cita__cliente__last_name__icontains=busqueda) |
+            Q(diagnostico__icontains=busqueda)
+        )
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(ordenes, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'page_obj': page_obj,
+        'estados': OrdenTrabajo.ESTADO_CHOICES,
+        'estado_filtro': estado_filtro,
+        'busqueda': busqueda,
+    }
+    return render(request, 'taller/historial_ordenes.html', context)

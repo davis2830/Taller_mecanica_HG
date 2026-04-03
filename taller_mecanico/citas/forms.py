@@ -26,10 +26,18 @@ class VehiculoForm(forms.ModelForm):
             if 'propietario' in self.fields:
                 self.fields.pop('propietario')
         else:
-            # Si es personal de mostrador, filtrar para que solo salgan clientes (no mecánicos)
+            # Si es personal de mostrador, mostrar TODOS los usuarios activos como posibles propietarios
+            # (no filtrar por rol, ya que admins y staff también pueden tener vehículos registrados)
             from django.contrib.auth.models import User
-            self.fields['propietario'].queryset = User.objects.filter(perfil__rol__nombre='Cliente').order_by('first_name', 'username')
+            self.fields['propietario'].queryset = User.objects.filter(
+                is_active=True
+            ).select_related('perfil__rol').order_by('first_name', 'last_name', 'username')
             self.fields['propietario'].label = "Cliente / Propietario del Vehículo"
+            # Personalizar el label que muestra en el dropdown
+            self.fields['propietario'].label_from_instance = lambda obj: (
+                f"{obj.get_full_name() or obj.username}"
+                + (f" ({obj.perfil.rol.nombre})" if hasattr(obj, 'perfil') and obj.perfil.rol else "")
+            )
 
 class FechaHoraDisponibleForm(forms.Form):
     """Formulario para seleccionar fecha y ver horas disponibles"""
@@ -107,20 +115,26 @@ class GestionCitaForm(forms.ModelForm):
         model = Cita
         fields = ['estado', 'atendida_por', 'notas']
         widgets = {
-            'notas': forms.Textarea(attrs={'rows': 3}),
+            'estado':       forms.Select(attrs={'class': 'ds-select'}),
+            'atendida_por': forms.Select(attrs={'class': 'ds-select'}),
+            'notas':        forms.Textarea(attrs={'class': 'ds-textarea', 'rows': 4,
+                                                  'placeholder': 'Observaciones sobre el servicio...'}),
         }
-    
+
     def __init__(self, *args, **kwargs):
-        super(GestionCitaForm, self).__init__(*args, **kwargs)
-        # Solo permitimos usuarios con rol "Mecánico" para atender citas de servicios mecánicos
-        from usuarios.models import Perfil, Rol
+        super().__init__(*args, **kwargs)
+        from usuarios.models import Perfil
         from django.contrib.auth.models import User
-        
         try:
-            mecanicos = Perfil.objects.filter(rol__nombre__in=['Mecánico', 'Administrador']).values_list('usuario', flat=True)
+            mecanicos = Perfil.objects.filter(
+                rol__nombre__in=['Mecánico', 'Administrador']
+            ).values_list('usuario', flat=True)
             self.fields['atendida_por'].queryset = User.objects.filter(id__in=mecanicos)
-        except:
+        except Exception:
             self.fields['atendida_por'].queryset = User.objects.filter(is_staff=True)
+        # Label descriptivo para el campo vacío
+        self.fields['atendida_por'].empty_label = '— Sin asignar —'
+
 
 class RecepcionVehiculoForm(forms.ModelForm):
     class Meta:

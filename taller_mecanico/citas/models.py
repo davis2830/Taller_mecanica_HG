@@ -79,22 +79,30 @@ class Cita(models.Model):
             fin_dt = inicio_dt + datetime.timedelta(minutes=self.servicio.duracion)
             self.hora_fin = fin_dt.time()
         
-        # Verificar disponibilidad (no hay otras citas en el mismo horario)
+        # Verificar disponibilidad — SOLO si es una cita nueva o si cambió su fecha/hora
+        # (Si solo cambia el estado, no revalidar horario para no bloquear COMPLETADA, CANCELADA, etc.)
         if self.fecha and self.hora_inicio and self.hora_fin:
-            citas_en_conflicto = Cita.objects.filter(
-                fecha=self.fecha,
-                estado__in=['PENDIENTE', 'CONFIRMADA']
-            ).exclude(id=self.id)
-            
-            for cita in citas_en_conflicto:
-                # Verificar si hay solapamiento de horarios
-                if (self.hora_inicio < cita.hora_fin and self.hora_fin > cita.hora_inicio):
-                    if self.servicio.categoria == cita.servicio.categoria:
-                        raise ValidationError(
-                            f"Ya existe una cita de {cita.servicio.get_categoria_display()} en ese horario."
-                        )
-                    # Si son de categorías diferentes, permitir (mecánico y carwash pueden funcionar simultáneamente)
-    
+            fecha_cambio = True
+            if self.pk:
+                try:
+                    original = Cita.objects.get(pk=self.pk)
+                    fecha_cambio = (self.fecha != original.fecha or self.hora_inicio != original.hora_inicio)
+                except Cita.DoesNotExist:
+                    pass
+
+            if fecha_cambio:
+                citas_en_conflicto = Cita.objects.filter(
+                    fecha=self.fecha,
+                    estado__in=['PENDIENTE', 'CONFIRMADA']
+                ).exclude(id=self.id)
+                
+                for cita in citas_en_conflicto:
+                    if (self.hora_inicio < cita.hora_fin and self.hora_fin > cita.hora_inicio):
+                        if self.servicio.categoria == cita.servicio.categoria:
+                            raise ValidationError(
+                                f"Ya existe una cita de {cita.servicio.get_categoria_display()} en ese horario."
+                            )
+
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)

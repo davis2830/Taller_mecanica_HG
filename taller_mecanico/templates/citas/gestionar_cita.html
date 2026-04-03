@@ -1,68 +1,315 @@
-<!-- citas/templates/citas/gestionar_cita.html -->
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}
-Gestionar Cita - Taller Mecánico
-{% endblock %}
+{% block title %}Gestionar Cita #{{ cita.id }} — AutoServi Pro{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">    
-<div class="col-md-8">        
-<div class="card">            
-<div class="card-header bg-primary text-white">                <h2 class="mb-0">Gestionar Cita #{{ cita.id }}
-</h2>            </div>
-            
-<div class="card-body">                
-<div class="row mb-4">                    
-<div class="col-md-6">                        <h4>Información de la Cita</h4>                        
-<table class="table">                            
-<tr>                                
-<th>Cliente:</th>                                
-<td>
-{{ cita.cliente.get_full_name|default:cita.cliente.username }}
-</td>                            </tr>                            
-<tr>                                
-<th>Servicio:</th>                                
-<td>
-{{ cita.servicio.nombre }}
-</td>                            </tr>                            
-<tr>                                
-<th>Fecha:</th>                                
-<td>
-{{ cita.fecha }}
-</td>                            </tr>                            
-<tr>                                
-<th>Hora:</th>                                
-<td>
-{{ cita.hora_inicio }} a {{ cita.hora_fin }}
-</td>                            </tr>                        </table>                    </div>
-                    
-<div class="col-md-6">                        <h4>Vehículo</h4>                        
-<table class="table">                            
-<tr>                                
-<th>Marca:</th>                                
-<td>
-{{ cita.vehiculo.marca }}
-</td>                            </tr>                            
-<tr>                                
-<th>Modelo:</th>                                
-<td>
-{{ cita.vehiculo.modelo }}
-</td>                            </tr>                            
-<tr>                                
-<th>Placa:</th>                                
-<td>
-{{ cita.vehiculo.placa }}
-</td>                            </tr>                        </table>                    </div>
-                </div>
-                                <h4>Actualizar Estado</h4>                
-<form method="POST">                    
-{% csrf_token %}
-                    {{ form|crispy }}                    
-<button type="submit" class="btn btn-primary">Actualizar</button>                    <a href="
-{% url 'calendario_citas' %}
-" class="btn btn-outline-secondary">Volver al Calendario</a>                </form>            </div>
-        </div>
+<style>
+/* ── Estilos específicos de esta página (mínimos, 90% viene del DS) ── */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+@media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
+
+.info-block { padding: 18px 20px; }
+.info-row {
+    display: flex; align-items: flex-start;
+    gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.info-row:last-child { border-bottom: none; padding-bottom: 0; }
+.info-row-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; flex-shrink: 0; margin-top: 1px;
+}
+.info-row-label { font-size: .72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+.info-row-value { font-size: .9rem; font-weight: 600; color: #1e293b; margin-top: 1px; }
+
+.estado-selector { cursor: pointer; }
+.estado-selector option[value="PENDIENTE"]  { color: #b45309; }
+.estado-selector option[value="CONFIRMADA"] { color: #1e40af; }
+.estado-selector option[value="LISTO"]      { color: #86198f; }
+.estado-selector option[value="COMPLETADA"] { color: #065f46; }
+.estado-selector option[value="CANCELADA"]  { color: #991b1b; }
+
+.form-section { padding: 22px; }
+.form-section + .form-section { border-top: 1.5px solid #f1f5f9; }
+</style>
+
+<!-- Botón volver -->
+<div class="mb-3">
+    <a href="{% url 'calendario_citas' %}" class="ds-btn ds-btn-ghost ds-btn-sm">
+        <i class="fas fa-arrow-left"></i> Volver al Calendario
+    </a>
+</div>
+
+<!-- Hero -->
+<div class="ds-hero" style="margin-bottom:22px">
+    <div>
+        <h1>
+            <i class="fas fa-calendar-check" style="color:var(--accent);margin-right:12px"></i>
+            Gestionar Cita <span style="color:#94a3b8">#{{ cita.id }}</span>
+        </h1>
+        <p>Actualiza el estado, responsable y notas de esta cita.</p>
+    </div>
+    <div class="ds-hero-actions">
+        <!-- Estado actual -->
+        {% if cita.estado == 'PENDIENTE' %}
+            <span class="ds-badge ds-badge-pendiente" style="font-size:.85rem;padding:8px 16px">
+                <i class="fas fa-hourglass-half"></i> Pendiente
+            </span>
+        {% elif cita.estado == 'CONFIRMADA' %}
+            <span class="ds-badge ds-badge-confirmada" style="font-size:.85rem;padding:8px 16px">
+                <i class="fas fa-check-double"></i> Confirmada
+            </span>
+        {% elif cita.estado == 'LISTO' %}
+            <span class="ds-badge ds-badge-listo" style="font-size:.85rem;padding:8px 16px">
+                <i class="fas fa-key"></i> Listo p/ Recoger
+            </span>
+        {% elif cita.estado == 'COMPLETADA' %}
+            <span class="ds-badge ds-badge-completada" style="font-size:.85rem;padding:8px 16px">
+                <i class="fas fa-flag-checkered"></i> Completada
+            </span>
+        {% elif cita.estado == 'CANCELADA' %}
+            <span class="ds-badge ds-badge-cancelada" style="font-size:.85rem;padding:8px 16px">
+                <i class="fas fa-ban"></i> Cancelada
+            </span>
+        {% endif %}
     </div>
 </div>
+
+<!-- Grid: Info + Formulario -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+    <!-- ── Columna izquierda: Resumen de la cita ── -->
+    <div>
+        <!-- Info de la Cita -->
+        <div class="ds-card" style="margin-bottom:16px">
+            <div class="ds-card-header">
+                <h5><i class="fas fa-clipboard-list"></i> Información de la Cita</h5>
+            </div>
+            <div class="info-block">
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#eff6ff;color:#1e40af">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Cliente</div>
+                        <div class="info-row-value">
+                            {{ cita.cliente.get_full_name|default:cita.cliente.username }}
+                        </div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#fef3c7;color:#92400e">
+                        <i class="fas fa-wrench"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Servicio</div>
+                        <div class="info-row-value">{{ cita.servicio.nombre }}</div>
+                        <div>
+                            <span class="ds-cat {% if cita.servicio.categoria == 'CARWASH' %}ds-cat-carwash{% else %}ds-cat-mecanico{% endif %}" style="margin-top:4px">
+                                {% if cita.servicio.categoria == 'CARWASH' %}
+                                    <i class="fas fa-droplet"></i> Carwash
+                                {% else %}
+                                    <i class="fas fa-wrench"></i> Mecánica
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#ecfdf5;color:#065f46">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Fecha</div>
+                        <div class="info-row-value">{{ cita.fecha|date:"d \d\e F \d\e Y" }}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#fdf4ff;color:#86198f">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Horario</div>
+                        <div class="info-row-value">
+                            {{ cita.hora_inicio|time:"g:i A" }} — {{ cita.hora_fin|time:"g:i A" }}
+                        </div>
+                    </div>
+                </div>
+                {% if cita.notas %}
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#f8fafc;color:#64748b">
+                        <i class="fas fa-comment"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Notas del cliente</div>
+                        <div style="font-size:.85rem;color:#475569;font-style:italic;margin-top:2px">"{{ cita.notas }}"</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info del Vehículo -->
+        <div class="ds-card">
+            <div class="ds-card-header">
+                <h5><i class="fas fa-car"></i> Vehículo</h5>
+                <span class="ds-placa">{{ cita.vehiculo.placa|upper }}</span>
+            </div>
+            <div class="info-block">
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#fff7ed;color:#9a3412">
+                        <i class="fas fa-industry"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Marca / Modelo</div>
+                        <div class="info-row-value">{{ cita.vehiculo.marca }} {{ cita.vehiculo.modelo }}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#f0fdf4;color:#166534">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Año</div>
+                        <div class="info-row-value">{{ cita.vehiculo.año }}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#fef2f2;color:#991b1b">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Color</div>
+                        <div class="info-row-value">{{ cita.vehiculo.color|default:"—" }}</div>
+                    </div>
+                </div>
+                {% if cita.vehiculo.placa %}
+                <div class="info-row">
+                    <div class="info-row-icon" style="background:#f1f5f9;color:#475569">
+                        <i class="fas fa-hashtag"></i>
+                    </div>
+                    <div>
+                        <div class="info-row-label">Placa</div>
+                        <div class="info-row-value">
+                            <span class="ds-placa" style="font-size:.85rem;padding:4px 10px">{{ cita.vehiculo.placa|upper }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Columna derecha: Formulario de gestión ── -->
+    <div class="ds-card">
+        <div class="ds-card-header">
+            <h5><i class="fas fa-sliders"></i> Actualizar Estado</h5>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-section">
+
+                <!-- Estado -->
+                <div class="ds-form-group">
+                    <label class="ds-label" for="id_estado">
+                        <i class="fas fa-traffic-light" style="color:var(--accent)"></i>
+                        Estado de la Cita *
+                    </label>
+                    {# Widget nativo de Django — garantiza pre-selección correcta #}
+                    {{ form.estado }}
+                    {% if form.estado.errors %}
+                    <div class="ds-error"><i class="fas fa-circle-xmark"></i> {{ form.estado.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Atendida por -->
+                <div class="ds-form-group">
+                    <label class="ds-label" for="id_atendida_por">
+                        <i class="fas fa-user-gear" style="color:var(--accent)"></i>
+                        Atendida por
+                    </label>
+                    {# Widget nativo de Django — pre-selecciona el mecánico asignado correctamente #}
+                    {{ form.atendida_por }}
+                    <div class="ds-help">
+                        <i class="fas fa-circle-info"></i>
+                        Se pre-selecciona al mecánico que atendió la orden en el tablero.
+                    </div>
+                    {% if form.atendida_por.errors %}
+                    <div class="ds-error"><i class="fas fa-circle-xmark"></i> {{ form.atendida_por.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Notas -->
+                <div class="ds-form-group" style="margin-bottom:0">
+                    <label class="ds-label" for="id_notas">
+                        <i class="fas fa-comment-dots" style="color:var(--accent)"></i>
+                        Notas internas
+                    </label>
+                    {# Widget nativo de Django con ds-textarea aplicado desde forms.py #}
+                    {{ form.notas }}
+                    {% if form.notas.errors %}
+                    <div class="ds-error"><i class="fas fa-circle-xmark"></i> {{ form.notas.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="form-section" style="background:#fafafa;display:flex;gap:10px;align-items:center">
+                <button type="submit" class="ds-btn ds-btn-primary ds-btn-lg" style="flex:1">
+                    <i class="fas fa-floppy-disk"></i> Actualizar Cita
+                </button>
+                <a href="{% url 'calendario_citas' %}" class="ds-btn ds-btn-ghost ds-btn-lg">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+
+        <!-- Alerta de advertencia si la cita está en estado crítico -->
+        {% if cita.estado == 'CANCELADA' %}
+        <div style="margin:0 22px 22px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:.85rem;color:#991b1b">
+            <i class="fas fa-ban"></i>
+            <span><strong>Cita cancelada.</strong> Los cambios de estado pueden no aplicar.</span>
+        </div>
+        {% elif cita.estado == 'COMPLETADA' %}
+        <div style="margin:0 22px 22px;padding:12px 16px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:.85rem;color:#065f46">
+            <i class="fas fa-circle-check"></i>
+            <span><strong>Servicio completado.</strong> Puedes editar notas o corregir el responsable.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Enlace a la Orden de Trabajo si existe -->
+{% if cita.orden_trabajo %}
+<div class="ds-card" style="margin-top:16px">
+    <div class="ds-card-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#1e293b,#334155);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <div>
+                <div style="font-weight:700;color:#1e293b">Orden de Trabajo vinculada</div>
+                <div style="font-size:.8rem;color:#64748b">
+                    Orden #{{ cita.orden_trabajo.id }} —
+                    {% if cita.orden_trabajo.mecanico_asignado %}
+                        Mecánico: <strong>{{ cita.orden_trabajo.mecanico_asignado.get_full_name|default:cita.orden_trabajo.mecanico_asignado.username }}</strong>
+                    {% else %}
+                        Sin mecánico asignado
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <a href="{% url 'detalle_orden' cita.orden_trabajo.id %}" class="ds-btn ds-btn-dark ds-btn-sm">
+            <i class="fas fa-arrow-right"></i> Ver Orden
+        </a>
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}

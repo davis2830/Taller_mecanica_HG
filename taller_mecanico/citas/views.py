@@ -427,43 +427,94 @@ def gestionar_cita(request, cita_id):
         return redirect('dashboard')
     
     cita = get_object_or_404(Cita, id=cita_id)
+    # IMPORTANTE: capturar estado desde BD antes de que el form lo mute en memoria
+    estado_anterior_bd = Cita.objects.values_list('estado', flat=True).get(pk=cita.pk)
     
+    # Detectar si existe mecánico del Kanban (fuente de verdad)
+    mecanico_kanban = None
+    try:
+        orden = cita.orden_trabajo
+        if orden and orden.mecanico_asignado:
+            mecanico_kanban = orden.mecanico_asignado
+    except Exception:
+        pass
+
     if request.method == 'POST':
         form = GestionCitaForm(request.POST, instance=cita)
         if form.is_valid():
-            estado_anterior = cita.estado
-            cita = form.save()
-            
+            cita = form.save(commit=False)
+
+            # ── Fuente de verdad única del mecánico ──
+            # Si hay mecánico del Kanban, ese siempre gana (ignoramos lo que
+            # envió el form para evitar discrepancias entre historial y cita).
+            # Si NO hay mecánico del Kanban, usamos lo que eligió la secretaria.
+            if mecanico_kanban:
+                cita.atendida_por = mecanico_kanban
+            elif not cita.atendida_por:
+                # Fallback: asignar al usuario actual si es mecánico/admin
+                from usuarios.permisos import es_admin_o_mecanico
+                if es_admin_o_mecanico(request.user):
+                    cita.atendida_por = request.user
+
+            cita.save()
+
+            # Propagar a la orden de trabajo si no tenía mecánico
+            try:
+                orden = cita.orden_trabajo
+                if orden and not orden.mecanico_asignado and cita.atendida_por:
+                    from taller.models import OrdenTrabajo
+                    OrdenTrabajo.objects.filter(pk=orden.pk).update(
+                        mecanico_asignado=cita.atendida_por
+                    )
+            except Exception:
+                pass
+
             # Si cambió el estado, crear notificación y enviar email
-            if estado_anterior != cita.estado:
+            if estado_anterior_bd != cita.estado:
                 Notificacion.objects.create(
                     cita=cita,
                     tipo='CAMBIO_ESTADO',
                     mensaje=f'Su cita para {cita.servicio.nombre} ha cambiado de estado a {cita.get_estado_display()}.',
                     enviado=False
                 )
-                
-                # Enviar email de cambio de estado
                 from .utils import enviar_email_cita
                 try:
-                    if cita.cliente.email and enviar_email_cita(cita, 'cambio_estado'):
-                        # Marcar notificación como enviada
-                        notificacion = Notificacion.objects.filter(
-                            cita=cita,
-                            tipo='CAMBIO_ESTADO'
-                        ).last()
-                        if notificacion:
-                            notificacion.enviado = True
-                            notificacion.save()
+                    if cita.cliente.email:
+                        print(f"[Email] Estado nuevo: {cita.estado} | Email del cliente: {cita.cliente.email}")
+                        if cita.estado == 'COMPLETADA':
+                            enviado = enviar_email_cita(cita, 'encuesta')
+                            print(f"[Email] Encuesta enviada: {enviado}")
+                        else:
+                            enviado = enviar_email_cita(cita, 'cambio_estado')
+                            print(f"[Email] cambio_estado enviado: {enviado}")
+                        if enviado:
+                            notificacion = Notificacion.objects.filter(
+                                cita=cita, tipo='CAMBIO_ESTADO'
+                            ).last()
+                            if notificacion:
+                                notificacion.enviado = True
+                                notificacion.save()
                 except Exception as e:
-                    print(f"Error al enviar email de cambio de estado: {e}")
-            
+                    print(f"[Email ERROR] {e}")
+
             messages.success(request, 'Cita actualizada correctamente.')
             return redirect('calendario_citas')
     else:
+        # ── GET: pre-poblar mecánico ──
+        if not cita.atendida_por:
+            if mecanico_kanban:
+                cita.atendida_por = mecanico_kanban
+            else:
+                from usuarios.permisos import es_admin_o_mecanico
+                if es_admin_o_mecanico(request.user):
+                    cita.atendida_por = request.user
         form = GestionCitaForm(instance=cita)
-    
-    return render(request, 'citas/gestionar_cita.html', {'form': form, 'cita': cita})
+
+    return render(request, 'citas/gestionar_cita.html', {
+        'form': form,
+        'cita': cita,
+        'mecanico_kanban': mecanico_kanban,  # Para bloquear el campo en el template
+    })
 
 # Vistas para tipos de servicio
 @login_required
