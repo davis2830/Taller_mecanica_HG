@@ -9,7 +9,7 @@ from django.utils import timezone
 @login_required
 @user_passes_test(es_admin_o_secretaria)
 def lista_facturas(request):
-    facturas = Factura.objects.all()
+    facturas = Factura.objects.select_related('orden__cita__cliente', 'orden__vehiculo').all()
     q = request.GET.get('q', '')
     if q:
         facturas = facturas.filter(numero_factura__icontains=q)

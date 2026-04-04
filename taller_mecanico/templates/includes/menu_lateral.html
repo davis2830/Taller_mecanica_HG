@@ -1,0 +1,170 @@
+<nav class="sidebar-nav">
+            {% if user.is_authenticated %}
+            {% with rol=user.perfil.rol.nombre|default:"Cliente" %}
+
+            <p class="sidebar-section-label">Principal</p>
+
+            <!-- Dashboard -->
+            <a class="sidebar-link" href="{% url 'dashboard' %}" id="nav-dashboard">
+                <span class="sl-icon"><i class="fas fa-gauge-high"></i></span>
+                <span class="sl-label">Dashboard</span>
+            </a>
+
+            <!-- CITAS: Admin + Secretaria + Mecánico -->
+            {% if user.is_superuser or rol == 'Administrador' or rol == 'Recepcionista' or rol == 'Mecánico' %}
+            <p class="sidebar-section-label">Citas</p>
+            <button class="sidebar-toggle-btn" data-target="sub-citas" id="btn-citas" type="button">
+                <span class="sl-icon"><i class="fas fa-calendar-check"></i></span>
+                <span class="sl-label">Citas</span>
+                <i class="fas fa-chevron-down sl-caret"></i>
+            </button>
+            <div class="sidebar-submenu" id="sub-citas"><div>
+                <a class="sidebar-submenu-link" href="{% url 'mis_citas' %}">
+                    <i class="fas fa-list-check"></i> Mis Citas
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'seleccionar_fecha_hora' %}">
+                    <i class="fas fa-calendar-plus"></i> Nueva Cita
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'lista_vehiculos' %}">
+                    <i class="fas fa-car-side"></i> Directorio y Clínica
+                </a>
+                {% if user.is_superuser or rol == 'Administrador' or rol == 'Recepcionista' %}
+                <a class="sidebar-submenu-link" href="{% url 'lista_clientes' %}">
+                    <i class="fas fa-users"></i> Base de Clientes
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'calendario_citas' %}">
+                    <i class="fas fa-calendar-days"></i> Calendario
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'lista_servicios' %}">
+                    <i class="fas fa-screwdriver-wrench"></i> Servicios
+                </a>
+                {% endif %}
+            </div></div>
+
+            {% else %}
+            <!-- CLIENTE: solo sus citas propias -->
+            <p class="sidebar-section-label">Mis Citas</p>
+            <a class="sidebar-link" href="{% url 'mis_citas' %}">
+                <span class="sl-icon"><i class="fas fa-list-check"></i></span>
+                <span class="sl-label">Mis Citas</span>
+            </a>
+            <a class="sidebar-link" href="{% url 'seleccionar_fecha_hora' %}">
+                <span class="sl-icon"><i class="fas fa-calendar-plus"></i></span>
+                <span class="sl-label">Agendar Cita</span>
+            </a>
+            {% endif %}
+
+            <!-- TALLER: Admin + Mecánico (drag) + Secretaria (lectura) -->
+            {% if user.is_superuser or rol == 'Administrador' or rol == 'Mecánico' or rol == 'Recepcionista' %}
+            <p class="sidebar-section-label">Taller</p>
+            <button class="sidebar-toggle-btn" data-target="sub-taller" id="btn-taller" type="button">
+                <span class="sl-icon"><i class="fas fa-table-columns"></i></span>
+                <span class="sl-label">Taller</span>
+                <i class="fas fa-chevron-down sl-caret"></i>
+            </button>
+            <div class="sidebar-submenu" id="sub-taller"><div>
+                <a class="sidebar-submenu-link" href="{% url 'tablero_kanban' %}">
+                    <i class="fas fa-columns"></i> Tablero Kanban
+                    {% if rol == 'Recepcionista' %}<span style="font-size:.65rem;color:#94a3b8;margin-left:4px">(vista)</span>{% endif %}
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'historial_ordenes' %}">
+                    <i class="fas fa-clock-rotate-left"></i> Historial de Órdenes
+                </a>
+            </div></div>
+            {% endif %}
+
+            <!-- INVENTARIO: Admin (completo) + Mecánico (operativo) -->
+            {% if user.is_superuser or rol == 'Administrador' or rol == 'Mecánico' %}
+            <p class="sidebar-section-label">Inventario</p>
+            <button class="sidebar-toggle-btn" data-target="sub-inventario" id="btn-inventario" type="button">
+                <span class="sl-icon"><i class="fas fa-boxes-stacked"></i></span>
+                <span class="sl-label">Inventario</span>
+                <i class="fas fa-chevron-down sl-caret"></i>
+            </button>
+            <div class="sidebar-submenu" id="sub-inventario"><div>
+                {% if user.is_superuser or rol == 'Administrador' %}
+                <a class="sidebar-submenu-link" href="{% url 'dashboard_inventario' %}">
+                    <i class="fas fa-chart-pie"></i> Dashboard Stock
+                </a>
+                {% endif %}
+                <a class="sidebar-submenu-link" href="{% url 'lista_productos' %}">
+                    <i class="fas fa-cubes"></i> Productos
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'agregar_movimiento' %}">
+                    <i class="fas fa-right-left"></i> Movimientos
+                </a>
+                {% if user.is_superuser or rol == 'Administrador' %}
+                <a class="sidebar-submenu-link" href="{% url 'lista_categorias' %}">
+                    <i class="fas fa-tags"></i> Categorías
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'lista_alertas' %}">
+                    <i class="fas fa-bell"></i> Alertas
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'reporte_stock_bajo' %}">
+                    <i class="fas fa-chart-line"></i> Stock Bajo
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'reporte_valorizado' %}">
+                    <i class="fas fa-coins"></i> Valorizado
+                </a>
+                {% endif %}
+            </div></div>
+            {% endif %}
+
+            <!-- FACTURACIÓN: Admin + Secretaria -->
+            {% if user.is_superuser or rol == 'Administrador' or rol == 'Recepcionista' %}
+            <p class="sidebar-section-label">Finanzas</p>
+            <a class="sidebar-link" href="{% url 'lista_facturas' %}">
+                <span class="sl-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                <span class="sl-label">Facturación y Cobros</span>
+            </a>
+            {% endif %}
+
+            <!-- PROVEEDORES + ADMIN: solo Administrador -->
+            {% if user.is_superuser or rol == 'Administrador' %}
+            <button class="sidebar-toggle-btn" data-target="sub-proveedores" id="btn-proveedores" type="button">
+                <span class="sl-icon"><i class="fas fa-handshake"></i></span>
+                <span class="sl-label">Proveedores</span>
+                <i class="fas fa-chevron-down sl-caret"></i>
+            </button>
+            <div class="sidebar-submenu" id="sub-proveedores"><div>
+                <a class="sidebar-submenu-link" href="{% url 'lista_proveedores' %}">
+                    <i class="fas fa-building"></i> Lista de Proveedores
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'lista_ordenes_compra' %}">
+                    <i class="fas fa-file-invoice"></i> Órdenes de Compra
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'lista_cuentas_pagar' %}">
+                    <i class="fas fa-money-bill-wave"></i> Cuentas por Pagar
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'catalogo_precios' %}">
+                    <i class="fas fa-tag"></i> Catálogo de Precios
+                </a>
+            </div></div>
+
+            <div class="sidebar-divider"></div>
+            <p class="sidebar-section-label">Administración</p>
+            <button class="sidebar-toggle-btn" data-target="sub-admin" id="btn-admin" type="button">
+                <span class="sl-icon"><i class="fas fa-user-shield"></i></span>
+                <span class="sl-label">Sistema</span>
+                <i class="fas fa-chevron-down sl-caret"></i>
+            </button>
+            <div class="sidebar-submenu" id="sub-admin"><div>
+                <a class="sidebar-submenu-link" href="{% url 'lista_usuarios' %}">
+                    <i class="fas fa-user-group"></i> Usuarios
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'lista_roles' %}">
+                    <i class="fas fa-id-badge"></i> Roles
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'test_notificaciones' %}">
+                    <i class="fas fa-flask"></i> Herramientas
+                </a>
+                <a class="sidebar-submenu-link" href="{% url 'configuracion_sistema' %}">
+                    <i class="fas fa-sliders"></i> Configuración
+                </a>
+            </div></div>
+            {% endif %}
+
+            {% endwith %}
+            {% endif %}
+
+        </nav>

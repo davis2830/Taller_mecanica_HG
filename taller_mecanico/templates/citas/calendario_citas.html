@@ -13,7 +13,7 @@
     </div>
     <div class="ds-hero-actions">
         <div style="text-align:center;background:rgba(249,115,22,.12);border:1.5px solid rgba(249,115,22,.25);border-radius:12px;padding:10px 20px;">
-            <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1">{{ citas|length }}</div>
+            <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1">{{ page_obj.paginator.count }}</div>
             <div style="font-size:.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px">citas</div>
         </div>
         <a href="{% url 'seleccionar_fecha_hora' %}" class="ds-btn ds-btn-primary">
@@ -37,8 +37,8 @@
                 <label for="categoria"><i class="fas fa-layer-group"></i> Categoría</label>
                 <select id="categoria" name="categoria" class="ds-fcontrol">
                     <option value="">— Todas —</option>
-                    <option value="MECANICO" {% if categoria_filtro == 'MECANICO' %}selected{% endif %}>🔧 Mecánica General</option>
-                    <option value="CARWASH"  {% if categoria_filtro == 'CARWASH'  %}selected{% endif %}>🚿 Carwash / Estética</option>
+                    <option value="MECANICO" {% if categoria_filtro == "MECANICO" %}selected{% endif %}>🔧 Mecánica General</option>
+                    <option value="CARWASH"  {% if categoria_filtro == "CARWASH"  %}selected{% endif %}>🚿 Carwash / Estética</option>
                 </select>
             </div>
 
@@ -46,11 +46,11 @@
                 <label for="estado"><i class="fas fa-traffic-light"></i> Estado</label>
                 <select id="estado" name="estado" class="ds-fcontrol">
                     <option value="">— Activas (todas) —</option>
-                    <option value="PENDIENTE"  {% if estado_filtro == 'PENDIENTE'  %}selected{% endif %}>⏳ Pendiente</option>
-                    <option value="CONFIRMADA" {% if estado_filtro == 'CONFIRMADA' %}selected{% endif %}>✅ Confirmada</option>
-                    <option value="LISTO"      {% if estado_filtro == 'LISTO'      %}selected{% endif %}>🔑 Listo para recoger</option>
-                    <option value="COMPLETADA" {% if estado_filtro == 'COMPLETADA' %}selected{% endif %}>🏁 Completada</option>
-                    <option value="CANCELADA"  {% if estado_filtro == 'CANCELADA'  %}selected{% endif %}>🚫 Cancelada</option>
+                    <option value="PENDIENTE"  {% if estado_filtro == "PENDIENTE"  %}selected{% endif %}>⏳ Pendiente</option>
+                    <option value="CONFIRMADA" {% if estado_filtro == "CONFIRMADA" %}selected{% endif %}>✅ Confirmada</option>
+                    <option value="LISTO"      {% if estado_filtro == "LISTO"      %}selected{% endif %}>🔑 Listo para recoger</option>
+                    <option value="COMPLETADA" {% if estado_filtro == "COMPLETADA" %}selected{% endif %}>🏁 Completada</option>
+                    <option value="CANCELADA"  {% if estado_filtro == "CANCELADA"  %}selected{% endif %}>🚫 Cancelada</option>
                 </select>
             </div>
 
@@ -67,10 +67,10 @@
         {% if fecha_filtro or categoria_filtro or estado_filtro %}
         <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px">
             <span style="font-size:.72rem;color:#94a3b8;align-self:center">Filtros activos:</span>
-            {% if fecha_filtro %}<span class="ds-badge ds-badge-info"><i class="fas fa-calendar-day"></i>{{ fecha_filtro }}</span>{% endif %}
-            {% if categoria_filtro == 'MECANICO' %}<span class="ds-badge ds-badge-warning">🔧 Mecánica</span>{% endif %}
-            {% if categoria_filtro == 'CARWASH'  %}<span class="ds-badge ds-badge-info">🚿 Carwash</span>{% endif %}
-            {% if estado_filtro %}<span class="ds-badge ds-badge-gray"><i class="fas fa-traffic-light"></i>{{ estado_filtro|capfirst }}</span>{% endif %}
+            {% if fecha_filtro %}<span class="ds-badge ds-badge-info"><i class="fas fa-calendar-day"></i> {{ fecha_filtro }}</span>{% endif %}
+            {% if categoria_filtro == "MECANICO" %}<span class="ds-badge ds-badge-warning">🔧 Mecánica</span>{% endif %}
+            {% if categoria_filtro == "CARWASH"  %}<span class="ds-badge ds-badge-info">🚿 Carwash</span>{% endif %}
+            {% if estado_filtro %}<span class="ds-badge ds-badge-gray"><i class="fas fa-traffic-light"></i> {{ estado_filtro|capfirst }}</span>{% endif %}
         </div>
         {% endif %}
     </form>
@@ -81,8 +81,12 @@
     <div class="ds-card-header">
         <h5>
             <i class="fas fa-list-check"></i>
-            {% if citas %}{{ citas|length }} cita{% if citas|length != 1 %}s{% endif %} encontrada{% if citas|length != 1 %}s{% endif %}
-            {% else %}Sin resultados{% endif %}
+            {% if citas %}
+                {{ page_obj.paginator.count }} cita{% if page_obj.paginator.count != 1 %}s{% endif %}
+                encontrada{% if page_obj.paginator.count != 1 %}s{% endif %}
+            {% else %}
+                Sin resultados
+            {% endif %}
         </h5>
     </div>
 
@@ -125,7 +129,7 @@
                     <td>
                         <div style="font-weight:600;color:#1e293b;margin-bottom:4px">{{ cita.servicio.nombre }}</div>
                         <span class="ds-cat {% if cita.servicio.categoria == 'CARWASH' %}ds-cat-carwash{% else %}ds-cat-mecanico{% endif %}">
-                            {% if cita.servicio.categoria == 'CARWASH' %}
+                            {% if cita.servicio.categoria == "CARWASH" %}
                                 <i class="fas fa-droplet"></i> Carwash
                             {% else %}
                                 <i class="fas fa-wrench"></i> Mecánica
@@ -133,15 +137,15 @@
                         </span>
                     </td>
                     <td>
-                        {% if cita.estado == 'PENDIENTE' %}
+                        {% if cita.estado == "PENDIENTE" %}
                             <span class="ds-badge ds-badge-pendiente"><i class="fas fa-hourglass-half"></i> Pendiente</span>
-                        {% elif cita.estado == 'CONFIRMADA' %}
+                        {% elif cita.estado == "CONFIRMADA" %}
                             <span class="ds-badge ds-badge-confirmada"><i class="fas fa-check-double"></i> Confirmada</span>
-                        {% elif cita.estado == 'LISTO' %}
+                        {% elif cita.estado == "LISTO" %}
                             <span class="ds-badge ds-badge-listo"><i class="fas fa-key"></i> Listo p/ Recoger</span>
-                        {% elif cita.estado == 'COMPLETADA' %}
+                        {% elif cita.estado == "COMPLETADA" %}
                             <span class="ds-badge ds-badge-completada"><i class="fas fa-flag-checkered"></i> Completada</span>
-                        {% elif cita.estado == 'CANCELADA' %}
+                        {% elif cita.estado == "CANCELADA" %}
                             <span class="ds-badge ds-badge-cancelada"><i class="fas fa-ban"></i> Cancelada</span>
                         {% endif %}
                     </td>
@@ -150,7 +154,7 @@
                             <a href="{% url 'detalle_cita' cita.id %}" class="ds-btn ds-btn-icon btn-view" title="Ver detalles">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            {% if cita.estado != 'CANCELADA' %}
+                            {% if cita.estado != "CANCELADA" %}
                             <a href="{% url 'gestionar_cita' cita.id %}" class="ds-btn ds-btn-icon btn-edit" title="Gestionar cita">
                                 <i class="fas fa-clipboard-check"></i>
                             </a>
@@ -176,4 +180,39 @@
         </table>
     </div>
 </div>
+
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap">
+
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&fecha={{ fecha_filtro|default:'' }}&categoria={{ categoria_filtro|default:'' }}&estado={{ estado_filtro|default:'' }}"
+           class="ds-btn ds-btn-ghost">
+            <i class="fas fa-chevron-left"></i> Anterior
+        </a>
+    {% else %}
+        <button class="ds-btn ds-btn-ghost" disabled style="opacity:.4;cursor:not-allowed">
+            <i class="fas fa-chevron-left"></i> Anterior
+        </button>
+    {% endif %}
+
+    <span style="font-size:.85rem;color:#64748b;padding:0 8px">
+        Página <strong style="color:#1e293b">{{ page_obj.number }}</strong>
+        de <strong style="color:#1e293b">{{ page_obj.paginator.num_pages }}</strong>
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&fecha={{ fecha_filtro|default:'' }}&categoria={{ categoria_filtro|default:'' }}&estado={{ estado_filtro|default:'' }}"
+           class="ds-btn ds-btn-ghost">
+            Siguiente <i class="fas fa-chevron-right"></i>
+        </a>
+    {% else %}
+        <button class="ds-btn ds-btn-ghost" disabled style="opacity:.4;cursor:not-allowed">
+            Siguiente <i class="fas fa-chevron-right"></i>
+        </button>
+    {% endif %}
+
+</div>
+{% endif %}
+
 {% endblock %}

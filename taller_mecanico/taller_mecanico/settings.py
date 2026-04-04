@@ -32,7 +32,7 @@ INSTALLED_APPS = [
     'facturacion',  # Nueva app añadida
     'crispy_forms',
     'crispy_bootstrap4',
-    "django_extensions",
+    'django_apscheduler',
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
@@ -70,6 +70,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'usuarios.context_processors.notificaciones',
             ],
         },
     },

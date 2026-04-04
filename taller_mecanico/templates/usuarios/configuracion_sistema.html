@@ -1,165 +1,583 @@
 {% extends "base.html" %}
-{% block title %}Configuración del Sistema - AutoServi Pro
-{% endblock %}
+{% block title %}Configuración del Sistema - AutoServi Pro{% endblock %}
 {% block content %}
-<style>.config-card {    border: none;    border-radius: var(--radius-lg);    box-shadow: 0 8px 25px rgba(0,0,0,0.07);    overflow: hidden;    margin-bottom: 30px;}.config-card .card-header {    padding: 20px 28px;    border-bottom: 1px solid rgba(255,255,255,0.15);    font-weight: 700;    font-size: 1rem;    letter-spacing: 0.3px;}.config-card .card-body {    padding: 30px;    background: var(--surface);}.section-security { border-left: 5px solid #f59e0b; }.section-security .card-header { background: linear-gradient(135deg, #78350f, #b45309); color: white; }.section-db { border-left: 5px solid #3b82f6; }.section-db .card-header { background: linear-gradient(135deg, #1e3a5f, #1d4ed8); color: white; }.section-email { border-left: 5px solid #10b981; }.section-email .card-header { background: linear-gradient(135deg, #064e3b, #059669); color: white; }.env-field-group { margin-bottom: 20px; }.env-label {    display: block;    font-weight: 700;    font-size: 0.82rem;    text-transform: uppercase;    letter-spacing: 0.8px;    color: #64748b;    margin-bottom: 6px;}.env-input {    width: 100%;    padding: 10px 16px;    border-radius: 10px;    border: 1.5px solid #e2e8f0;    font-size: 0.95rem;    font-family: 'Courier New', monospace;    transition: border-color 0.2s, box-shadow 0.2s;    color: #334155;    background: #f8fafc;}.env-input:focus {    outline: none;    border-color: var(--primary);    box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.08);    background: white;}.env-input.sensitive:focus { border-color: #f59e0b; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }.env-hint { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }.warning-banner {    background: linear-gradient(135deg, #fffbeb, #fef3c7);    border: 1px solid #fcd34d;    border-radius: var(--radius);    padding: 18px 24px;    margin-bottom: 30px;    display: flex;    align-items: flex-start;    gap: 15px;}.restart-banner {    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);    border: 1px solid #7dd3fc;    border-radius: var(--radius);    padding: 15px 20px;    margin-top: 20px;}</style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">    
-<div>        <h2 class="font-weight-bold text-dark mb-1" style="font-family: 'Oswald', sans-serif;">            <i class="fas fa-sliders-h text-primary mr-3"></i>Configuración del Sistema        </h2>        
-<p class="text-muted mb-0">Gestiona las variables de entorno del servidor. Solo visible para Administradores.</p>    </div>
-</div>
-<!-- Advertencia de seguridad -->
-<div class="warning-banner shadow-sm">    <i class="fas fa-shield-alt fa-2x text-warning flex-shrink-0 mt-1"></i>    
-<div>        <h6 class="font-weight-bold text-dark mb-1">⚠️ Área Restringida — Variables de Entorno Sensibles</h6>        
-<p class="mb-0 text-secondary" style="font-size: 0.9rem;">            Los cambios aquí modifican el archivo <code>.env</code> del servidor y afectan toda la aplicación.            Se recomienda hacer una copia de respaldo antes de modificar. Los cambios surten efecto al <strong>reiniciar el servidor</strong>.        </p>    </div>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --amber:       #f59e0b;
+    --amber-dark:  #b45309;
+    --amber-glow:  rgba(245,158,11,0.12);
+    --blue:        #3b82f6;
+    --blue-dark:   #1d4ed8;
+    --blue-glow:   rgba(59,130,246,0.12);
+    --green:       #10b981;
+    --green-dark:  #059669;
+    --green-glow:  rgba(16,185,129,0.12);
+    --red:         #ef4444;
+    --surface:     #ffffff;
+    --bg:          #f1f5f9;
+    --border:      #e2e8f0;
+    --text-main:   #0f172a;
+    --text-muted:  #64748b;
+    --text-soft:   #94a3b8;
+    --radius-sm:   8px;
+    --radius:      14px;
+    --radius-lg:   20px;
+    --shadow-card: 0 4px 20px rgba(15,23,42,0.07), 0 1px 4px rgba(15,23,42,0.04);
+    --shadow-btn:  0 4px 14px rgba(15,23,42,0.18);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); font-family: 'DM Sans', sans-serif; }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .page-header-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+    margin: 0;
+  }
+  .page-header-title i { color: var(--blue); margin-right: 12px; }
+  .page-header-sub {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+  }
+
+  /* ── Banners ── */
+  .banner {
+    border-radius: var(--radius);
+    padding: 16px 22px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid transparent;
+  }
+  .banner-warning {
+    background: linear-gradient(135deg, #fffbeb, #fef9ee);
+    border-color: #fcd34d;
+  }
+  .banner-info {
+    background: linear-gradient(135deg, #f0f9ff, #e8f4fd);
+    border-color: #7dd3fc;
+  }
+  .banner-danger {
+    background: linear-gradient(135deg, #fff5f5, #fff1f1);
+    border-color: #fca5a5;
+  }
+  .banner-icon { margin-top: 2px; flex-shrink: 0; }
+  .banner-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 4px 0;
+  }
+  .banner-body {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+  .banner-body code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    background: rgba(15,23,42,0.07);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* ── Config cards ── */
+  .config-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s;
+  }
+  .config-card:hover { box-shadow: 0 8px 32px rgba(15,23,42,0.11); }
+
+  .card-header {
+    padding: 18px 26px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .card-header-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.15);
+    flex-shrink: 0;
+    font-size: 1rem;
+  }
+  .card-header-text .title {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.97rem;
+    color: white;
+    margin: 0;
+  }
+  .card-header-text .subtitle {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.72);
+    margin: 2px 0 0 0;
+  }
+
+  .section-security .card-header { background: linear-gradient(135deg, #78350f 0%, #c2410c 60%, #b45309 100%); }
+  .section-db       .card-header { background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); }
+  .section-email    .card-header { background: linear-gradient(135deg, #064e3b 0%, #059669 100%); }
+
+  .card-body { padding: 26px 28px; }
+
+  /* ── SECRET_KEY notice block ── */
+  .secret-key-notice {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid #334155;
+  }
+  .secret-key-notice .sk-icon {
+    font-size: 1.4rem;
+    color: var(--amber);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .secret-key-notice .sk-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 5px 0;
+  }
+  .secret-key-notice .sk-body {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.6;
+  }
+  .secret-key-notice code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.12);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .sk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(239,68,68,0.15);
+    color: #fca5a5;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(239,68,68,0.25);
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* ── Form fields ── */
+  .env-field-group { margin-bottom: 20px; }
+  .env-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
+  .env-label .required-star { color: var(--red); font-size: 0.9rem; }
+
+  .env-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-main);
+    background: #f8fafc;
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    appearance: none;
+  }
+  .env-input:focus {
+    outline: none;
+    border-color: var(--blue);
+    background: white;
+    box-shadow: 0 0 0 3px var(--blue-glow);
+  }
+  .env-input.sensitive:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px var(--amber-glow);
+  }
+  select.env-input { cursor: pointer; }
+
+  .env-hint {
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    margin-top: 5px;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    line-height: 1.5;
+  }
+  .env-hint.danger { color: #ef4444; }
+  .env-hint a { color: var(--green-dark); text-decoration: underline; }
+  .env-hint code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ── Divider ── */
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* ── Footer bar ── */
+  .form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 20px 0 4px;
+  }
+  .footer-meta {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-meta code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 5px;
+    color: var(--text-muted);
+  }
+
+  .btn-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: linear-gradient(135deg, #0f172a, #1e3a5f);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 12px 30px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    letter-spacing: 0.2px;
+  }
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(15,23,42,0.28);
+  }
+  .btn-save:active { transform: translateY(0); }
+
+  /* ── Row utility ── */
+  .row { display: flex; flex-wrap: wrap; margin: 0 -10px; }
+  .col { padding: 0 10px; flex: 1; min-width: 0; }
+  .col-4  { padding: 0 10px; flex: 0 0 33.333%; max-width: 33.333%; }
+  .col-5  { padding: 0 10px; flex: 0 0 41.666%; max-width: 41.666%; }
+  .col-6  { padding: 0 10px; flex: 0 0 50%; max-width: 50%; }
+  .col-7  { padding: 0 10px; flex: 0 0 58.333%; max-width: 58.333%; }
+  .col-8  { padding: 0 10px; flex: 0 0 66.666%; max-width: 66.666%; }
+  .col-12 { padding: 0 10px; flex: 0 0 100%; max-width: 100%; }
+  @media(max-width: 700px) {
+    .col-4, .col-5, .col-6, .col-7, .col-8 { flex: 0 0 100%; max-width: 100%; }
+  }
+</style>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!--  PAGE HEADER                                       -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div>
+    <h2 class="page-header-title">
+      <i class="fas fa-sliders-h"></i>Configuración del Sistema
+    </h2>
+    <p class="page-header-sub">Gestiona las variables de entorno del servidor. Solo visible para Administradores.</p>
+  </div>
 </div>
 
-<form method="POST" id="configForm">    {% csrf_token %}    <!-- Sección 1: Seguridad -->    
-<div class="card config-card section-security">        
-<div class="card-header d-flex align-items-center">            <i class="fas fa-lock mr-3 fa-lg"></i>            
-<div>                
-<div>Seguridad de Django</div>
-                <small class="opacity-75 font-weight-normal">SECRET_KEY, Modo Debug y Hosts Permitidos</small>            </div>
-        </div>
-        
-<div class="card-body">            
-<div class="row">                
-<div class="col-12">                    
-<div class="env-field-group">                        <label class="env-label" for="SECRET_KEY">Secret Key <span class="text-danger">★</span></label>                        
-<input type="password" id="SECRET_KEY" name="SECRET_KEY" class="env-input sensitive"                               value="{{ env.SECRET_KEY }}" autocomplete="off"                               onfocus="this.type='text'" onblur="this.type='password'">                        
-<div class="env-hint"><i class="fas fa-eye-slash mr-1"></i>Clave criptográfica de Django. Nunca la compartas. Haz clic para revelar.</div>
-                    </div>
-                </div>
-                
-<div class="col-md-4">                    
-<div class="env-field-group">                        <label class="env-label" for="DEBUG">Modo Debug</label>                        <select id="DEBUG" name="DEBUG" class="env-input">                            <option value="True" 
-{% if env.DEBUG == 'True' %}selected
-{% endif %}>True (Desarrollo)</option>                            <option value="False" 
-{% if env.DEBUG == 'False' %}selected
-{% endif %}>False (Producción) ✅</option>                        </select>                        
-<div class="env-hint text-danger"><i class="fas fa-info-circle mr-1"></i>SIEMPRE en False en producción.</div>
-                    </div>
-                </div>
-                
-<div class="col-md-8">                    
-<div class="env-field-group">                        <label class="env-label" for="ALLOWED_HOSTS">Hosts Permitidos</label>                        
-<input type="text" id="ALLOWED_HOSTS" name="ALLOWED_HOSTS" class="env-input"                               value="{{ env.ALLOWED_HOSTS }}" placeholder="ejemplo.com,www.ejemplo.com,127.0.0.1">                        
-<div class="env-hint">Separa múltiples hosts con coma. Usa <code>*</code> solo en desarrollo local.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Advertencia de seguridad general -->
+<div class="banner banner-warning">
+  <i class="fas fa-shield-alt fa-lg text-warning banner-icon" style="color:#d97706;"></i>
+  <div>
+    <p class="banner-title">⚠️ Área Restringida — Variables de Entorno Sensibles</p>
+    <p class="banner-body">
+      Los cambios aquí modifican el archivo <code>.env</code> del servidor y afectan toda la aplicación.
+      Se recomienda hacer una copia de respaldo antes de modificar.
+      Los cambios surten efecto al <strong>reiniciar el servidor</strong>.
+    </p>
+  </div>
+</div>
+
+<form method="POST" id="configForm">
+  {% csrf_token %}
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!--  SECCIÓN 1: SEGURIDAD                              -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="config-card section-security">
+    <div class="card-header">
+      <div class="card-header-icon"><i class="fas fa-lock" style="color:white;"></i></div>
+      <div class="card-header-text">
+        <p class="title">Seguridad de Django</p>
+        <p class="subtitle">Modo Debug y Hosts Permitidos</p>
+      </div>
     </div>
-    <!-- Sección 2: Base de Datos -->    
-<div class="card config-card section-db">        
-<div class="card-header d-flex align-items-center">            <i class="fas fa-database mr-3 fa-lg"></i>            
-<div>                
-<div>Base de Datos</div>
-                <small class="opacity-75 font-weight-normal">Motor, Nombre, Usuario, Contraseña y Host</small>            </div>
+    <div class="card-body">
+
+      <!-- SECRET_KEY NOTICE — no editable desde la UI -->
+      <div class="secret-key-notice">
+        <i class="fas fa-key sk-icon"></i>
+        <div style="flex:1;">
+          <p class="sk-title">
+            SECRET_KEY
+            <span class="sk-badge"><i class="fas fa-ban" style="font-size:0.65rem;"></i> No editable desde la web</span>
+          </p>
+          <p class="sk-body">
+            Por seguridad, la <strong style="color:#f1f5f9;">SECRET_KEY</strong> no se muestra ni se puede modificar desde esta interfaz.
+            Cualquier acceso al DOM del navegador podría exponerla aunque esté enmascarada.<br><br>
+            Para cambiarla, edita directamente el archivo <code>.env</code> en el servidor y reinicia el proceso.<br>
+            <span style="color:#fbbf24; font-size:0.79rem; margin-top:6px; display:inline-block;">
+              <i class="fas fa-terminal" style="margin-right:4px;"></i>
+              Ejemplo: <code>nano /ruta/del/proyecto/.env</code> → modifica <code>SECRET_KEY=...</code>
+            </span>
+          </p>
         </div>
-        
-<div class="card-body">            
-<div class="row">                
-<div class="col-md-6">                    
-<div class="env-field-group">                        <label class="env-label" for="DB_ENGINE">Motor de Base de Datos</label>                        <select id="DB_ENGINE" name="DB_ENGINE" class="env-input">                            <option value="django.db.backends.mysql" 
-{% if env.DB_ENGINE == 'django.db.backends.mysql' %}selected
-{% endif %}>MySQL / MariaDB</option>                            <option value="django.db.backends.postgresql" 
-{% if env.DB_ENGINE == 'django.db.backends.postgresql' %}selected
-{% endif %}>PostgreSQL</option>                            <option value="django.db.backends.sqlite3" 
-{% if env.DB_ENGINE == 'django.db.backends.sqlite3' %}selected
-{% endif %}>SQLite3 (Solo Desarrollo)</option>                        </select>                    </div>
-                </div>
-                
-<div class="col-md-6">                    
-<div class="env-field-group">                        <label class="env-label" for="DB_NAME">Nombre de la Base de Datos</label>                        
-<input type="text" id="DB_NAME" name="DB_NAME" class="env-input" value="{{ env.DB_NAME }}" placeholder="taller_mecanico">                    </div>
-                </div>
-                
-<div class="col-md-4">                    
-<div class="env-field-group">                        <label class="env-label" for="DB_USER">Usuario de BD</label>                        
-<input type="text" id="DB_USER" name="DB_USER" class="env-input" value="{{ env.DB_USER }}" placeholder="root">                    </div>
-                </div>
-                
-<div class="col-md-4">                    
-<div class="env-field-group">                        <label class="env-label" for="DB_PASSWORD">Contraseña de BD <span class="text-danger">★</span></label>                        
-<input type="password" id="DB_PASSWORD" name="DB_PASSWORD" class="env-input sensitive"                               value="{{ env.DB_PASSWORD }}" autocomplete="off"                               onfocus="this.type='text'" onblur="this.type='password'">                    </div>
-                </div>
-                
-<div class="col-md-2">                    
-<div class="env-field-group">                        <label class="env-label" for="DB_HOST">Host</label>                        
-<input type="text" id="DB_HOST" name="DB_HOST" class="env-input" value="{{ env.DB_HOST }}" placeholder="localhost">                    </div>
-                </div>
-                
-<div class="col-md-2">                    
-<div class="env-field-group">                        <label class="env-label" for="DB_PORT">Puerto</label>                        
-<input type="text" id="DB_PORT" name="DB_PORT" class="env-input" value="{{ env.DB_PORT }}" placeholder="3306">                    </div>
-                </div>
-            </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="row">
+        <div class="col-4">
+          <div class="env-field-group">
+            <label class="env-label" for="DEBUG"><i class="fas fa-bug" style="font-size:0.8rem;"></i> Modo Debug</label>
+            <select id="DEBUG" name="DEBUG" class="env-input">
+              <option value="True"  {% if env.DEBUG == "True"  %}selected{% endif %}>True — Desarrollo</option>
+              <option value="False" {% if env.DEBUG == "False" %}selected{% endif %}>False — Producción ✅</option>
+            </select>
+            <p class="env-hint danger"><i class="fas fa-exclamation-circle"></i> SIEMPRE en False en producción.</p>
+          </div>
         </div>
+        <div class="col-8">
+          <div class="env-field-group">
+            <label class="env-label" for="ALLOWED_HOSTS"><i class="fas fa-globe" style="font-size:0.8rem;"></i> Hosts Permitidos</label>
+            <input type="text" id="ALLOWED_HOSTS" name="ALLOWED_HOSTS" class="env-input"
+                   value="{{ env.ALLOWED_HOSTS }}" placeholder="ejemplo.com,www.ejemplo.com,127.0.0.1">
+            <p class="env-hint"><i class="fas fa-info-circle"></i> Separa múltiples hosts con coma. Usa <code>*</code> solo en desarrollo local.</p>
+          </div>
+        </div>
+      </div>
     </div>
-    <!-- Sección 3: Email SMTP -->    
-<div class="card config-card section-email">        
-<div class="card-header d-flex align-items-center">            <i class="fas fa-envelope mr-3 fa-lg"></i>            
-<div>                
-<div>Correo Electrónico (SMTP)</div>
-                <small class="opacity-75 font-weight-normal">Servidor, Puerto, Autenticación y Credenciales</small>            </div>
-        </div>
-        
-<div class="card-body">            
-<div class="row">                
-<div class="col-md-5">                    
-<div class="env-field-group">                        <label class="env-label" for="EMAIL_HOST">Servidor SMTP</label>                        
-<input type="text" id="EMAIL_HOST" name="EMAIL_HOST" class="env-input" value="{{ env.EMAIL_HOST }}" placeholder="smtp.gmail.com">                        
-<div class="env-hint">Gmail: smtp.gmail.com | Outlook: smtp-mail.outlook.com</div>
-                    </div>
-                </div>
-                
-<div class="col-md-3">                    
-<div class="env-field-group">                        <label class="env-label" for="EMAIL_PORT">Puerto SMTP</label>                        <select id="EMAIL_PORT" name="EMAIL_PORT" class="env-input">                            <option value="587" 
-{% if env.EMAIL_PORT == '587' %}selected
-{% endif %}>587 (TLS/STARTTLS)</option>                            <option value="465" 
-{% if env.EMAIL_PORT == '465' %}selected
-{% endif %}>465 (SSL)</option>                            <option value="25" 
-{% if env.EMAIL_PORT == '25' %}selected
-{% endif %}>25 (Sin cifrado)</option>                        </select>                    </div>
-                </div>
-                
-<div class="col-md-4">                    
-<div class="env-field-group">                        <label class="env-label" for="EMAIL_USE_TLS">Cifrado</label>                        <select id="EMAIL_USE_TLS" name="EMAIL_USE_TLS" class="env-input">                            <option value="True" 
-{% if env.EMAIL_USE_TLS == 'True' %}selected
-{% endif %}>TLS Activado (Recomendado)</option>                            <option value="False" 
-{% if env.EMAIL_USE_TLS == 'False' %}selected
-{% endif %}>Sin TLS</option>                        </select>                    </div>
-                </div>
-                
-<div class="col-md-6">                    
-<div class="env-field-group">                        <label class="env-label" for="EMAIL_HOST_USER">Correo Remitente</label>                        
-<input type="email" id="EMAIL_HOST_USER" name="EMAIL_HOST_USER" class="env-input"                               value="{{ env.EMAIL_HOST_USER }}" placeholder="correo@dominio.com">                    </div>
-                </div>
-                
-<div class="col-md-6">                    
-<div class="env-field-group">                        <label class="env-label" for="EMAIL_HOST_PASSWORD">Contraseña de Aplicación <span class="text-danger">★</span></label>                        
-<input type="password" id="EMAIL_HOST_PASSWORD" name="EMAIL_HOST_PASSWORD" class="env-input sensitive"                               value="{{ env.EMAIL_HOST_PASSWORD }}" autocomplete="off"                               onfocus="this.type='text'" onblur="this.type='password'">                        
-<div class="env-hint">Para <strong>Gmail</strong>, usa una <a href="https://myaccount.google.com/apppasswords" target="_blank">Contraseña de Aplicación</a>, no tu contraseña normal.</div>
-                    </div>
-                </div>
-                
-<div class="col-md-12">                    
-<div class="env-field-group mb-0">                        <label class="env-label" for="DEFAULT_FROM_EMAIL">Email "De" predeterminado</label>                        
-<input type="email" id="DEFAULT_FROM_EMAIL" name="DEFAULT_FROM_EMAIL" class="env-input"                               value="{{ env.DEFAULT_FROM_EMAIL }}" placeholder="noreply@autoservipro.com">                        
-<div class="env-hint">Nombre que verá el destinatario en el campo "De:" de los correos del sistema.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!--  SECCIÓN 2: BASE DE DATOS                          -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="config-card section-db">
+    <div class="card-header">
+      <div class="card-header-icon"><i class="fas fa-database" style="color:white;"></i></div>
+      <div class="card-header-text">
+        <p class="title">Base de Datos</p>
+        <p class="subtitle">Motor, Nombre, Usuario, Contraseña y Host</p>
+      </div>
     </div>
-    <!-- Nota de reinicio -->    
-<div class="restart-banner d-flex align-items-center shadow-sm mb-4">        <i class="fas fa-info-circle fa-2x text-info mr-3 flex-shrink-0"></i>        
-<div>            <h6 class="font-weight-bold text-dark mb-1">Importante: Requiere Reinicio del Servidor</h6>            
-<p class="mb-0 text-secondary" style="font-size: 0.88rem;">                Django carga las variables de entorno al iniciar. Para que los cambios se activen, deberás <strong>detener y volver a arrancar</strong> el servidor                con <code>python manage.py runserver</code> (o reiniciar el proceso en tu hosting/VPS).            </p>        </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-6">
+          <div class="env-field-group">
+            <label class="env-label" for="DB_ENGINE"><i class="fas fa-cogs" style="font-size:0.8rem;"></i> Motor de Base de Datos</label>
+            <select id="DB_ENGINE" name="DB_ENGINE" class="env-input">
+              <option value="django.db.backends.mysql"      {% if env.DB_ENGINE == "django.db.backends.mysql"      %}selected{% endif %}>MySQL / MariaDB</option>
+              <option value="django.db.backends.postgresql" {% if env.DB_ENGINE == "django.db.backends.postgresql" %}selected{% endif %}>PostgreSQL</option>
+              <option value="django.db.backends.sqlite3"    {% if env.DB_ENGINE == "django.db.backends.sqlite3"    %}selected{% endif %}>SQLite3 (Solo Desarrollo)</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="env-field-group">
+            <label class="env-label" for="DB_NAME"><i class="fas fa-folder" style="font-size:0.8rem;"></i> Nombre de la Base de Datos</label>
+            <input type="text" id="DB_NAME" name="DB_NAME" class="env-input"
+                   value="{{ env.DB_NAME }}" placeholder="taller_mecanico">
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="env-field-group">
+            <label class="env-label" for="DB_USER"><i class="fas fa-user" style="font-size:0.8rem;"></i> Usuario de BD</label>
+            <input type="text" id="DB_USER" name="DB_USER" class="env-input"
+                   value="{{ env.DB_USER }}" placeholder="root">
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="env-field-group">
+            <label class="env-label" for="DB_PASSWORD">
+              <i class="fas fa-key" style="font-size:0.8rem;"></i> Contraseña de BD
+              <span class="required-star">★</span>
+            </label>
+            <input type="password" id="DB_PASSWORD" name="DB_PASSWORD" class="env-input sensitive"
+                   value="{{ env.DB_PASSWORD }}" autocomplete="off"
+                   onfocus="this.type='text'" onblur="this.type='password'">
+          </div>
+        </div>
+        <div class="col-2">
+          <div class="env-field-group">
+            <label class="env-label" for="DB_HOST"><i class="fas fa-server" style="font-size:0.8rem;"></i> Host</label>
+            <input type="text" id="DB_HOST" name="DB_HOST" class="env-input"
+                   value="{{ env.DB_HOST }}" placeholder="localhost">
+          </div>
+        </div>
+        <div class="col-2">
+          <div class="env-field-group">
+            <label class="env-label" for="DB_PORT"><i class="fas fa-plug" style="font-size:0.8rem;"></i> Puerto</label>
+            <input type="text" id="DB_PORT" name="DB_PORT" class="env-input"
+                   value="{{ env.DB_PORT }}" placeholder="3306">
+          </div>
+        </div>
+      </div>
     </div>
-    
-<div class="d-flex justify-content-between align-items-center">        <span class="text-muted small"><i class="fas fa-file-code mr-1"></i>Archivo: <code>.env</code> en la raíz del proyecto</span>        
-<button type="submit" class="btn btn-primary font-weight-bold shadow px-5 py-3 rounded-pill" id="btnGuardar"                onclick="return confirm('¿Guardar cambios en la configuración del sistema?')">            <i class="fas fa-save mr-2"></i>Guardar Configuración        </button>    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!--  SECCIÓN 3: EMAIL SMTP                             -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="config-card section-email">
+    <div class="card-header">
+      <div class="card-header-icon"><i class="fas fa-envelope" style="color:white;"></i></div>
+      <div class="card-header-text">
+        <p class="title">Correo Electrónico (SMTP)</p>
+        <p class="subtitle">Servidor, Puerto, Autenticación y Credenciales</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-5">
+          <div class="env-field-group">
+            <label class="env-label" for="EMAIL_HOST"><i class="fas fa-at" style="font-size:0.8rem;"></i> Servidor SMTP</label>
+            <input type="text" id="EMAIL_HOST" name="EMAIL_HOST" class="env-input"
+                   value="{{ env.EMAIL_HOST }}" placeholder="smtp.gmail.com">
+            <p class="env-hint"><i class="fas fa-info-circle"></i> Gmail: smtp.gmail.com &nbsp;|&nbsp; Outlook: smtp-mail.outlook.com</p>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="env-field-group">
+            <label class="env-label" for="EMAIL_PORT"><i class="fas fa-network-wired" style="font-size:0.8rem;"></i> Puerto SMTP</label>
+            <select id="EMAIL_PORT" name="EMAIL_PORT" class="env-input">
+              <option value="587" {% if env.EMAIL_PORT == "587" %}selected{% endif %}>587 — TLS / STARTTLS</option>
+              <option value="465" {% if env.EMAIL_PORT == "465" %}selected{% endif %}>465 — SSL</option>
+              <option value="25"  {% if env.EMAIL_PORT == "25"  %}selected{% endif %}>25 — Sin cifrado</option>
+            </select>
+          </div>
+        </div>
+        <div class="col">
+          <div class="env-field-group">
+            <label class="env-label" for="EMAIL_USE_TLS"><i class="fas fa-lock" style="font-size:0.8rem;"></i> Cifrado</label>
+            <select id="EMAIL_USE_TLS" name="EMAIL_USE_TLS" class="env-input">
+              <option value="True"  {% if env.EMAIL_USE_TLS == "True"  %}selected{% endif %}>TLS Activado ✅</option>
+              <option value="False" {% if env.EMAIL_USE_TLS == "False" %}selected{% endif %}>Sin TLS</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="env-field-group">
+            <label class="env-label" for="EMAIL_HOST_USER"><i class="fas fa-user-circle" style="font-size:0.8rem;"></i> Correo Remitente</label>
+            <input type="email" id="EMAIL_HOST_USER" name="EMAIL_HOST_USER" class="env-input"
+                   value="{{ env.EMAIL_HOST_USER }}" placeholder="correo@dominio.com">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="env-field-group">
+            <label class="env-label" for="EMAIL_HOST_PASSWORD">
+              <i class="fas fa-key" style="font-size:0.8rem;"></i> Contraseña de Aplicación
+              <span class="required-star">★</span>
+            </label>
+            <input type="password" id="EMAIL_HOST_PASSWORD" name="EMAIL_HOST_PASSWORD" class="env-input sensitive"
+                   value="{{ env.EMAIL_HOST_PASSWORD }}" autocomplete="off"
+                   onfocus="this.type='text'" onblur="this.type='password'">
+            <p class="env-hint">
+              <i class="fas fa-info-circle"></i>
+              Para <strong>Gmail</strong>, usa una
+              <a href="https://myaccount.google.com/apppasswords" target="_blank">Contraseña de Aplicación</a>,
+              no tu contraseña normal.
+            </p>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="env-field-group" style="margin-bottom:0;">
+            <label class="env-label" for="DEFAULT_FROM_EMAIL"><i class="fas fa-id-badge" style="font-size:0.8rem;"></i> Email "De" predeterminado</label>
+            <input type="email" id="DEFAULT_FROM_EMAIL" name="DEFAULT_FROM_EMAIL" class="env-input"
+                   value="{{ env.DEFAULT_FROM_EMAIL }}" placeholder="noreply@autoservipro.com">
+            <p class="env-hint"><i class="fas fa-info-circle"></i> Nombre visible para el destinatario en el campo "De:" de los correos del sistema.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner reinicio -->
+  <div class="banner banner-info" style="margin-top:4px;">
+    <i class="fas fa-sync-alt banner-icon" style="color:#0284c7; font-size:1.15rem; margin-top:1px;"></i>
+    <div>
+      <p class="banner-title">Requiere Reinicio del Servidor</p>
+      <p class="banner-body">
+        Django carga las variables de entorno al iniciar. Para que los cambios se activen, deberás
+        <strong>detener y volver a arrancar</strong> el servidor con <code>python manage.py runserver</code>
+        (o reiniciar el proceso en tu hosting / VPS).
+      </p>
+    </div>
+  </div>
+
+  <!-- Footer / botón -->
+  <div class="form-footer">
+    <span class="footer-meta">
+      <i class="fas fa-file-code"></i>
+      Archivo: <code>.env</code> en la raíz del proyecto
+    </span>
+    <button type="submit" class="btn-save" id="btnGuardar"
+            onclick="return confirm('¿Guardar cambios en la configuración del sistema?')">
+      <i class="fas fa-save"></i> Guardar Configuración
+    </button>
+  </div>
+
 </form>
 {% endblock %}

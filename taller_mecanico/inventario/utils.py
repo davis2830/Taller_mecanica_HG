@@ -169,22 +169,78 @@ Alerta generada automáticamente el {alerta.fecha_creacion.strftime('%d/%m/%Y a 
 Sistema de Gestión de Taller Mecánico
         """.strip()
         
-        # Crear y enviar email
-        email = EmailMultiAlternatives(
-            asunto,
-            mensaje_texto,
-            settings.EMAIL_HOST_USER,
-            emails_destinatarios
-        )
-        email.attach_alternative(mensaje_html, "text/html")
-        email.send()
+        # Guardar notificaciones web para todos los destinatarios antes de enviar el correo
+        from usuarios.models import Notificacion
+        for usuario in usuarios_destinatarios:
+            Notificacion.objects.create(
+                usuario=usuario,
+                titulo=f"{emoji} {urgencia}: {alerta.producto.nombre}",
+                mensaje=f"Stock Actual: {alerta.producto.stock_actual} | Mínimo: {alerta.producto.stock_minimo}",
+                tipo='WARNING' if alerta.tipo in ['STOCK_BAJO'] else 'CRITICAL',
+                enlace=f"/inventario/productos/?q={alerta.producto.codigo}"
+            )
+            
+        # Crear y enviar email asincrónicamente para no bloquear la aplicación
+        import threading
         
-        logger.info(f"Alerta enviada por email: {alerta.producto.nombre} a {len(emails_destinatarios)} destinatarios")
+        def send_email_async():
+            try:
+                email = EmailMultiAlternatives(
+                    asunto,
+                    mensaje_texto,
+                    settings.EMAIL_HOST_USER,
+                    emails_destinatarios
+                )
+                email.attach_alternative(mensaje_html, "text/html")
+                email.send()
+                logger.info(f"Hilo Async: Alerta enviada por email a {len(emails_destinatarios)} destinatarios")
+            except Exception as e:
+                logger.error(f"Hilo Async: Error al enviar email de alerta: {e}")
+
+        # Iniciar el hilo y devolver True de inmediato
+        thread = threading.Thread(target=send_email_async)
+        thread.daemon = True
+        thread.start()
+        
         return True
         
     except Exception as e:
-        logger.error(f"Error al enviar email de alerta: {e}")
+        logger.error(f"Error al procesar alerta/email: {e}")
         return False
+
+def evaluar_stock_producto(producto):
+    """Evalúa el umbral de un producto individual post-consumo y dispara alerta asíncrona inmediata si cae en umbral Crítico o Agotado."""
+    from .models import AlertaInventario
+    if not producto.activo:
+        return
+        
+    if producto.stock_actual == 0:
+        tipo_alerta = 'STOCK_AGOTADO'
+        prioridad = 'CRITICA'
+        mensaje = f'🚨 CRÍTICO: El producto {producto.nombre} (código: {producto.codigo}) está AGOTADO. Stock actual: 0'
+    elif producto.stock_actual <= (producto.stock_minimo * 0.3):
+        tipo_alerta = 'STOCK_CRITICO'
+        prioridad = 'ALTA'
+        mensaje = f'⚠️ URGENTE: El producto {producto.nombre} (código: {producto.codigo}) tiene stock CRÍTICO: {producto.stock_actual} unidades (mínimo: {producto.stock_minimo})'
+    elif producto.stock_actual <= producto.stock_minimo:
+        tipo_alerta = 'STOCK_BAJO'
+        prioridad = 'MEDIA'
+        mensaje = f'📉 ATENCIÓN: El producto {producto.nombre} (código: {producto.codigo}) tiene stock bajo: {producto.stock_actual} unidades (mínimo: {producto.stock_minimo})'
+    else:
+        # Stock sano. Si había alerta resuélvela.
+        AlertaInventario.objects.filter(producto=producto, activa=True).update(activa=False)
+        return
+
+    alerta, creada = AlertaInventario.objects.get_or_create(
+        producto=producto,
+        tipo=tipo_alerta,
+        activa=True,
+        defaults={'prioridad': prioridad, 'mensaje': mensaje}
+    )
+
+    if creada or not alerta.notificado_por_email:
+        # Disparamos de inmediato
+        alerta.enviar_notificacion_email()
 
 def enviar_resumen_alertas_diario():
     """Enviar resumen diario de alertas activas"""

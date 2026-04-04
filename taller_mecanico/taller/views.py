@@ -21,8 +21,13 @@ def es_staff_con_acceso_taller(user):
 @login_required
 @user_passes_test(es_staff_con_acceso_taller)
 def tablero_kanban(request):
-    # Excluir tarjetas de citas canceladas, completadas o huérfanas
-    ordenes = OrdenTrabajo.objects.exclude(
+    # Excluir tarjetas de citas canceladas, completadas o huérfanas y añadir select_related para neutralizar consultas N+1
+    ordenes = OrdenTrabajo.objects.select_related(
+        'vehiculo', 
+        'cita__cliente', 
+        'cita__servicio', 
+        'mecanico_asignado'
+    ).exclude(
         cita__estado__in=['CANCELADA', 'COMPLETADA', 'PENDIENTE']
     ).order_by('-fecha_creacion')
     
@@ -90,6 +95,11 @@ def detalle_orden(request, orden_id):
                         cantidad=cantidad,
                         precio_unitario=producto.precio_venta
                     )
+                    
+                    # Disparar alerta en tiempo real si cruzamos el umbral (Asíncrono)
+                    from inventario.utils import evaluar_stock_producto
+                    evaluar_stock_producto(producto)
+                    
                     # Mensajes de éxito (opcional si usamos messages framework)
 
     # Para el buscador de productos

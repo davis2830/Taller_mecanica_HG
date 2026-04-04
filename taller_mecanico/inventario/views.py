@@ -82,7 +82,7 @@ def lista_productos(request):
         return redirect('dashboard')
     
     form = BusquedaProductoForm(request.GET)
-    productos = Producto.objects.filter(activo=True)
+    productos = Producto.objects.select_related('categoria', 'proveedor_principal').filter(activo=True)
     
     if form.is_valid():
         busqueda = form.cleaned_data.get('busqueda')
