@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'citas',
     'inventario',
     'taller',
+    'facturacion',  # Nueva app añadida
     'crispy_forms',
     'crispy_bootstrap4',
     "django_extensions",

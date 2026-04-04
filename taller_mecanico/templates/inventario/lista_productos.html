@@ -1,115 +1,150 @@
-<!-- inventario/templates/inventario/lista_productos.html -->{% extends "base.html" %}
-{% block title %}Productos - AutoServi Pro
-{% endblock %}
+{% extends "base.html" %}
+{% block title %}Inventario — AutoServi Pro{% endblock %}
+
 {% block content %}
-<style>.premium-card {    border: none;    box-shadow: 0 4px 15px rgba(0,0,0,0.05);    border-radius: var(--radius-lg);    overflow: hidden;}.header-gradient {    background: linear-gradient(135deg, var(--primary), var(--primary-light));    padding: 25px 30px;}.premium-table thead th {    background: var(--surface-alt);    color: var(--text-muted);    font-size: 0.85rem;    text-transform: uppercase;    letter-spacing: 0.5px;    border-bottom: 2px solid var(--border);    padding: 18px 25px;    font-weight: 600;}.premium-table tbody td {    padding: 18px 25px;    vertical-align: middle;    color: #334155;    border-bottom: 1px solid var(--border);    transition: background-color 0.2s;}.premium-table tbody tr:hover td {    background-color: #f8fafc;}/* Status Badges */.badge-soft-success { background-color: #d1fae5; color: #065f46; border: 1px solid #10b981; }.badge-soft-secondary { background-color: #f1f5f9; color: #475569; border: 1px solid #94a3b8; }.badge-soft-warning { background-color: #fef3c7; color: #b45309; border: 1px solid #f59e0b; }/* Filter Container */.filter-container {    background: #f8fafc;    border-radius: var(--radius);    padding: 20px;    margin-bottom: 25px;    border: 1px solid var(--border);}.form-control, .custom-select {    border-radius: 8px;    border: 1px solid #cbd5e1;    padding: 10px 15px;    height: auto;}.form-control:focus, .custom-select:focus {    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);    border-color: var(--primary);}.text-amber { color: #d97706 !important; }</style>
 
-<div class="card premium-card mb-5">    
-<div class="card-header header-gradient d-flex justify-content-between align-items-center border-0">        
-<div>            <h2 class="mb-1 text-white" style="font-family: 'Oswald', sans-serif;"><i class="fas fa-boxes text-accent mr-3"></i>Catálogo de Productos</h2>            
-<p class="mb-0 text-white-50">Gestiona las existencias, precios y alertas de tu inventario</p>        </div>
-        <a href="{% url 'agregar_producto' %}" class="btn btn-light text-primary font-weight-bold shadow-sm rounded-pill px-4 py-2 hover-lift">            <i class="fas fa-plus mr-2"></i>Nuevo Producto        </a>    </div>
+<!-- Botón Superior -->
+<div class="mb-3 text-right">
+    <a href="{% url 'agregar_producto' %}" class="ds-btn ds-btn-primary">
+        <i class="fas fa-plus"></i> Nuevo Producto
+    </a>
+</div>
+
+<!-- Hero y Buscador (Filtros Avanzados) -->
+<div class="ds-hero" style="margin-bottom:22px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+    <div>
+        <h1>
+            <i class="fas fa-boxes" style="color:var(--accent);margin-right:12px"></i>
+            Catálogo de Productos
+        </h1>
+        <p>Gestiona existencias de repuestos, insumos y herramientas del taller.</p>
+    </div>
+</div>
+
+<!-- Barra de Filtros -->
+<div class="ds-card" style="margin-bottom:22px; padding:15px 22px">
+    <form method="GET" style="display:flex; flex-wrap:wrap; gap:15px; align-items:flex-end; margin:0">
         
-<div class="card-body p-4">        <!-- Búsqueda y Filtros -->        
-<div class="filter-container">
-<form method="GET" class="mb-0">
-<div class="d-flex flex-wrap align-items-end" style="gap: 12px;">
-
-    <div class="flex-grow-1" style="min-width: 160px; max-width: 260px;">
-        <label class="font-weight-bold text-muted small text-uppercase mb-1 d-block"><i class="fas fa-search mr-1"></i> Buscar</label>
-        {{ form.busqueda }}
-    </div>
-
-    <div style="min-width: 110px; max-width: 150px;">
-        <label class="font-weight-bold text-muted small text-uppercase mb-1 d-block"><i class="fas fa-filter mr-1"></i> Tipo</label>
-        {{ form.tipo }}
-    </div>
-
-    <div style="min-width: 150px; max-width: 210px;">
-        <label class="font-weight-bold text-muted small text-uppercase mb-1 d-block"><i class="fas fa-tags mr-1"></i> Categoría</label>
-        {{ form.categoria }}
-    </div>
-
-    <div class="d-flex align-items-center ml-auto" style="gap: 10px;">
-        <div class="custom-control custom-switch m-0">
-            <input type="checkbox" class="custom-control-input" name="solo_stock_bajo" id="id_solo_stock_bajo" {% if form.solo_stock_bajo.value %}checked{% endif %}>
-            <label class="custom-control-label font-weight-bold text-danger m-0" for="id_solo_stock_bajo" style="white-space: nowrap; cursor: pointer; line-height: 1.8;">Solo stock bajo</label>
+        <div style="flex:1; min-width:200px">
+            <label class="ds-label"><i class="fas fa-search"></i> Buscar</label>
+            {{ form.busqueda }}
         </div>
-
-        <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm" style="border-radius: 20px; height: 42px; white-space: nowrap;">
-            <i class="fas fa-search mr-1"></i> Filtrar
-        </button>
-
-        <a href="{% url 'lista_productos' %}" class="btn btn-light border text-secondary px-3" style="border-radius: 20px; height: 42px; display: flex; align-items: center; justify-content: center;" title="Limpiar Filtros">
-            <i class="fas fa-times"></i>
-        </a>
-    </div>
-
-</div>
-</form>
-</div>
-                <!-- Tabla Principal -->        
-<div class="table-responsive">            
-<table class="table premium-table mb-0">                
-<thead>                    
-<tr>                        
-<th width="10%">Código</th>                        
-<th width="25%">Producto</th>                        
-<th>Categoría</th>                        
-<th>Stock Actual</th>                        
-<th>Precio Venta</th>                        
-<th>Estado</th>                        
-<th class="text-right">Acciones</th>                    </tr>                </thead>                <tbody>                    
-{% for producto in productos %}                    
-<tr 
-{% if producto.necesita_reposicion %}style="background-color: #fffbeb;"
-{% endif %}>                        
-<td class="font-weight-bold text-muted text-monospace">{{ producto.codigo }}</td>                        
-<td>                            
-<div class="font-weight-bold text-dark" style="font-size: 1.05rem;">{{ producto.nombre }}</div>
-                            
-<div class="small text-muted">{{ producto.get_tipo_display }}</div>
-                        </td>                        
-<td>                            <span class="badge badge-light border px-2 py-1 text-muted">{{ producto.categoria.nombre|default:"Sin Categ." }}</span>                        </td>                        
-<td>                            <span class="font-weight-bold 
-{% if producto.necesita_reposicion %}text-amber
-{% endif %}" style="font-size: 1.1rem;">                                {{ producto.stock_actual }}                            </span>                            <span class="text-muted small">/ {{ producto.stock_minimo }} min</span>                            
-{% if producto.necesita_reposicion %}                                
-<div class="badge badge-soft-warning ml-2 border-0"><i class="fas fa-exclamation-triangle mr-1"></i>Bajo</div>
-                            
-{% endif %}                        </td>                        
-<td class="font-weight-bold text-success" style="font-size: 1.1rem;">                            Q{{ producto.precio_venta }}                        </td>                        
-<td>                            
-{% if producto.activo %}                                <span class="badge badge-soft-success px-2 py-1 rounded-pill"><i class="fas fa-circle mr-1" style="font-size: 8px; vertical-align: middle;"></i>Activo</span>                            {% else %}                                <span class="badge badge-soft-secondary px-2 py-1 rounded-pill"><i class="fas fa-circle mr-1" style="font-size: 8px; vertical-align: middle;"></i>Inactivo</span>                            
-{% endif %}                        </td>                        
-<td class="text-right">                            
-<div class="btn-group shadow-sm">                                <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-sm btn-light border" title="Ver detalles">                                    <i class="fas fa-eye text-primary"></i>                                </a>                                <a href="{% url 'editar_producto' producto.id %}" class="btn btn-sm btn-light border" title="Editar">                                    <i class="fas fa-pen text-secondary"></i>                                </a>                            </div>
-                        </td>                    </tr>                    {% empty %}                    
-<tr>                        
-<td colspan="7" class="text-center py-5">                            
-<div class="opacity-50 mb-3">                                <i class="fas fa-box-open fa-4x text-muted"></i>                            </div>
-                            <h4 class="text-muted">No se encontraron productos</h4>                            
-<p class="text-secondary mb-0">Intenta cambiar los filtros de búsqueda o agrega un nuevo producto.</p>                        </td>                    </tr>                    
-{% endfor %}                </tbody>            </table>        </div>
-                <!-- Paginación Premium -->        
-{% if page_obj.has_other_pages %}        
-<div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">            
-<div class="text-muted small">                Mostrando página <strong>{{ page_obj.number }}</strong> de <strong>{{ page_obj.paginator.num_pages }}</strong>            </div>
-            <nav aria-label="Navegación">                <ul class="pagination pagination-sm mb-0 shadow-sm">                    
-{% if page_obj.has_previous %}                        <li class="page-item">                            <a class="page-link text-primary border-0" href="?page={{ page_obj.previous_page_number }}
-{% for key, value in request.GET.items %}
-{% if key != 'page' %}&{{ key }}={{ value }}
-{% endif %}
-{% endfor %}">                                <i class="fas fa-chevron-left"></i>                            </a>                        </li>                    
-{% endif %}                                        <li class="page-item active"><span class="page-link bg-primary border-0 rounded mx-1">{{ page_obj.number }}</span></li>                                        
-{% if page_obj.has_next %}                        <li class="page-item">                            <a class="page-link text-primary border-0" href="?page={{ page_obj.next_page_number }}
-{% for key, value in request.GET.items %}
-{% if key != 'page' %}&{{ key }}={{ value }}
-{% endif %}
-{% endfor %}">                                <i class="fas fa-chevron-right"></i>                            </a>                        </li>                    
-{% endif %}                </ul>            </nav>        </div>
         
-{% endif %}            </div>
+        <div style="min-width:140px">
+            <label class="ds-label"><i class="fas fa-filter"></i> Tipo</label>
+            {{ form.tipo }}
+        </div>
+        
+        <div style="min-width:180px">
+            <label class="ds-label"><i class="fas fa-tags"></i> Categoría</label>
+            {{ form.categoria }}
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:15px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:700;color:#991b1b;font-size:.85rem;text-transform:uppercase">
+                <input type="checkbox" name="solo_stock_bajo" {% if form.solo_stock_bajo.value %}checked{% endif %} style="width:16px;height:16px">
+                Solo stock bajo
+            </label>
+            
+            <button type="submit" class="ds-btn ds-btn-primary ds-btn-lg">Filtrar</button>
+            <a href="{% url 'lista_productos' %}" class="ds-btn ds-btn-ghost ds-btn-lg" title="Limpiar"><i class="fas fa-times"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla Principal -->
+<div class="ds-card p-0">
+    <div class="ds-table-wrap">
+        <table class="ds-table">
+            <thead>
+                <tr>
+                    <th style="width:10%">Código</th>
+                    <th style="width:25%">Producto</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th class="col-actions">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr style="{% if producto.necesita_reposicion %}background:#fffbeb{% endif %}">
+                    <td>
+                        <span class="ds-badge ds-badge-gray" style="font-family:monospace">{{ producto.codigo }}</span>
+                    </td>
+                    <td>
+                        <strong class="ds-truncate" style="max-width:250px;color:#1e293b;display:block;font-size:1rem">{{ producto.nombre }}</strong>
+                        <span style="font-size:.8rem;color:#64748b">{{ producto.get_tipo_display }}</span>
+                    </td>
+                    <td>
+                        <span class="ds-badge ds-badge-gray">{{ producto.categoria.nombre|default:"Sin Categ." }}</span>
+                    </td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-size:1.1rem;font-weight:800;color:{% if producto.necesita_reposicion %}#d97706{% else %}#1e293b{% endif %}">
+                                {{ producto.stock_actual }}
+                            </span>
+                            <span style="font-size:.75rem;color:#94a3b8">/ {{ producto.stock_minimo }} min</span>
+                            
+                            {% if producto.necesita_reposicion %}
+                                <span class="ds-badge ds-badge-warning"><i class="fas fa-exclamation-triangle"></i> Bajo</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-size:1.1rem;font-weight:800;color:#16a34a">Q{{ producto.precio_venta|floatformat:2 }}</span>
+                    </td>
+                    <td>
+                        {% if producto.activo %}
+                            <span class="ds-badge ds-badge-success">Activo</span>
+                        {% else %}
+                            <span class="ds-badge ds-badge-gray">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="col-actions">
+                        <div style="display:flex;gap:6px;justify-content:flex-end">
+                            <a href="{% url 'detalle_producto' producto.id %}" class="ds-btn ds-btn-icon btn-view" title="Ver Detalles">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'editar_producto' producto.id %}" class="ds-btn ds-btn-icon btn-edit" title="Editar">
+                                <i class="fas fa-pen"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="ds-empty">
+                            <i class="fas fa-box-open"></i>
+                            <h5>Inventario Vacío</h5>
+                            <p>No se encontraron productos que coincidan con los filtros seleccionados.</p>
+                            <a href="{% url 'agregar_producto' %}" class="ds-btn ds-btn-primary mt-2">Agregar Producto</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div style="padding:15px 22px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:#fcfcfc">
+        <span style="font-size:.85rem;color:#64748b">Página <strong>{{ page_obj.number }}</strong> de {{ page_obj.paginator.num_pages }}</span>
+        <div style="display:flex;gap:5px">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="ds-btn ds-btn-ghost ds-btn-sm"><i class="fas fa-chevron-left"></i> ant</a>
+            {% endif %}
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="ds-btn ds-btn-ghost ds-btn-sm">sig <i class="fas fa-chevron-right"></i></a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
 </div>
 
 {% endblock %}

@@ -1,231 +1,92 @@
-<!-- citas/templates/citas/lista_servicios.html -->
 {% extends "base.html" %}
-
-{% block title %}Servicios - Taller Mecánico{% endblock %}
+{% block title %}Catálogo de Servicios — AutoServi Pro{% endblock %}
 
 {% block content %}
-<style>
-/* Estilos Premium para Lista de Servicios */
-.services-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-    border-radius: var(--radius-lg);
-    padding: 30px;
-    color: white;
-    margin-bottom: 25px;
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-}
-.services-header::after {
-    content: '';
-    position: absolute;
-    top: -50%; right: -10%;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-.services-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0;
-    font-family: 'Oswald', sans-serif;
-    letter-spacing: 0.5px;
-}
-.services-subtitle {
-    font-size: 0.95rem;
-    color: #cbd5e1;
-    margin-top: 5px;
-}
-.filter-container {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: 15px 20px;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 25px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-.filter-label {
-    font-weight: 600;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-.filter-pill {
-    background: #f1f5f9;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 50px;
-    color: #475569;
-    font-weight: 500;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.25s ease;
-}
-.filter-pill:hover {
-    background: #e2e8f0;
-    color: var(--primary);
-}
-.filter-pill.active {
-    background: var(--accent);
-    color: white;
-    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
-}
-.service-card {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border);
-    padding: 24px;
-    height: 100%;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.service-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-md);
-    border-color: #cbd5e1;
-}
-.service-card-border {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: #e2e8f0;
-    transition: background 0.3s ease;
-}
-.service-card:hover .service-card-border.cat-MECANICO { background: var(--info); }
-.service-card:hover .service-card-border.cat-CARWASH { background: var(--success); }
 
-.service-icon-box {
-    width: 54px; height: 54px;
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem;
-    margin-bottom: 18px;
-}
-.cat-MECANICO .service-icon-box { background: #eff6ff; color: var(--info); }
-.cat-CARWASH .service-icon-box { background: #ecfdf5; color: var(--success); }
-
-.service-name {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 8px;
-    line-height: 1.3;
-}
-.service-desc {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    line-height: 1.5;
-    flex-grow: 1;
-}
-.service-meta {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding-top: 15px;
-    border-top: 1px dashed var(--border);
-    margin-bottom: 15px;
-}
-.meta-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: #475569;
-    font-weight: 500;
-}
-.meta-item i { color: var(--text-muted); }
-.service-price {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: var(--primary);
-    font-family: 'Oswald', sans-serif;
-}
-.service-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: auto;
-}
-</style>
-
-<div class="services-header">
-    <div>
-        <h1 class="services-title"><i class="fas fa-list-check mr-3 text-warning"></i>Catálogo de Servicios</h1>
-        <p class="services-subtitle mb-0">Administra los servicios de taller y lavado ofrecidos a los clientes.</p>
-    </div>
-    {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
-    <a href="{% url 'agregar_servicio' %}" class="btn btn-light text-primary font-weight-bold shadow-sm rounded-pill px-4">
-        <i class="fas fa-plus mr-2"></i>Nuevo Servicio
+<!-- Botón Agregar (Solo Admin) -->
+{% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
+<div class="mb-3 text-right">
+    <a href="{% url 'agregar_servicio' %}" class="ds-btn ds-btn-primary">
+        <i class="fas fa-plus"></i> Añadir Servicio
     </a>
-    {% endif %}
+</div>
+{% endif %}
+
+<!-- Hero -->
+<div class="ds-hero" style="margin-bottom:22px">
+    <div>
+        <h1><i class="fas fa-list-check" style="color:var(--accent);margin-right:12px"></i> Catálogo de Servicios</h1>
+        <p>Administra los servicios de mecánica y lavado ofrecidos a los clientes.</p>
+    </div>
 </div>
 
-<div class="filter-container">
-    <span class="filter-label"><i class="fas fa-filter mr-2"></i>Filtrar por:</span>
-    <button type="button" class="filter-pill active" data-filter="all">Todos los Servicios</button>
-    <button type="button" class="filter-pill" data-filter="MECANICO"><i class="fas fa-cogs mr-2"></i>Mecánicos</button>
-    <button type="button" class="filter-pill" data-filter="CARWASH"><i class="fas fa-shower mr-2"></i>Carwash</button>
+<!-- Filtros Rápidos (Opcional, con JS simple) -->
+<div style="margin-bottom:22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:.85rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px">Filtrar:</span>
+    <button class="ds-btn ds-btn-ghost ds-btn-sm btn-filter active" data-filter="all">Todos</button>
+    <button class="ds-btn ds-btn-ghost ds-btn-sm btn-filter" data-filter="MECANICO"><i class="fas fa-wrench"></i> Mecánica</button>
+    <button class="ds-btn ds-btn-ghost ds-btn-sm btn-filter" data-filter="CARWASH"><i class="fas fa-shower"></i> Carwash</button>
 </div>
 
-<div class="row" id="servicesGrid">
+<!-- Grid de Servicios -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px" id="servicesGrid">
     {% for servicio in servicios %}
-    <div class="col-xl-4 col-md-6 mb-4 service-item" data-categoria="{{ servicio.categoria }}">
-        <div class="service-card cat-{{ servicio.categoria }}">
-            <div class="service-card-border cat-{{ servicio.categoria }}"></div>
+    <div class="ds-card service-item" data-categoria="{{ servicio.categoria }}" style="display:flex;flex-direction:column;height:100%">
+        <!-- Franja de color superior dependiendo la categoría -->
+        <div style="height:4px;background:{% if servicio.categoria == 'CARWASH' %}#10b981{% else %}#f59e0b{% endif %}"></div>
+        
+        <div class="ds-card-body" style="flex:1;display:flex;flex-direction:column">
             
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="service-icon-box">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px">
+                <!-- Icono -->
+                <div class="ds-avatar" style="background:{% if servicio.categoria == 'CARWASH' %}#ecfdf5;color:#065f46{% else %}#fffbeb;color:#b45309{% endif %};font-size:1.3rem;width:46px;height:46px;border-radius:12px">
                     {% if servicio.categoria == 'CARWASH' %}
                         <i class="fas fa-car-wash"></i>
                     {% else %}
-                        <i class="fas fa-wrench"></i>
+                        <i class="fas fa-cogs"></i>
                     {% endif %}
                 </div>
-                <div class="service-price">Q{{ servicio.precio|floatformat:2 }}</div>
+                <!-- Precio -->
+                <div style="font-weight:800;font-size:1.3rem;color:#1e293b;font-family:'Oswald',sans-serif">
+                    Q{{ servicio.precio|floatformat:2 }}
+                </div>
             </div>
             
-            <h3 class="service-name">{{ servicio.nombre }}</h3>
-            <p class="service-desc">{{ servicio.descripcion|truncatechars:90|default:"Sin descripción detallada. Este servicio incluye todas las verificaciones estándar de su categoría." }}</p>
+            <h4 style="font-size:1.1rem;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.2">
+                {{ servicio.nombre }}
+            </h4>
             
-            <div class="service-meta">
-                <div class="meta-item" title="Duración estimada">
-                    <i class="far fa-clock"></i> {{ servicio.duracion }} min
-                </div>
-                <div class="meta-item" title="Categoría">
-                    <i class="fas fa-tag"></i> {{ servicio.get_categoria_display }}
-                </div>
+            <p style="font-size:.87rem;color:#64748b;line-height:1.5;margin-bottom:auto;flex-grow:1">
+                {{ servicio.descripcion|truncatechars:100|default:"Este servicio incluye las verificaciones estándar de su categoría." }}
+            </p>
+            
+            <hr class="ds-divider" style="margin:16px 0">
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:600">
+                <span class="ds-cat {% if servicio.categoria == 'CARWASH' %}ds-cat-carwash{% else %}ds-cat-mecanico{% endif %}">
+                    {{ servicio.get_categoria_display }}
+                </span>
+                <span style="color:#64748b"><i class="far fa-clock"></i> {{ servicio.duracion }} min</span>
             </div>
             
             {% if user.is_superuser or user.perfil.rol.nombre == 'Administrador' %}
-            <div class="service-actions">
-                <a href="{% url 'editar_servicio' servicio.id %}" class="btn btn-outline-primary btn-sm flex-grow-1 rounded-lg font-weight-bold">
-                    <i class="fas fa-pen mr-1"></i>Editar
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <a href="{% url 'editar_servicio' servicio.id %}" class="ds-btn ds-btn-secondary ds-btn-sm" style="flex:1;justify-content:center">
+                    <i class="fas fa-pen"></i> Editar
                 </a>
-                <a href="{% url 'eliminar_servicio' servicio.id %}" class="btn btn-outline-danger btn-sm rounded-lg" title="Eliminar">
+                <a href="{% url 'eliminar_servicio' servicio.id %}" class="ds-btn ds-btn-danger ds-btn-sm ds-btn-icon" title="Eliminar">
                     <i class="fas fa-trash"></i>
                 </a>
             </div>
             {% endif %}
+            
         </div>
     </div>
     {% empty %}
-    <div class="col-12">
-        <div class="text-center py-5 bg-white rounded-lg shadow-sm border">
-            <div class="display-1 text-muted mb-3"><i class="fas fa-box-open opacity-50"></i></div>
-            <h4 class="text-primary font-weight-bold">Sin Servicios</h4>
-            <p class="text-muted">No hay servicios registrados en el sistema actualmente.</p>
-        </div>
+    <div style="grid-column:1/-1" class="ds-empty">
+        <i class="fas fa-box-open"></i>
+        <h5>Catálogo Vacío</h5>
+        <p>Aún no hay servicios registrados en el taller.</p>
     </div>
     {% endfor %}
 </div>
@@ -233,41 +94,37 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Animación de entrada
-        const cards = document.querySelectorAll('.service-item');
-        cards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(15px)';
-            setTimeout(() => {
-                card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 50);
-        });
-
-        // Filtro de categorías
-        const btnsFilter = document.querySelectorAll('.filter-pill');
+        const btns = document.querySelectorAll('.btn-filter');
         const items = document.querySelectorAll('.service-item');
         
-        btnsFilter.forEach(btn => {
+        btns.forEach(btn => {
             btn.addEventListener('click', function() {
-                btnsFilter.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
+                btns.forEach(b => {
+                    b.classList.remove('active', 'ds-btn-primary');
+                    b.classList.add('ds-btn-ghost');
+                });
+                
+                // Activar boton actual
+                this.classList.remove('ds-btn-ghost');
+                this.classList.add('active', 'ds-btn-primary');
                 
                 const filter = this.getAttribute('data-filter');
                 
                 items.forEach(item => {
                     if (filter === 'all' || item.getAttribute('data-categoria') === filter) {
-                        item.style.display = 'block';
-                        setTimeout(() => item.style.opacity = '1', 50);
+                        item.style.display = 'flex';
                     } else {
-                        item.style.opacity = '0';
-                        setTimeout(() => item.style.display = 'none', 300);
+                        item.style.display = 'none';
                     }
                 });
             });
         });
+        
+        // Inicializar "Todos" como primario
+        document.querySelector('[data-filter="all"]').classList.remove('ds-btn-ghost');
+        document.querySelector('[data-filter="all"]').classList.add('ds-btn-primary');
     });
 </script>
 {% endblock %}
+
 {% endblock %}

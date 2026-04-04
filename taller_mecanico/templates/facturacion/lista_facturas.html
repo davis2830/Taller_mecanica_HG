@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Facturación — AutoServi Pro{% endblock %}
+
+{% block content %}
+<div class="mb-3 text-right">
+    <a href="{% url 'historial_ordenes' %}" class="ds-btn ds-btn-ghost">
+        <i class="fas fa-list-check"></i> Ir a Órdenes
+    </a>
+</div>
+
+<div class="ds-hero" style="margin-bottom:22px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+    <div>
+        <h1>
+            <i class="fas fa-file-invoice-dollar" style="color:var(--accent);margin-right:12px"></i>
+            Control de Facturación
+        </h1>
+        <p>Historial contable de pre-facturas, pagos recaudados y comprobantes de tu taller.</p>
+    </div>
+    
+    <div style="min-width: 250px;">
+        <form method="GET">
+            <div class="ds-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="q" placeholder="Buscar por Folio F-2026..." value="{{ query }}">
+                {% if query %}
+                    <a href="{% url 'lista_facturas' %}" style="color:#94a3b8;font-size:14px"><i class="fas fa-times-circle"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="ds-card p-0">
+    <div class="ds-table-wrap">
+        <table class="ds-table">
+            <thead>
+                <tr>
+                    <th>Folio</th>
+                    <th>Estado</th>
+                    <th>Orden Origen</th>
+                    <th>Método de Pago</th>
+                    <th>Emisión</th>
+                    <th>Total</th>
+                    <th class="col-actions">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in facturas %}
+                <tr>
+                    <td>
+                        <strong style="color:#1e293b;font-family:monospace">{{ f.numero_factura|default:"—" }}</strong>
+                    </td>
+                    <td>
+                        {% if f.estado == 'EMITIDA' %}
+                            <span class="ds-badge ds-badge-success"><i class="fas fa-check-double"></i> PAGADA</span>
+                        {% elif f.estado == 'BORRADOR' %}
+                            <span class="ds-badge ds-badge-warning"><i class="fas fa-edit"></i> BORRADOR</span>
+                        {% else %}
+                            <span class="ds-badge ds-badge-danger"><i class="fas fa-ban"></i> {{ f.estado }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'detalle_orden' f.orden.id %}" style="text-decoration:none;font-weight:600;color:var(--primary)">Orden #{{ f.orden.id }}</a>
+                    </td>
+                    <td>{{ f.get_metodo_pago_display|default:"<span style='color:#cbd5e1'>Pendiente</span>"|safe }}</td>
+                    <td>
+                        {% if f.estado == 'EMITIDA' %}
+                            {{ f.fecha_pagada|date:"d M Y, h:i A" }}
+                        {% else %}
+                            <span style="color:#94a3b8">Borrador pre-generado el {{ f.fecha_emision|date:"d M Y" }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong style="font-size:1.1rem;color:#1e293b;font-family:'Oswald',sans-serif">Q{{ f.total_general|floatformat:2 }}</strong>
+                    </td>
+                    <td class="col-actions">
+                        <div style="display:flex;gap:6px;justify-content:flex-end">
+                            {% if f.estado == 'EMITIDA' %}
+                            <a href="{% url 'factura_print' f.id %}" class="ds-btn ds-btn-icon btn-view" title="Ver e Imprimir Comprobante" target="_blank">
+                                <i class="fas fa-print"></i>
+                            </a>
+                            {% else %}
+                            <a href="{% url 'generar_pre_factura' f.orden.id %}" class="ds-btn ds-btn-primary ds-btn-sm" style="height:36px;border-radius:8px">
+                                Cobrar <i class="fas fa-arrow-right" style="margin-left:5px"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="ds-empty">
+                            <i class="fas fa-file-invoice"></i>
+                            <h5>Sin Facturas</h5>
+                            <p>No se encontraron registros financieros en el sistema.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

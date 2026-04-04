@@ -1,83 +1,105 @@
-<!-- citas/templates/citas/lista_vehiculos.html -->
 {% extends "base.html" %}
-{% block title %}
-Mis Vehículos - Taller Mecánico
-{% endblock %}
+{% block title %}Directorio de Vehículos — AutoServi Pro{% endblock %}
+
 {% block content %}
-<div class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">    
-<div class="card-header bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-    <h4 class="mb-3 mb-md-0 font-weight-bold" style="color: var(--primary);">
-        <i class="fas fa-car mr-2"></i> {% if es_staff %}Directorio de Vehículos{% else %}Mis Vehículos{% endif %}
-    </h4>
-    <div class="d-flex flex-column flex-sm-row w-100 w-md-auto align-items-sm-center">
-        <form method="GET" class="input-group mb-2 mb-sm-0 mr-sm-3 flex-grow-1" style="max-width: 350px;">
-            <input type="text" name="q" class="form-control bg-light border-0" placeholder="Buscar placa, dueño, marca..." value="{{ query }}">
-            <div class="input-group-append">
-                <button class="btn btn-light border-0" type="submit"><i class="fas fa-search text-muted"></i></button>
+
+<!-- Botón Superior -->
+<div class="mb-3 text-right">
+    <a href="{% url 'agregar_vehiculo' %}" class="ds-btn ds-btn-primary">
+        <i class="fas fa-plus"></i> Agregar Vehículo
+    </a>
+</div>
+
+<!-- Hero y Buscador -->
+<div class="ds-hero" style="margin-bottom:22px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+    <div>
+        <h1>
+            <i class="fas fa-car" style="color:var(--accent);margin-right:12px"></i>
+            {% if es_staff %}Directorio de Vehículos{% else %}Mis Vehículos{% endif %}
+        </h1>
+        <p>Administra los automóviles registrados y accede a su historial clínico.</p>
+    </div>
+    
+    <div style="min-width: 250px;">
+        <form method="GET">
+            <div class="ds-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="q" placeholder="Buscar por placa, dueño, marca..." value="{{ query }}">
+                {% if query %}
+                    <a href="{% url 'lista_vehiculos' %}" style="color:#94a3b8;font-size:14px"><i class="fas fa-times-circle"></i></a>
+                {% endif %}
             </div>
         </form>
-        <a href="{% url 'agregar_vehiculo' %}" class="btn btn-primary shadow-sm" style="border-radius: 20px; white-space: nowrap;">
-            <i class="fas fa-plus mr-1"></i> Agregar Vehículo
-        </a>
     </div>
 </div>
-    
-<div class="card-body">        
+
+<!-- Tabla de Resultados -->
 {% if vehiculos %}
-            
-<div class="table-responsive">                
-<table class="table table-hover">                    
-<thead>                        
-<tr>
-{% if es_staff %}<th>Propietario</th>{% endif %}
-<th>Marca</th>                            
-<th>Modelo</th>                            
-<th>Año</th>                            
-<th>Placa</th>                            
-<th>Color</th>                            
-<th>Acciones</th>                        </tr>                    </thead>                    <tbody>                        
-{% for vehiculo in vehiculos %}
-                        
-<tr>                            
-{% if es_staff %}<td class="font-weight-bold text-dark">{{ vehiculo.propietario.get_full_name|default:vehiculo.propietario.username }}</td>{% endif %}
-<td class="align-middle">
-{{ vehiculo.marca }}
-</td>                            
-<td>
-{{ vehiculo.modelo }}
-</td>                            
-<td>
-{{ vehiculo.año }}
-</td>                            
-<td>
-{{ vehiculo.placa }}
-</td>                            
-<td class="align-middle">
-{{ vehiculo.color }}
-</td>                            
-<td class="align-middle">                                <a href="
-{% url 'historial_vehiculo' vehiculo.id %}
-" class="btn btn-sm btn-primary" title="Historia Clínica"><i class="fas fa-file-medical"></i> Historial</a>                                <a href="
-{% url 'editar_vehiculo' vehiculo.id %}
-" class="btn btn-sm btn-info" title="Editar"><i class="fas fa-edit"></i></a>                                <a href="
-{% url 'eliminar_vehiculo' vehiculo.id %}
-" class="btn btn-sm btn-danger" title="Eliminar"><i class="fas fa-trash"></i></a>                            </td>                        </tr>                        
-{% endfor %}
-                    </tbody>                </table>            </div>
-        
+<div class="ds-card p-0">
+    <div class="ds-table-wrap">
+        <table class="ds-table">
+            <thead>
+                <tr>
+                    {% if es_staff %}<th>Propietario</th>{% endif %}
+                    <th>Vehículo</th>                            
+                    <th>Año</th>                            
+                    <th>Placa</th>                            
+                    <th>Color</th>                            
+                    <th class="col-actions">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>                        
+                {% for vehiculo in vehiculos %}
+                <tr>                            
+                    {% if es_staff %}
+                    <td>
+                        <span class="ds-truncate" style="max-width:200px;font-weight:600;color:#1e293b">
+                            {{ vehiculo.propietario.get_full_name|default:vehiculo.propietario.username }}
+                        </span>
+                    </td>
+                    {% endif %}
+                    <td>
+                        <div class="ds-truncate" style="max-width:220px;font-weight:600;color:#1e40af">
+                            {{ vehiculo.marca }} {{ vehiculo.modelo }}
+                        </div>
+                    </td>                            
+                    <td>{{ vehiculo.año }}</td>                            
+                    <td>
+                        <span class="ds-placa">{{ vehiculo.placa|upper }}</span>
+                    </td>                            
+                    <td>{{ vehiculo.color }}</td>                            
+                    <td class="col-actions">
+                        <div style="display:flex;gap:6px;justify-content:flex-end">
+                            <a href="{% url 'historial_vehiculo' vehiculo.id %}" class="ds-btn ds-btn-sm ds-btn-secondary ds-truncate" style="max-width:120px" title="Historia Clínica">
+                                <i class="fas fa-file-medical text-primary"></i> <span class="d-none d-md-inline">Historial</span>
+                            </a>
+                            <a href="{% url 'editar_vehiculo' vehiculo.id %}" class="ds-btn ds-btn-icon btn-edit" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'eliminar_vehiculo' vehiculo.id %}" class="ds-btn ds-btn-icon btn-delete" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>                        
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% else %}
-            
-<div class="alert alert-info border-0 shadow-sm" style="border-radius: 8px;">                
-    <i class="fas fa-info-circle mr-2"></i>
+<div class="ds-empty">
+    <i class="fas fa-car-side"></i>
     {% if query %}
-    No se encontraron vehículos que coincidan con la búsqueda "<strong>{{ query }}</strong>". <a href="{% url 'lista_vehiculos' %}" class="alert-link">Ver todos</a>.
+        <h5>Sin Resultados</h5>
+        <p>No se encontraron vehículos que coincidan con la búsqueda "<strong>{{ query }}</strong>".</p>
+        <a href="{% url 'lista_vehiculos' %}" class="ds-btn ds-btn-secondary">Limpiar Búsqueda</a>
     {% else %}
-    No hay vehículos registrados aún. <a href="{% url 'agregar_vehiculo' %}" class="alert-link">Agrega uno ahora</a>.
+        <h5>Aún no hay vehículos</h5>
+        <p>No hay vehículos registrados en el sistema actualmente.</p>
+        <a href="{% url 'agregar_vehiculo' %}" class="ds-btn ds-btn-primary mt-2">Agregar Primer Vehículo</a>
     {% endif %}
 </div>
-        
 {% endif %}
-    </div>
-</div>
 
 {% endblock %}

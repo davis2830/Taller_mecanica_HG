@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Checkout Facturación — AutoServi Pro{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto">
+    
+    <div class="mb-3">
+        <a href="{% url 'detalle_orden' orden.id %}" class="ds-btn ds-btn-ghost ds-btn-sm">
+            <i class="fas fa-arrow-left"></i> Volver a Orden
+        </a>
+    </div>
+
+    <!-- Alertas si todo cuadra o no cuadra -->
+    {% if orden.estado != 'LISTO' and orden.estado != 'ENTREGADO' %}
+    <div style="margin-bottom:20px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:.85rem;color:#b45309">
+        <i class="fas fa-exclamation-triangle" style="font-size:1.5rem"></i>
+        <span><strong>Alerta Operativa:</strong> Estás cobrando una Orden que el mecánico aún no ha marcado como LISTA.</span>
+    </div>
+    {% endif %}
+
+    <div class="ds-card p-0" style="overflow:hidden">
+        <!-- Header Visual de Checklist -->
+        <div style="background:linear-gradient(135deg,var(--primary),#0f172a);padding:30px;color:#fff;text-align:center">
+            <h2 style="font-family:'Oswald',sans-serif;margin:0">
+                Resumen de Cobro y Facturación
+            </h2>
+            <p style="color:#94a3b8;margin-top:5px;font-size:.9rem">Revisa los montos con el cliente antes de emitir la factura final (folio permanente).</p>
+        </div>
+
+        <div style="padding:40px;display:grid;grid-template-columns:1fr 300px;gap:40px">
+            
+            <!-- Columna Izquierda: Desglose -->
+            <div>
+                <h5 style="color:#1e293b;font-weight:800;border-bottom:2px solid #f1f5f9;padding-bottom:10px;margin-bottom:20px">
+                    <i class="fas fa-wrench" style="color:var(--accent)"></i> Servicio
+                </h5>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px">
+                    <div>
+                        <strong style="color:#334155">{{ orden.cita.servicio.nombre }}</strong>
+                        <div style="font-size:.8rem;color:#64748b">Servicio principal agendado</div>
+                    </div>
+                    <span style="font-size:1.1rem;font-weight:700;color:#1e293b">Q{{ factura.costo_mano_obra|floatformat:2 }}</span>
+                </div>
+
+                <h5 style="color:#1e293b;font-weight:800;border-bottom:2px solid #f1f5f9;padding-bottom:10px;margin-bottom:20px;display:flex;justify-content:space-between">
+                    <span><i class="fas fa-boxes" style="color:var(--accent)"></i> Repuestos Extra</span>
+                    <a href="{% url 'detalle_orden' orden.id %}" style="font-size:.75rem;color:var(--primary);text-decoration:none"><i class="fas fa-edit"></i> Corregir Repuestos</a>
+                </h5>
+                
+                <div style="margin-bottom:30px">
+                    {% for repuesto in orden.repuestos.all %}
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed #e2e8f0">
+                        <div style="font-size:.9rem;color:#475569">
+                            <span style="color:#1e293b;font-weight:700;background:#f8fafc;padding:2px 6px;border-radius:4px;margin-right:5px;font-size:.8rem">{{ repuesto.cantidad }}x</span>
+                            {{ repuesto.producto.nombre }}
+                            <span style="font-size:.7rem;color:#94a3b8;margin-left:5px">(@Q{{ repuesto.precio_unitario }})</span>
+                        </div>
+                        <span style="font-size:1rem;color:#334155;font-weight:600">Q{{ repuesto.subtotal|floatformat:2 }}</span>
+                    </div>
+                    {% empty %}
+                    <div style="text-align:center;padding:10px;color:#94a3b8;font-size:.85rem;background:#f8fafc;border-radius:8px">
+                        No se registraron repuestos/insumos para cobrar.
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Datos del Auto -->
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:15px;display:flex;align-items:center;gap:15px">
+                    <div style="width:40px;height:40px;background:#e0f2fe;color:#0284c7;border-radius:8px;display:flex;justify-content:center;align-items:center;font-size:1.2rem">
+                        <i class="fas fa-car-side"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;color:#1e293b">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} <span class="ds-placa">{{ orden.vehiculo.placa }}</span></div>
+                        <div style="font-size:.8rem;color:#64748b">Cliente: {{ orden.vehiculo.propietario.get_full_name|default:orden.vehiculo.propietario.username }}</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Columna Derecha: Tarjeta de Cobro Fijo -->
+            <div>
+                <form method="POST" action="{% url 'emitir_factura' factura.id %}">
+                    {% csrf_token %}
+                    
+                    <div style="background:#f8fafc;border:2px solid #f1f5f9;border-radius:12px;padding:25px">
+                        <h4 style="font-family:'Oswald',sans-serif;margin:0 0 15px;color:#1e293b;text-align:center">Gran Total</h4>
+                        
+                        <div style="text-align:center;font-size:2.5rem;font-weight:800;color:var(--primary);margin-bottom:20px;line-height:1">
+                            <span style="font-size:1.5rem;color:#94a3b8;vertical-align:top">Q</span>{{ factura.subtotal|floatformat:2 }}
+                        </div>
+
+                        <div class="ds-form-group">
+                            <label class="ds-label mb-1">Método de Pago</label>
+                            <select name="metodo_pago" class="ds-select" required style="border-color:var(--accent);border-width:2px;font-weight:600;font-size:1rem;height:45px">
+                                <option value="" disabled selected>— Elija un método —</option>
+                                {% for m in factura.METODOS_PAGO %}
+                                <option value="{{ m.0 }}">{{ m.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="ds-form-group">
+                            <label class="ds-label mb-1">Descuento Opcional (Q)</label>
+                            <input type="number" name="descuento" class="ds-input" value="{{ factura.descuento }}" min="0" step="0.01">
+                        </div>
+
+                        <div class="ds-form-group mb-4">
+                            <label class="ds-label mb-1">Notas de la Recepción</label>
+                            <textarea name="notas_internas" class="ds-textarea" style="min-height:50px" placeholder="Observaciones en el comprobante..."></textarea>
+                        </div>
+
+                        <button class="ds-btn ds-btn-primary" style="width:100%;height:50px;font-size:1.1rem;box-shadow:0 10px 20px rgba(249,115,22,.25)" type="submit" onclick="return confirm('¿Seguro que deseas bloquear y EMITIR esta factura? Ya NO podrá modificarse en el futuro.')">
+                            <i class="fas fa-check-circle" style="margin-right:8px"></i> Emitir Factura
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

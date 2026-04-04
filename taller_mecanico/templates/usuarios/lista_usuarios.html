@@ -1,324 +1,147 @@
 {% extends "base.html" %}
 {% block title %}Usuarios del Sistema — AutoServi Pro{% endblock %}
-{% block page_title %}Gestión de Usuarios{% endblock %}
 
 {% block content %}
-<style>
-/* ── Page Header ── */
-.users-header {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 16px; padding: 28px 32px; margin-bottom: 28px;
-    display: flex; justify-content: space-between; align-items: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,.15);
-    border-left: 5px solid var(--accent);
-}
-.users-header h1 {
-    font-family: 'Oswald', sans-serif; font-size: 1.9rem;
-    color: #fff; margin: 0 0 4px;
-}
-.users-header p { color: #94a3b8; margin: 0; font-size: .88rem; }
 
-/* ── Stats Row ── */
-.stat-chips {
-    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
-}
-.stat-chip {
-    background: #fff; border-radius: 10px; padding: 10px 18px;
-    box-shadow: var(--shadow-sm); display: flex; align-items: center;
-    gap: 10px; font-size: .83rem;
-}
-.stat-chip .chip-icon {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem; color: #fff;
-}
-.chip-admin     .chip-icon { background: #ef4444; }
-.chip-recep     .chip-icon { background: #3b82f6; }
-.chip-mec       .chip-icon { background: #22c55e; }
-.chip-cliente   .chip-icon { background: #8b5cf6; }
-.chip-total     .chip-icon { background: linear-gradient(135deg,var(--accent),#fb923c); }
-.stat-chip .chip-num {
-    font-size: 1.25rem !important; font-weight: 800 !important;
-    color: #1e293b !important; line-height: 1; margin-bottom: 2px;
-}
-.stat-chip .chip-label { color: #64748b; font-size: .78rem; }
-
-/* ── Search / Filter bar ── */
-.filter-bar {
-    background: #fff; border-radius: 12px; padding: 14px 18px;
-    box-shadow: var(--shadow-sm); margin-bottom: 20px;
-    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-}
-.filter-bar input {
-    flex: 1; min-width: 200px;
-    border: 1.5px solid #e2e8f0; border-radius: 9px;
-    padding: 8px 14px; font-size: .85rem; outline: none;
-    transition: border-color .2s; background: #f8fafc; color: #334155;
-}
-.filter-bar input:focus { border-color: var(--accent); background: #fff; }
-
-/* ── Users Grid ── */
-.users-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 18px;
-}
-.user-card {
-    background: #fff; border-radius: 14px;
-    box-shadow: var(--shadow-sm); overflow: hidden;
-    border: 1.5px solid #f1f5f9;
-    transition: box-shadow .2s, transform .2s, border-color .2s;
-    position: relative;
-}
-.user-card:hover {
-    box-shadow: 0 8px 30px rgba(0,0,0,.1);
-    transform: translateY(-3px);
-    border-color: #e2e8f0;
-}
-
-/* Franja de color por rol */
-.user-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-}
-.role-Administrador::before  { background: #ef4444; }
-.role-Recepcionista::before  { background: #3b82f6; }
-.role-Mecánico::before       { background: #22c55e; }
-.role-Cliente::before        { background: #8b5cf6; }
-.role-none::before           { background: #e2e8f0; }
-
-.user-card-body { padding: 20px; }
-
-.user-avatar-lg {
-    width: 50px; height: 50px; border-radius: 13px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; font-weight: 800; color: #fff;
-    background: linear-gradient(135deg, #1e293b, #334155);
-    box-shadow: 0 4px 12px rgba(0,0,0,.12);
-    flex-shrink: 0;
-}
-.user-info { flex: 1; min-width: 0; }
-.user-name {
-    font-weight: 700; color: #1e293b; font-size: .97rem;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    margin-bottom: 2px;
-}
-.user-username { font-size: .78rem; color: #94a3b8; }
-.user-email {
-    font-size: .8rem; color: #64748b; margin-top: 10px;
-    display: flex; align-items: center; gap: 6px;
-}
-.user-meta {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9;
-}
-
-/* Role badge */
-.role-badge-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 5px 12px; border-radius: 20px; font-size: .75rem; font-weight: 700;
-}
-.badge-Administrador  { background: #fef2f2; color: #991b1b; }
-.badge-Recepcionista  { background: #eff6ff; color: #1d4ed8; }
-.badge-Mecánico       { background: #f0fdf4; color: #166534; }
-.badge-Cliente        { background: #f5f3ff; color: #6d28d9; }
-.badge-none           { background: #f8fafc; color: #94a3b8; }
-
-/* Status dot */
-.status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #10b981; display: inline-block; margin-right: 4px;
-}
-.status-dot.inactive { background: #e2e8f0; }
-
-/* Actions */
-.user-card-actions {
-    display: flex; gap: 8px; padding: 14px 20px;
-    background: #f8fafc; border-top: 1px solid #f1f5f9;
-}
-.btn-action {
-    flex: 1; padding: 7px 12px; border-radius: 8px; font-size: .78rem;
-    font-weight: 600; text-decoration: none; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    transition: background .15s, transform .1s;
-}
-.btn-action:active { transform: scale(.97); }
-.btn-asignar {
-    background: var(--accent); color: #fff;
-}
-.btn-asignar:hover { background: var(--accent-hover); color: #fff; }
-.btn-ver {
-    background: #e2e8f0; color: #334155;
-}
-.btn-ver:hover { background: #cbd5e1; color: #1e293b; }
-
-/* Empty state */
-.empty-users { text-align: center; padding: 60px 20px; color: #94a3b8; grid-column: 1/-1; }
-.empty-users i { font-size: 3rem; margin-bottom: 16px; display: block; opacity: .25; }
-
-/* Search filter JS */
-.user-card.hidden { display: none; }
-</style>
-
-<!-- ── Header ── -->
-<div class="users-header">
-    <div>
-        <h1><i class="fas fa-users me-3" style="color:var(--accent)"></i>Usuarios del Sistema</h1>
-        <p>Administra los accesos y roles de cada miembro del equipo.</p>
+<!-- Franja de Métricas -->
+<div class="ds-stats">
+    <div class="ds-stat" style="flex:1">
+        <div class="ds-stat-icon" style="background: linear-gradient(135deg,var(--accent),#fb923c)"><i class="fas fa-users-viewfinder"></i></div>
+        <div>
+            <div class="ds-stat-num">{{ stats.total }}</div>
+            <div class="ds-stat-label text-uppercase">Total Usuarios</div>
+        </div>
     </div>
-    <a href="{% url 'register' %}" style="
-        display:inline-flex;align-items:center;gap:8px;
-        background:linear-gradient(135deg,var(--accent),#fb923c);
-        color:#fff;padding:10px 20px;border-radius:10px;
-        font-weight:700;font-size:.88rem;text-decoration:none;
-        box-shadow:0 4px 14px rgba(249,115,22,.35);
-        transition:opacity .2s;
-    ">
-        <i class="fas fa-user-plus"></i> Nuevo Usuario
+    <div class="ds-stat">
+        <div class="ds-stat-icon" style="background:#ef4444"><i class="fas fa-user-shield"></i></div>
+        <div>
+            <div class="ds-stat-num">{{ stats.admins }}</div>
+            <div class="ds-stat-label">Admins</div>
+        </div>
+    </div>
+    <div class="ds-stat">
+        <div class="ds-stat-icon" style="background:#3b82f6"><i class="fas fa-desktop"></i></div>
+        <div>
+            <div class="ds-stat-num">{{ stats.recep }}</div>
+            <div class="ds-stat-label">Recepción</div>
+        </div>
+    </div>
+    <div class="ds-stat">
+        <div class="ds-stat-icon" style="background:#22c55e"><i class="fas fa-wrench"></i></div>
+        <div>
+            <div class="ds-stat-num">{{ stats.mecanicos }}</div>
+            <div class="ds-stat-label">Mecánicos</div>
+        </div>
+    </div>
+    <div class="ds-stat" style="flex:1">
+        <div class="ds-stat-icon" style="background:#8b5cf6"><i class="fas fa-user-tag"></i></div>
+        <div>
+            <div class="ds-stat-num">{{ stats.clientes }}</div>
+            <div class="ds-stat-label text-uppercase">Clientes Base</div>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de Herramientas -->
+<div class="ds-hero" style="padding:15px 25px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; border-radius:12px;">
+    <div style="flex:1; min-width:280px">
+        <form method="GET" action="">
+            <div class="ds-search" style="border:none; margin:0">
+                <i class="fas fa-search"></i>
+                <input type="text" name="q" placeholder="Buscar por nombre, usuario o email..." value="{{ query }}">
+                {% if query %}
+                    <a href="{% url 'lista_usuarios' %}" style="color:#94a3b8"><i class="fas fa-times-circle"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    {% if es_admin %}
+    <a href="{% url 'registro' %}" class="ds-btn ds-btn-primary">
+        <i class="fas fa-user-plus"></i> Registrar Usuario
     </a>
-</div>
-
-<!-- ── Stats ── -->
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
-
-    <div style="background:#fff;border-radius:10px;padding:10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;border:1px solid #f1f5f9;">
-        <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;">
-            <i class="fas fa-users"></i>
-        </div>
-        <div>
-            <div style="font-size:1.3rem;font-weight:800;color:#1e293b;line-height:1;">{{ conteos.total }}</div>
-            <div style="font-size:.75rem;color:#64748b;">Total</div>
-        </div>
-    </div>
-
-    <div style="background:#fff;border-radius:10px;padding:10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;border:1px solid #f1f5f9;">
-        <div style="width:36px;height:36px;border-radius:8px;background:#ef4444;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;">
-            <i class="fas fa-user-shield"></i>
-        </div>
-        <div>
-            <div style="font-size:1.3rem;font-weight:800;color:#1e293b;line-height:1;">{{ conteos.admin }}</div>
-            <div style="font-size:.75rem;color:#64748b;">Admins</div>
-        </div>
-    </div>
-
-    <div style="background:#fff;border-radius:10px;padding:10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;border:1px solid #f1f5f9;">
-        <div style="width:36px;height:36px;border-radius:8px;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;">
-            <i class="fas fa-headset"></i>
-        </div>
-        <div>
-            <div style="font-size:1.3rem;font-weight:800;color:#1e293b;line-height:1;">{{ conteos.recepcionista }}</div>
-            <div style="font-size:.75rem;color:#64748b;">Recepcionistas</div>
-        </div>
-    </div>
-
-    <div style="background:#fff;border-radius:10px;padding:10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;border:1px solid #f1f5f9;">
-        <div style="width:36px;height:36px;border-radius:8px;background:#22c55e;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;">
-            <i class="fas fa-wrench"></i>
-        </div>
-        <div>
-            <div style="font-size:1.3rem;font-weight:800;color:#1e293b;line-height:1;">{{ conteos.mecanico }}</div>
-            <div style="font-size:.75rem;color:#64748b;">Mecánicos</div>
-        </div>
-    </div>
-
-    <div style="background:#fff;border-radius:10px;padding:10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;border:1px solid #f1f5f9;">
-        <div style="width:36px;height:36px;border-radius:8px;background:#8b5cf6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;">
-            <i class="fas fa-user"></i>
-        </div>
-        <div>
-            <div style="font-size:1.3rem;font-weight:800;color:#1e293b;line-height:1;">{{ conteos.cliente }}</div>
-            <div style="font-size:.75rem;color:#64748b;">Clientes</div>
-        </div>
-    </div>
-
-    {% if conteos.sin_rol > 0 %}
-    <div style="background:#fff;border-radius:10px;padding:10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;border:1.5px dashed #e2e8f0;">
-        <div style="width:36px;height:36px;border-radius:8px;background:#94a3b8;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;">
-            <i class="fas fa-circle-question"></i>
-        </div>
-        <div>
-            <div style="font-size:1.3rem;font-weight:800;color:#1e293b;line-height:1;">{{ conteos.sin_rol }}</div>
-            <div style="font-size:.75rem;color:#64748b;">Sin rol</div>
-        </div>
-    </div>
     {% endif %}
-
 </div>
 
+<!-- Grid de Usuarios -->
+{% if usuarios %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(310px, 1fr));gap:18px">
+    {% for u in usuarios %}
+    <div class="ds-card" style="padding:0; overflow:hidden">
+        
+        <!-- Franja de Rol Superior -->
+        <div style="height:4px;width:100%;background:
+            {% if u.rol_nombre == 'Administrador' %}#ef4444
+            {% elif u.rol_nombre == 'Mecánico' %}#22c55e
+            {% elif u.rol_nombre in 'Recepción,Recepcionista,Secretaria' %}#3b82f6
+            {% elif u.rol_nombre == 'Cliente' %}#8b5cf6
+            {% else %}#e2e8f0{% endif %}">
+        </div>
 
-<!-- ── Search bar ── -->
-<div class="filter-bar">
-    <i class="fas fa-magnifying-glass" style="color:#94a3b8"></i>
-    <input type="text" id="search-users" placeholder="Buscar por nombre, usuario, email o rol…">
-</div>
-
-<!-- ── Users Grid ── -->
-<div class="users-grid" id="users-grid">
-    {% for usuario in usuarios %}
-    {% with rol=usuario.perfil.rol.nombre|default:"none" %}
-    <div class="user-card role-{{ rol }}" data-search="{{ usuario.get_full_name|lower }} {{ usuario.username|lower }} {{ usuario.email|lower }} {{ rol|lower }}">
-        <div class="user-card-body">
-            <div style="display:flex;gap:14px;align-items:flex-start">
-                <div class="user-avatar-lg">
-                    {{ usuario.get_full_name|default:usuario.username|slice:":1"|upper }}
+        <div style="padding:22px">
+            <div style="display:flex;gap:15px;align-items:center;margin-bottom:18px">
+                <div class="ds-avatar ds-avatar-lg">
+                    {{ u.first_name|default:u.username|slice:":1"|upper }}
                 </div>
-                <div class="user-info">
-                    <div class="user-name">{{ usuario.get_full_name|default:usuario.username }}</div>
-                    <div class="user-username">
-                        <i class="fas fa-at" style="font-size:.65rem;color:#cbd5e1"></i>
-                        {{ usuario.username }}
+                <div style="flex:1; min-width:0">
+                    <h3 class="ds-truncate" style="font-size:1.1rem;font-weight:700;margin:0;color:#1e293b;width:100%">
+                        {{ u.first_name }} {{ u.last_name }}
+                        {% if not u.first_name and not u.last_name %}{{ u.username }}{% endif %}
+                    </h3>
+                    <div class="ds-truncate" style="font-size:.85rem;color:#64748b;font-weight:500;width:100%">
+                        @{{ u.username }}
                     </div>
                 </div>
             </div>
 
-            <div class="user-email">
-                <i class="fas fa-envelope" style="color:#cbd5e1;font-size:.7rem"></i>
-                {{ usuario.email|default:"Sin email" }}
+            <div style="margin-bottom:18px">
+                <!-- Fallback del rol: si no tiene u.rol_nombre, chequeamos superuser o default a Cliente -->
+                <span class="ds-badge" style="font-size:.7rem;padding:4px 10px;
+                    {% if u.rol_nombre == 'Administrador' or u.is_superuser %}background:#fef2f2;color:#991b1b;border:1px solid #fecaca
+                    {% elif u.rol_nombre == 'Mecánico' %}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0
+                    {% elif u.rol_nombre in 'Recepción,Recepcionista,Secretaria' %}background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe
+                    {% else %}background:#fdf4ff;color:#86198f;border:1px solid #f5d0fe{% endif %}">
+                    {% if u.rol_nombre %}
+                        {{ u.rol_nombre }}
+                    {% elif u.is_superuser %}
+                        Administrador
+                    {% else %}
+                        Cliente
+                    {% endif %}
+                </span>
+                
+                {% if not u.is_active %}
+                <span class="ds-badge ds-badge-gray" style="font-size:.7rem;padding:4px 10px"><i class="fas fa-ban"></i> Inactivo</span>
+                {% endif %}
             </div>
 
-            <div class="user-meta">
-                <span class="role-badge-pill badge-{{ rol }}">
-                    {% if rol == "Administrador" %}<i class="fas fa-user-shield"></i>
-                    {% elif rol == "Recepcionista" %}<i class="fas fa-headset"></i>
-                    {% elif rol == "Mecánico" %}<i class="fas fa-wrench"></i>
-                    {% elif rol == "Cliente" %}<i class="fas fa-user"></i>
-                    {% else %}<i class="fas fa-circle-question"></i>{% endif %}
-                    {{ rol|default:"Sin rol" }}
-                </span>
-                <span style="font-size:.75rem;color:#94a3b8">
-                    <span class="status-dot {% if not usuario.is_active %}inactive{% endif %}"></span>
-                    {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
-                    &nbsp;·&nbsp;ID #{{ usuario.id }}
-                </span>
+            <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:18px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:10px;font-size:.85rem;color:#475569">
+                    <div style="width:24px;color:#94a3b8"><i class="fas fa-envelope"></i></div>
+                    <span class="ds-truncate">{{ u.email|default:"<span style='color:#cbd5e1;font-style:italic'>Sin correo</span>"|safe }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:.85rem;color:#475569">
+                    <div style="width:24px;color:#94a3b8"><i class="fas fa-calendar-alt"></i></div>
+                    Registro: {{ u.date_joined|date:"d M Y" }}
+                </div>
             </div>
-        </div>
 
-        <div class="user-card-actions">
-            <a href="{% url 'asignar_rol' usuario.id %}" class="btn-action btn-asignar">
-                <i class="fas fa-id-badge"></i> Asignar Rol
-            </a>
-            <a href="{% url 'asignar_rol' usuario.id %}" class="btn-action btn-ver">
-                <i class="fas fa-pen"></i> Perfil
-            </a>
+            {% if es_admin %}
+            <div style="display:flex;gap:8px">
+                <a href="{% url 'asignar_rol' u.id %}" class="ds-btn ds-btn-secondary ds-btn-sm" style="flex:1;justify-content:center"><i class="fas fa-user-shield"></i> Permisos</a>
+                <a href="#" class="ds-btn ds-btn-ghost ds-btn-sm" style="flex:1;justify-content:center"><i class="fas fa-pen"></i> Perfil</a>
+            </div>
+            {% endif %}
         </div>
-    </div>
-    {% endwith %}
-    {% empty %}
-    <div class="empty-users">
-        <i class="fas fa-users-slash"></i>
-        <h5>No hay usuarios registrados</h5>
-        <p>Crea el primer usuario con el botón "Nuevo Usuario".</p>
     </div>
     {% endfor %}
 </div>
+{% else %}
+<div class="ds-empty">
+    <i class="fas fa-users-slash"></i>
+    <h5>Sin resultados</h5>
+    <p>No se encontraron usuarios que coincidan con "{{ query }}".</p>
+    <a href="{% url 'lista_usuarios' %}" class="ds-btn ds-btn-secondary">Limpiar Búsqueda</a>
+</div>
+{% endif %}
 
-<script>
-// Búsqueda en tiempo real
-document.getElementById('search-users').addEventListener('input', function() {
-    var q = this.value.toLowerCase().trim();
-    document.querySelectorAll('.user-card').forEach(function(card) {
-        var text = card.getAttribute('data-search') || '';
-        card.classList.toggle('hidden', q && !text.includes(q));
-    });
-});
-</script>
 {% endblock %}

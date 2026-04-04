@@ -490,6 +490,22 @@
                     <span class="total-label">Costo Total Neto</span>
                     <span class="total-amount">Q{{ orden.costo_total|floatformat:2|intcomma }}</span>
                 </div>
+                
+                {% if user.is_superuser or user.perfil.rol.nombre in 'Administrador,Recepcionista' %}
+                    {% if orden.factura and orden.factura.estado == 'EMITIDA' %}
+                    <div style="margin-top:20px">
+                        <a href="{% url 'factura_print' orden.factura.id %}" target="_blank" class="btn btn-secondary btn-block font-weight-bold" style="border-radius:10px;padding:12px;font-size:1.1rem">
+                            <i class="fas fa-print mr-2"></i> Ver Factura/Recibo
+                        </a>
+                    </div>
+                    {% elif orden.estado == 'LISTO' or orden.estado == 'ENTREGADO' %}
+                    <div style="margin-top:20px">
+                        <a href="{% url 'generar_pre_factura' orden.id %}" class="btn btn-success btn-block font-weight-bold" style="border-radius:10px;padding:12px;font-size:1.1rem;box-shadow:0 6px 15px rgba(16,185,129,0.3)">
+                            <i class="fas fa-file-invoice-dollar mr-2"></i> Procesar Facturación y Cobro
+                        </a>
+                    </div>
+                    {% endif %}
+                {% endif %}
             </div>
             
             {% if orden.estado == 'CANCELADO' %}
