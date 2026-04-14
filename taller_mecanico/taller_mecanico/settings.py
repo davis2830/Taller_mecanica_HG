@@ -37,6 +37,9 @@ INSTALLED_APPS = [
     'crispy_bootstrap4',
     'django_apscheduler',
     'django_celery_results',
+    'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
@@ -49,6 +52,7 @@ LOGOUT_REDIRECT_URL = '/usuarios/login/'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -146,4 +150,36 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_RESULT_BACKEND = 'django-db'
-CELERY_CACHE_BACKEND = 'django-cache'
+CELERY_CACHE_BACKEND = 'django-cache'
+
+# =====================================================================
+# REST FRAMEWORK Y JWT
+# =====================================================================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication', # Para la web actual
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1), # Usar token más largo en dev
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
+
+# =====================================================================
+# CORS (CORS-HEADERS)
+# =====================================================================
+# Permite conexiones cruzadas desde React / app movil local
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Puerto por defecto de Vite
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",  # Alternativo
+]
+CORS_ALLOW_CREDENTIALS = True

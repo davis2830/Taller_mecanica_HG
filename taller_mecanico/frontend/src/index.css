@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  /* Tema oscuro por defecto */
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* Tema Claro */
+.light-theme {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Tema Oscuro */
+.dark-theme {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Overrides para React Big Calendar (SaaS UI) */
+.rbc-calendar {
+  font-family: inherit;
+  min-height: 600px;
+}
+
+.rbc-toolbar button {
+  border-radius: 0.375rem !important; /* rounded-md */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-weight: 500 !important;
+  color: #475569 !important; /* text-slate-600 */
+}
+
+.rbc-toolbar button:hover {
+  background-color: #f1f5f9 !important; /* bg-slate-100 */
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #e2e8f0 !important; /* bg-slate-200 */
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+  color: #1e293b !important;
+}
+
+.rbc-header {
+  padding: 0.75rem 0 !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  text-transform: capitalize;
+  font-size: 0.875rem;
+}
+
+.rbc-event {
+  border-radius: 0.5rem !important; /* rounded-lg */
+  padding: 3px 6px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: transform 0.1s ease-in-out;
+}
+
+.rbc-event:hover {
+  transform: scale(1.02);
+  z-index: 50;
+}
+
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #f1f5f9 !important;
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+.rbc-off-range-bg {
+  background-color: #fafafa !important;
+}
+
+.rbc-today {
+  background-color: #eff6ff !important; /* blue-50 */
+}
+
+.rbc-time-content {
+  border-top: 2px solid #e2e8f0 !important;
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid #f1f5f9 !important;
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.rbc-time-slot {
+  border-top: 1px dashed #f8fafc !important;
+}

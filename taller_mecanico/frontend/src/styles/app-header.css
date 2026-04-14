@@ -1,0 +1,334 @@
+/* ===============================================
+   APP HEADER STYLES - PROFESIONAL Y RESPONSIVO
+   =============================================== */
+
+:root {
+    /* Colores Tema Oscuro */
+    --header-bg-dark: #1e293b;
+    --header-border-dark: #334155;
+    --header-text-dark: #f1f5f9;
+    --header-text-muted-dark: #cbd5e1;
+    --header-hover-dark: #334155;
+
+    /* Colores Tema Claro */
+    --header-bg-light: #ffffff;
+    --header-border-light: #e2e8f0;
+    --header-text-light: #1e293b;
+    --header-text-muted-light: #64748b;
+    --header-hover-light: #f1f5f9;
+}
+
+.dark-theme {
+    --header-bg: var(--header-bg-dark);
+    --header-border: var(--header-border-dark);
+    --header-text: var(--header-text-dark);
+    --header-text-muted: var(--header-text-muted-dark);
+    --header-hover: var(--header-hover-dark);
+}
+
+.light-theme {
+    --header-bg: var(--header-bg-light);
+    --header-border: var(--header-border-light);
+    --header-text: var(--header-text-light);
+    --header-text-muted: var(--header-text-muted-light);
+    --header-hover: var(--header-hover-light);
+}
+
+/* ===============================================
+   HEADER PRINCIPAL
+   =============================================== */
+
+.app-header {
+    background-color: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+    padding: 16px 30px;
+    position: sticky;
+    top: 0;
+    z-index: 99;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    max-width: 100%;
+}
+
+/* ===============================================
+   TÍTULO DEL HEADER
+   =============================================== */
+
+.header-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.header-title h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--header-text);
+    letter-spacing: -0.5px;
+}
+
+/* ===============================================
+   ACCIONES DEL HEADER
+   =============================================== */
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Botones de Acción */
+.action-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background-color: var(--header-hover);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    color: var(--header-text);
+    padding: 0;
+}
+
+.action-btn:hover {
+    background-color: #6366f1;
+    color: white;
+    transform: scale(1.05);
+}
+
+.theme-btn {
+    position: relative;
+}
+
+/* ===============================================
+   USER MENU
+   =============================================== */
+
+.user-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.user-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background-color: var(--header-hover);
+    border: 1px solid var(--header-border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--header-text);
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.user-btn:hover {
+    background-color: #6366f1;
+    color: white;
+    border-color: #6366f1;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--header-text);
+}
+
+.user-role {
+    display: block;
+    font-size: 11px;
+    color: var(--header-text-muted);
+    text-transform: capitalize;
+}
+
+.dropdown-icon {
+    font-size: 12px;
+    color: var(--header-text-muted);
+    margin-left: 8px;
+    transition: transform 0.2s ease;
+}
+
+.user-btn:hover .dropdown-icon {
+    color: white;
+}
+
+/* ===============================================
+   DROPDOWN MENU
+   =============================================== */
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background-color: var(--header-bg);
+    border: 1px solid var(--header-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.dropdown-menu.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: var(--header-text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.dropdown-item:hover:not(.dropdown-divider) {
+    background-color: var(--header-hover);
+}
+
+.dropdown-item.logout {
+    color: #ef4444;
+}
+
+.dropdown-item.logout:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.dropdown-divider {
+    height: 1px;
+    border: none;
+    background-color: var(--header-border);
+    margin: 8px 0;
+    padding: 0;
+}
+
+/* ===============================================
+   RESPONSIVE
+   =============================================== */
+
+@media (max-width: 768px) {
+    .app-header {
+        padding: 12px 20px;
+    }
+
+    .header-title h1 {
+        font-size: 20px;
+    }
+
+    .user-info {
+        display: none;
+    }
+
+    .user-btn {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header {
+        padding: 12px 15px;
+    }
+
+    .header-title h1 {
+        font-size: 18px;
+    }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+
+    .user-btn {
+        padding: 6px;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .dropdown-menu {
+        right: -10px;
+    }
+}
+
+/* ===============================================
+   ANIMACIONES
+   =============================================== */
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-header {
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Transiciones suaves */
+* {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}

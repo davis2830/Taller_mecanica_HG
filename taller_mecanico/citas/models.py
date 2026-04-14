@@ -93,15 +93,19 @@ class Cita(models.Model):
             if fecha_cambio:
                 citas_en_conflicto = Cita.objects.filter(
                     fecha=self.fecha,
-                    estado__in=['PENDIENTE', 'CONFIRMADA']
+                    estado__in=['PENDIENTE', 'CONFIRMADA'],
+                    servicio__categoria=self.servicio.categoria,  # Solo misma categoría
                 ).exclude(id=self.id)
                 
                 for cita in citas_en_conflicto:
+                    # Conflicto real solo si los bloques de tiempo se superponen
                     if (self.hora_inicio < cita.hora_fin and self.hora_fin > cita.hora_inicio):
-                        if self.servicio.categoria == cita.servicio.categoria:
-                            raise ValidationError(
-                                f"Ya existe una cita de {cita.servicio.get_categoria_display()} en ese horario."
-                            )
+                        fecha_str = self.fecha.strftime('%d/%m/%Y') if hasattr(self.fecha, 'strftime') else str(self.fecha)
+                        raise ValidationError(
+                            f"Ya existe una cita de {cita.servicio.get_categoria_display()} "
+                            f"el {fecha_str} de {cita.hora_inicio.strftime('%H:%M')} a {cita.hora_fin.strftime('%H:%M')}. "
+                            f"Por favor elige otro horario."
+                        )
 
     def save(self, *args, **kwargs):
         self.clean()

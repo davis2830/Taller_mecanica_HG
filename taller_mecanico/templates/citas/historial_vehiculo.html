@@ -1,98 +1,122 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block page_title %}
 Historial Clínico del Vehículo
 {% endblock %}
+
 {% block content %}
 <div class="row mb-4 align-items-center">    
-<div class="col-md-8">        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">            <a href="
-{% url 'lista_vehiculos' %}
-" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>            Expediente Clínico: {{ vehiculo.marca }} {{ vehiculo.modelo }}        </h4>        
-<p class="text-muted mb-0 ml-4 pl-1">Placas: <span class="font-weight-bold text-dark">
-{{ vehiculo.placa }}
-</span> | Año: {{ vehiculo.año }}
-</p>    </div>
+    <div class="col-md-8">        
+        <h4 class="mb-0 font-weight-bold" style="color: var(--primary);">            
+            <a href="{% url 'lista_vehiculos' %}" class="text-muted mr-2">
+                <i class="fas fa-arrow-left"></i>
+            </a>            
+            Expediente Clínico: {{ vehiculo.marca }} {{ vehiculo.modelo }}        
+        </h4>        
+        <p class="text-muted mb-0 ml-4 pl-1">
+            Placas: <span class="font-weight-bold text-dark">{{ vehiculo.placa }}</span> | Año: {{ vehiculo.año }}
+        </p>    
+    </div>
     
-<div class="col-md-4 text-md-right mt-3 mt-md-0">        <a href="
-{% url 'nueva_recepcion_vehiculo' vehiculo.id %}
-" class="btn btn-primary shadow-sm" style="border-radius: 20px;">            <i class="fas fa-plus-circle mr-1"></i> Nueva Recepción        </a>    </div>
+    <div class="col-md-4 text-md-right mt-3 mt-md-0">        
+        <a href="{% url 'nueva_recepcion_vehiculo' vehiculo.id %}" class="btn btn-primary shadow-sm" style="border-radius: 20px;">            
+            <i class="fas fa-plus-circle mr-1"></i> Nueva Recepción        
+        </a>    
+    </div>
 </div>
 
-<div class="row mt-4">    <!-- COLUMNA IZQUIERDA: Recepciones (Hoja de Ingreso) -->    
-<div class="col-lg-6 mb-4">        
-<div class="d-flex align-items-center mb-3">            
-<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mr-2" style="width: 35px; height: 35px;">                <i class="fas fa-clipboard-list"></i>            </div>
-            <h5 class="mb-0 font-weight-bold text-dark">Historial de Ingresos al Taller</h5>        </div>
+<div class="row mt-4">    
+    <div class="col-lg-6 mb-4">        
+        <div class="d-flex align-items-center mb-3">            
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mr-2" style="width: 35px; height: 35px;">                
+                <i class="fas fa-clipboard-list"></i>            
+            </div>
+            <h5 class="mb-0 font-weight-bold text-dark">Historial de Ingresos al Taller</h5>        
+        </div>
                 
-{% if recepciones %}
-            
-<div class="timeline mt-4" style="border-left: 2px solid #e2e8f0; margin-left: 17px; padding-left: 20px;">                
-{% for recepcion in recepciones %}
-                
-<div class="mb-4 position-relative">                    
-<div class="position-absolute bg-primary rounded-circle" style="width: 12px; height: 12px; left: -27px; top: 5px;"></div>
+        {% if recepciones %}
+            <div class="timeline mt-4" style="border-left: 2px solid #e2e8f0; margin-left: 17px; padding-left: 20px;">                
+                {% for recepcion in recepciones %}
+                <div class="mb-4 position-relative">                    
+                    <div class="position-absolute bg-primary rounded-circle" style="width: 12px; height: 12px; left: -27px; top: 5px;"></div>
                                         
-<div class="card shadow-sm border-0" style="border-radius: 10px;">                        
-<div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">                            <span class="font-weight-bold text-primary">
-{{ recepcion.fecha_ingreso|date:"d M Y" }}
-</span>                            <span class="badge badge-light text-muted border border-secondary px-2"><i class="fas fa-route mr-1"></i> {{ recepcion.kilometraje }} Km</span>                        </div>
+                    <div class="card shadow-sm border-0" style="border-radius: 10px;">                        
+                        <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">                            
+                            <span class="font-weight-bold text-primary">{{ recepcion.fecha_ingreso|date:"d M Y" }}</span>                            
+                            <span class="badge badge-light text-muted border border-secondary px-2">
+                                <i class="fas fa-route mr-1"></i> {{ recepcion.kilometraje }} Km
+                            </span>                        
+                        </div>
                         
-<div class="card-body py-2">                            
-<p class="mb-2 text-dark font-weight-500">Motivo: <span class="text-muted font-weight-normal">
-{{ recepcion.motivo_ingreso|truncatechars:100 }}
-</span></p>                                                        
-<div class="d-flex align-items-center small text-muted mb-3">                                <span class="mr-3" title="Nivel de Gasolina"><i class="fas fa-gas-pump mr-1"></i> {{ recepcion.get_nivel_gasolina_display }}
-</span>                                <span title="Firma Cliente"><i class="fas fa-file-signature mr-1"></i> {{ recepcion.firma_cliente_text|default:"Sin firma"|truncatechars:15 }}
-</span>                            </div>
-                                                        <a href="
-{% url 'boleta_ingreso_pdf' recepcion.id %}
-" class="btn btn-sm btn-outline-primary btn-block rounded-pill">                                <i class="fas fa-file-pdf mr-1"></i> Ver Boleta de Ingreso                            </a>                        </div>
+                        <div class="card-body py-2">                            
+                            <p class="mb-2 text-dark font-weight-500">
+                                Motivo: <span class="text-muted font-weight-normal">{{ recepcion.motivo_ingreso|truncatechars:100 }}</span>
+                            </p>                                                        
+                            
+                            <div class="d-flex align-items-center small text-muted mb-3">                                
+                                <span class="mr-3" title="Nivel de Gasolina">
+                                    <i class="fas fa-gas-pump mr-1"></i> {{ recepcion.get_nivel_gasolina_display }}
+                                </span>                                
+                                <span title="Firma Cliente">
+                                    <i class="fas fa-file-signature mr-1"></i> {{ recepcion.firma_cliente_text|default:"Sin firma"|truncatechars:15 }}
+                                </span>                            
+                            </div>
+                                                                                        
+                            <a href="{% url 'boleta_ingreso_pdf' recepcion.id %}" class="btn btn-sm btn-outline-primary btn-block rounded-pill">                                
+                                <i class="fas fa-file-pdf mr-1"></i> Ver Boleta de Ingreso                            
+                            </a>                        
+                        </div>
                     </div>
                 </div>
-                
-{% endfor %}
+                {% endfor %}
             </div>
-        
-{% else %}
-            
-<div class="card border-0 shadow-sm text-center py-5 bg-light" style="border-radius: 12px; border: 1px dashed #cbd5e1 !important;">                <i class="fas fa-car-side fa-3x text-secondary mb-3 opacity-50"></i>                <h6 class="text-muted font-weight-bold">Aún no hay ingresos registrados</h6>                
-<p class="text-muted small px-4">Cuando este vehículo entre al taller, presiona "Nueva Recepción" para crearle su primer Check-in.</p>            </div>
-        
-{% endif %}
+        {% else %}
+            <div class="card border-0 shadow-sm text-center py-5 bg-light" style="border-radius: 12px; border: 1px dashed #cbd5e1 !important;">                
+                <i class="fas fa-car-side fa-3x text-secondary mb-3 opacity-50"></i>                
+                <h6 class="text-muted font-weight-bold">Aún no hay ingresos registrados</h6>                
+                <p class="text-muted small px-4">Cuando este vehículo entre al taller, presiona "Nueva Recepción" para crearle su primer Check-in.</p>            
+            </div>
+        {% endif %}
     </div>
-    <!-- COLUMNA DERECHA: Trabajos / Citas Completadas -->    
-<div class="col-lg-6 mb-4">        
-<div class="d-flex align-items-center mb-3">            
-<div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mr-2" style="width: 35px; height: 35px;">                <i class="fas fa-tools"></i>            </div>
-            <h5 class="mb-0 font-weight-bold text-dark">Servicios y Reparaciones Previas</h5>        </div>
-                
-{% if citas_historicas %}
-            
-<div class="list-group shadow-sm" style="border-radius: 12px; overflow: hidden; border: none;">                
-{% for cita in citas_historicas %}
-                
-<div class="list-group-item list-group-item-action border-0 border-bottom py-3">                    
-<div class="d-flex justify-content-between align-items-center mb-1">                        <h6 class="mb-0 font-weight-bold text-dark">
-{{ cita.servicio.nombre }}
-</h6>                        <small class="text-success font-weight-bold">
-{{ cita.fecha|date:"d M Y" }}
-</small>                    </div>
-                    
-<p class="mb-1 text-muted small">
-{{ cita.notas|default:"Sin notas de reparación."|truncatechars:150 }}
-</p>                    <small class="text-muted"><i class="fas fa-user-cog mr-1"></i> Atendido por: {{ cita.atendida_por.get_full_name|default:cita.atendida_por.username|default:"No asignado" }}
-</small>                </div>
-                
-{% endfor %}
+
+    <div class="col-lg-6 mb-4">        
+        <div class="d-flex align-items-center mb-3">            
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mr-2" style="width: 35px; height: 35px;">                
+                <i class="fas fa-tools"></i>            
             </div>
-        
-{% else %}
-            
-<div class="card border-0 shadow-sm text-center py-5 bg-light" style="border-radius: 12px; border: 1px dashed #cbd5e1 !important;">                <i class="fas fa-wrench fa-3x text-secondary mb-3 opacity-50"></i>                <h6 class="text-muted font-weight-bold">Aún no hay reparaciones previas</h6>                
-<p class="text-muted small px-4">Los servicios y reparaciones marcados como "Completados" aparecerán aquí como historial mecánico del auto.</p>            </div>
-        
-{% endif %}
+            <h5 class="mb-0 font-weight-bold text-dark">Servicios y Reparaciones Previas</h5>        
+        </div>
+                
+        {% if citas_historicas %}
+            <div class="list-group shadow-sm" style="border-radius: 12px; overflow: hidden; border: none;">                
+                {% for cita in citas_historicas %}
+                <div class="list-group-item list-group-item-action border-0 border-bottom py-3">                    
+                    <div class="d-flex justify-content-between align-items-center mb-1">                        
+                        <h6 class="mb-0 font-weight-bold text-dark">{{ cita.servicio.nombre }}</h6>                        
+                        <small class="text-success font-weight-bold">{{ cita.fecha|date:"d M Y" }}</small>                    
+                    </div>
+                    
+                    <p class="mb-1 text-muted small">{{ cita.notas|default:"Sin notas de reparación."|truncatechars:150 }}</p>                    
+                    
+                    <small class="text-muted">
+                        <i class="fas fa-user-cog mr-1"></i> Atendido por: 
+                        {% if cita.atendida_por %}
+                            {{ cita.atendida_por.get_full_name|default:cita.atendida_por.username }}
+                        {% else %}
+                            No asignado
+                        {% endif %}
+                    </small>                
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card border-0 shadow-sm text-center py-5 bg-light" style="border-radius: 12px; border: 1px dashed #cbd5e1 !important;">                
+                <i class="fas fa-wrench fa-3x text-secondary mb-3 opacity-50"></i>                
+                <h6 class="text-muted font-weight-bold">Aún no hay reparaciones previas</h6>                
+                <p class="text-muted small px-4">Los servicios y reparaciones marcados como "Completados" aparecerán aquí como historial mecánico del auto.</p>            
+            </div>
+        {% endif %}
     </div>
 </div>
-
 {% endblock %}
