@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo
+from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, RecepcionFoto
 from django.contrib.auth.models import User
 
 class ClienteMiniSerializer(serializers.ModelSerializer):
@@ -67,19 +67,27 @@ class VehiculoWriteSerializer(serializers.ModelSerializer):
 # ---------------------------------------------------------------------------
 # Recepción / Check-In
 # ---------------------------------------------------------------------------
+class RecepcionFotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecepcionFoto
+        fields = ['id', 'imagen']
+
 class RecepcionSerializer(serializers.ModelSerializer):
     recibido_por_nombre = serializers.SerializerMethodField(read_only=True)
     vehiculo_info = VehiculoSerializer(source='vehiculo', read_only=True)
+    fotos = RecepcionFotoSerializer(many=True, read_only=True)
 
     class Meta:
         model = RecepcionVehiculo
         fields = [
             'id', 'vehiculo', 'vehiculo_info', 'cita',
-            'fecha_ingreso', 'kilometraje', 'nivel_gasolina',
+            'fecha_ingreso', 'kilometraje', 'unidad_distancia', 'gasolina_pct',
             'motivo_ingreso', 'diagnostico_inicial', 'danos_previos',
             'tiene_llanta_repuesto', 'tiene_gata_herramientas',
             'tiene_radio', 'tiene_documentos', 'otros_objetos',
             'recibido_por', 'recibido_por_nombre', 'firma_cliente_text',
+            'luces_tablero', 'estado_fluidos', 'estado_cristales',
+            'firma_digital', 'firma_mecanico', 'diagrama_danos', 'fotos'
         ]
         read_only_fields = ['recibido_por', 'fecha_ingreso']
 

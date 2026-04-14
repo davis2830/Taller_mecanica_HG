@@ -18,6 +18,7 @@ urlpatterns = [
     # Recepción
     path('recepciones/', api_views.RecepcionCreateView.as_view(), name='api_recepcion_list_create'),
     path('recepciones/<int:pk>/', api_views.RecepcionDetailView.as_view(), name='api_recepcion_detail'),
+    path('recepciones/<int:pk>/enviar_boleta/', api_views.RecepcionEnviarBoletaView.as_view(), name='api_recepcion_enviar_boleta'),
 
     # Clientes
     path('clientes/', api_views.ClientesListView.as_view(), name='api_clientes_list'),

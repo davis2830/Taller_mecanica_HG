@@ -196,9 +196,38 @@ class RecepcionCreateView(APIView):
         if not request.user.is_staff:
             return Response({'error': 'Solo el personal puede registrar recepciones.'}, status=status.HTTP_403_FORBIDDEN)
 
-        serializer = RecepcionSerializer(data=request.data)
+        import json
+        
+        # Convertir a dict estándar para evitar comportamientos del QueryDict con listas
+        parsed_data = {}
+        for k, v in request.data.items():
+            parsed_data[k] = v
+            
+        # Arreglar booleanos
+        for field in ['tiene_llanta_repuesto', 'tiene_gata_herramientas', 'tiene_radio', 'tiene_documentos']:
+            val = parsed_data.get(field)
+            if val in ['true', 'True', True, 1, '1']: parsed_data[field] = True
+            elif val in ['false', 'False', False, 0, '0']: parsed_data[field] = False
+            
+        # Arreglar JSON fields
+        for json_field in ['luces_tablero', 'estado_fluidos']:
+            val = parsed_data.get(json_field)
+            if isinstance(val, str):
+                try:
+                    parsed_data[json_field] = json.loads(val)
+                except Exception:
+                    parsed_data[json_field] = {}
+
+        serializer = RecepcionSerializer(data=parsed_data)
         if serializer.is_valid():
             recepcion = serializer.save(recibido_por=request.user)
+            
+            # Guardar fotos si vinieron
+            fotos = request.FILES.getlist('fotos_upload')
+            if fotos:
+                from .models import RecepcionFoto
+                for foto in fotos:
+                    RecepcionFoto.objects.create(recepcion=recepcion, imagen=foto)
 
             # Crear Orden de Trabajo automáticamente si hay cita vinculada
             if recepcion.cita:
@@ -206,7 +235,7 @@ class RecepcionCreateView(APIView):
                 if not hasattr(recepcion.cita, 'orden_trabajo'):
                     diagnostico = (
                         f"Ingreso #{recepcion.id} | Km: {recepcion.kilometraje} | "
-                        f"Gasolina: {recepcion.get_nivel_gasolina_display()}\n"
+                        f"Gasolina: {recepcion.gasolina_pct}%\n"
                         f"Motivo: {recepcion.motivo_ingreso}"
                     )
                     OrdenTrabajo.objects.create(
@@ -216,8 +245,9 @@ class RecepcionCreateView(APIView):
                         diagnostico=diagnostico,
                     )
 
-            return Response(RecepcionSerializer(recepcion).data, status=status.HTTP_201_CREATED)
+            return Response(RecepcionSerializer(recepcion, context={'request': request}).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class RecepcionDetailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -230,9 +260,63 @@ class RecepcionDetailView(APIView):
             # Solo staff o el propietario del vehículo
             if not request.user.is_staff and r.vehiculo.propietario != request.user:
                 return Response({'error': 'Sin permisos.'}, status=status.HTTP_403_FORBIDDEN)
-            return Response(RecepcionSerializer(r).data)
+            return Response(RecepcionSerializer(r, context={'request': request}).data)
         except RecepcionVehiculo.DoesNotExist:
             return Response({'error': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class RecepcionEnviarBoletaView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            recepcion = RecepcionVehiculo.objects.get(pk=pk)
+            # Solo staff
+            if not request.user.is_staff:
+                return Response({'error': 'Sin permisos.'}, status=status.HTTP_403_FORBIDDEN)
+            
+            destinatario = request.data.get('email') or (recepcion.vehiculo.propietario.email if recepcion.vehiculo.propietario else None)
+            
+            if not destinatario:
+                return Response({'error': 'El propietario del vehículo no tiene un correo registrado y no se proporcionó uno.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            from django.core.mail import EmailMultiAlternatives
+            from django.conf import settings
+            import datetime
+            
+            asunto = f'Boleta de Recepción Digital #{str(recepcion.id).zfill(5)} - Taller Mecánico'
+            v = recepcion.vehiculo
+            enlace = request.data.get('url', f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')}/citas/recepcion/{recepcion.id}/boleta")
+            
+            mensaje_html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                <h2>¡Hola {recepcion.vehiculo.propietario.first_name if recepcion.vehiculo.propietario else 'Cliente'}!</h2>
+                <p>Adjunto a este correo compartimos el enlace directo a tu <strong>Boleta de Recepción Digital</strong> para tu vehículo <strong>{v.marca} {v.modelo}</strong> (Placas: {v.placa}).</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{enlace}" style="background-color: #2b6cb0; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
+                        📄 Abrir mi Boleta de Ingreso
+                    </a>
+                </div>
+                
+                <p>Dentro de esta boleta podrás validar los daños visuales preexistentes, niveles de fluido, combustible al {recepcion.gasolina_pct}% y más detalles.</p>
+                <p>Cualquier duda adicional, puedes responder a este correo o contactar con tu asesor.</p>
+                
+                <hr style="border: 1px solid #eee; margin-top: 30px;" />
+                <p style="font-size: 12px; color: #888; text-align: center;">Taller Mecánico Profesional</p>
+            </div>
+            """
+            
+            mensaje_texto = f"Hola, puedes ver tu boleta de recepción en el siguiente enlace: {enlace}"
+            email = EmailMultiAlternatives(asunto, mensaje_texto, getattr(settings, 'EMAIL_HOST_USER', 'info@taller.com'), [destinatario])
+            email.attach_alternative(mensaje_html, "text/html")
+            email.send()
+            
+            return Response({'mensaje': f'Correo enviado a {destinatario}'}, status=status.HTTP_200_OK)
+        except RecepcionVehiculo.DoesNotExist:
+            return Response({'error': 'Recepción no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ===========================================================================

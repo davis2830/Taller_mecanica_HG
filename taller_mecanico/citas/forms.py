@@ -141,11 +141,12 @@ class RecepcionVehiculoForm(forms.ModelForm):
         from .models import RecepcionVehiculo
         model = RecepcionVehiculo
         fields = [
-            'vehiculo', 'kilometraje', 'nivel_gasolina',
+            'vehiculo', 'kilometraje', 'gasolina_pct',
             'motivo_ingreso', 'diagnostico_inicial', 'danos_previos',
             'tiene_llanta_repuesto', 'tiene_gata_herramientas',
             'tiene_radio', 'tiene_documentos', 'otros_objetos',
-            'firma_cliente_text'
+            'firma_cliente_text', 'luces_tablero', 'estado_fluidos',
+            'estado_cristales', 'firma_digital', 'diagrama_danos'
         ]
         widgets = {
             'motivo_ingreso': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej. Ruido en el motor al acelerar'}),

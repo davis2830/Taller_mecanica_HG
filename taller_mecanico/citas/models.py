@@ -158,14 +158,22 @@ class RecepcionVehiculo(models.Model):
     # 1. Datos del Ingreso
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     kilometraje = models.PositiveIntegerField(help_text="Kilometraje o Millaje actual")
-    nivel_gasolina = models.CharField(max_length=20, choices=NIVEL_GASOLINA, default='MEDIO')
+    unidad_distancia = models.CharField(max_length=10, default='km', choices=[('km', 'Kilómetros'), ('mi', 'Millas')])
+    gasolina_pct = models.PositiveIntegerField(default=50, help_text="Porcentaje de gasolina (0-100)")
+    
+    # === ESTADO MECÁNICO Y FLUIDOS ===
+    luces_tablero = models.JSONField(default=dict, blank=True, help_text="Ej: {'check_engine': true, 'abs': false}")
+    estado_fluidos = models.JSONField(default=dict, blank=True, help_text="Ej: {'aceite': 'Nivel Bajo', 'refrigerante': 'OK'}")
+    estado_cristales = models.CharField(max_length=255, blank=True, null=True, help_text="Ej: Parabrisas estrellado")
     
     # 2. Motivo y Diagnóstico
     motivo_ingreso = models.TextField(help_text="¿Qué reporta el cliente que le falla al vehículo?")
     diagnostico_inicial = models.TextField(blank=True, null=True, help_text="Observación inicial del mecánico/recepcionista")
     
     # 3. Inspección Visual (Checklist de Daños)
-    danos_previos = models.TextField(blank=True, null=True, help_text="Rayones, abolladuras, golpes, pintura en mal estado, etc.")
+    danos_previos = models.TextField(blank=True, null=True, help_text="Notas adicionales de daños")
+    diagrama_danos = models.TextField(blank=True, null=True, help_text="Base64 del diagrama táctil trazado")
+
     
     # 4. Inventario Abordo
     tiene_llanta_repuesto = models.BooleanField(default=False)
@@ -176,7 +184,9 @@ class RecepcionVehiculo(models.Model):
     
     # 5. Firmas y Responsables
     recibido_por = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='vehiculos_recibidos')
-    firma_cliente_text = models.CharField(max_length=100, blank=True, null=True, help_text="Nombre escrito como firma de conformidad del cliente.")
+    firma_cliente_text = models.CharField(max_length=100, blank=True, null=True, help_text="Nombre escrito como firma de conformidad.")
+    firma_digital = models.TextField(blank=True, null=True, help_text="Base64 de la firma táctil digital del cliente")
+    firma_mecanico = models.TextField(blank=True, null=True, help_text="Base64 de la firma táctil digital del mecánico")
     
     def __str__(self):
         return f"Recepción {self.id:05d} - {self.vehiculo} - {self.fecha_ingreso.strftime('%d/%m/%Y')}"
@@ -185,3 +195,12 @@ class RecepcionVehiculo(models.Model):
         ordering = ['-fecha_ingreso']
         verbose_name = "Recepción de Vehículo"
         verbose_name_plural = "Recepciones de Vehículos"
+
+class RecepcionFoto(models.Model):
+    recepcion = models.ForeignKey(RecepcionVehiculo, on_delete=models.CASCADE, related_name='fotos')
+    imagen = models.ImageField(upload_to='recepciones/fotos/')
+    descripcion = models.CharField(max_length=150, blank=True, null=True)
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Foto de {self.recepcion}"

@@ -1,21 +1,14 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Select from 'react-select';
+import SignaturePad from 'react-signature-canvas';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
     Truck, Loader2, AlertCircle, CheckCircle2, ArrowLeft,
-    Wrench, Package, FileText, ChevronDown, Car
+    Wrench, Package, FileText, ChevronDown, Car, Camera, RefreshCw, PenTool
 } from 'lucide-react';
-
-const NIVELES_GASOLINA = [
-    { value: 'VACIO',       label: 'Reserva / Vacío',  pct: 5 },
-    { value: 'CUARTO',      label: '1/4 de Tanque',    pct: 25 },
-    { value: 'MEDIO',       label: '1/2 Tanque',       pct: 50 },
-    { value: 'TRESCUARTOS', label: '3/4 de Tanque',    pct: 75 },
-    { value: 'LLENO',       label: 'Tanque Lleno',     pct: 100 },
-];
 
 const fuelColor = (pct) => {
     if (pct <= 10) return 'bg-red-500';
@@ -24,28 +17,36 @@ const fuelColor = (pct) => {
     return 'bg-emerald-500';
 };
 
+const LUCES_TABLERO = ['Check Engine', 'ABS', 'Aceite', 'Batería', 'Bolsa de Aire'];
+const FLUIDOS = ['Aceite Motor', 'Refrigerante', 'Liq. Frenos', 'Transmisión'];
+const ESTADOS_FLUIDO = ['OK', 'Bajo', 'Sucio', 'Vaciando'];
+
 export default function NuevaRecepcionPage() {
     const { authTokens } = useContext(AuthContext);
     const { isDark } = useTheme();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
+    const signatureRef = useRef(null);
+    const firmaMecanicoRef = useRef(null);
+    const diagramRef = useRef(null);
+
     const preVehiculoId = searchParams.get('vehiculo') || '';
     const preCitaId     = searchParams.get('cita') || '';
 
-    // Estado del formulario
     const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(null);
     const [vehiculoOpciones, setVehiculoOpciones] = useState([]);
     const [loadingVehiculos, setLoadingVehiculos] = useState(false);
 
     const [loading, setLoading] = useState(false);
-    const [recepcionId, setRecepcionId] = useState(null); // para redirigir a boleta
+    const [recepcionId, setRecepcionId] = useState(null);
     const [error, setError] = useState('');
 
     const [form, setForm] = useState({
         cita: preCitaId,
         kilometraje: '',
-        nivel_gasolina: 'MEDIO',
+        unidad_distancia: 'km',
+        gasolina_pct: 50,
         motivo_ingreso: '',
         diagnostico_inicial: '',
         danos_previos: '',
@@ -55,11 +56,16 @@ export default function NuevaRecepcionPage() {
         tiene_documentos: false,
         otros_objetos: '',
         firma_cliente_text: '',
+        estado_cristales: '',
+        luces_tablero: {},
+        estado_fluidos: {}
     });
+
+    const [fotosArchivos, setFotosArchivos] = useState([]);
+    const [fotosPreview, setFotosPreview] = useState([]);
 
     const headers = { Authorization: `Bearer ${authTokens?.access}` };
 
-    // Carga inicial de vehículos (y preselección si viene en URL)
     useEffect(() => {
         buscarVehiculos('');
     }, []);
@@ -75,7 +81,6 @@ export default function NuevaRecepcionPage() {
             }));
             setVehiculoOpciones(opciones);
 
-            // Preseleccionar si viene por query
             if (preVehiculoId && !vehiculoSeleccionado) {
                 const pre = opciones.find(o => String(o.value) === String(preVehiculoId));
                 if (pre) setVehiculoSeleccionado(pre);
@@ -86,6 +91,36 @@ export default function NuevaRecepcionPage() {
         setLoadingVehiculos(false);
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files) {
+            const filesArray = Array.from(e.target.files);
+            setFotosArchivos([...fotosArchivos, ...filesArray]);
+            
+            const previews = filesArray.map(file => URL.createObjectURL(file));
+            setFotosPreview([...fotosPreview, ...previews]);
+        }
+    };
+
+    const toggleLuzTablero = (luz) => {
+        setForm(f => ({
+            ...f,
+            luces_tablero: {
+                ...f.luces_tablero,
+                [luz]: !f.luces_tablero[luz]
+            }
+        }));
+    };
+
+    const selectEstadoFluido = (fluido, estado) => {
+        setForm(f => ({
+            ...f,
+            estado_fluidos: {
+                ...f.estado_fluidos,
+                [fluido]: estado
+            }
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!vehiculoSeleccionado) { setError('Debes seleccionar un vehículo.'); return; }
@@ -94,16 +129,49 @@ export default function NuevaRecepcionPage() {
 
         setLoading(true);
         setError('');
+        
         try {
-            const payload = {
-                ...form,
-                vehiculo: vehiculoSeleccionado.value,
-                cita: form.cita ? Number(form.cita) : null,
-                kilometraje: Number(form.kilometraje),
-            };
-            const res = await axios.post('http://localhost:8000/api/v1/recepciones/', payload, { headers });
+            const formData = new FormData();
+            formData.append('vehiculo', vehiculoSeleccionado.value);
+            if (form.cita) formData.append('cita', form.cita);
+            formData.append('kilometraje', form.kilometraje);
+            formData.append('gasolina_pct', form.gasolina_pct);
+            formData.append('motivo_ingreso', form.motivo_ingreso);
+            formData.append('diagnostico_inicial', form.diagnostico_inicial);
+            formData.append('danos_previos', form.danos_previos);
+            formData.append('tiene_llanta_repuesto', form.tiene_llanta_repuesto);
+            formData.append('tiene_gata_herramientas', form.tiene_gata_herramientas);
+            formData.append('tiene_radio', form.tiene_radio);
+            formData.append('tiene_documentos', form.tiene_documentos);
+            formData.append('otros_objetos', form.otros_objetos);
+            formData.append('firma_cliente_text', form.firma_cliente_text);
+            formData.append('estado_cristales', form.estado_cristales);
+            
+            formData.append('luces_tablero', JSON.stringify(form.luces_tablero));
+            formData.append('estado_fluidos', JSON.stringify(form.estado_fluidos));
+
+            if (signatureRef.current && !signatureRef.current.isEmpty()) {
+                formData.append('firma_digital', signatureRef.current.toDataURL());
+            }
+            if (firmaMecanicoRef.current && !firmaMecanicoRef.current.isEmpty()) {
+                formData.append('firma_mecanico', firmaMecanicoRef.current.toDataURL());
+            }
+            if (diagramRef.current && !diagramRef.current.isEmpty()) {
+                formData.append('diagrama_danos', diagramRef.current.toDataURL());
+            }
+
+            fotosArchivos.forEach(file => {
+                formData.append('fotos_upload', file); // Custom key to intercept in backend
+            });
+
+            const res = await axios.post('http://localhost:8000/api/v1/recepciones/', formData, {
+                headers: {
+                    ...headers,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
             setRecepcionId(res.data.id);
-            // Pequeño delay para mostrar checkmark antes de navegar a la boleta
             setTimeout(() => navigate(`/citas/recepcion/${res.data.id}/boleta`), 1200);
         } catch (err) {
             console.error(err);
@@ -128,39 +196,19 @@ export default function NuevaRecepcionPage() {
     const sectionTitle  = `text-sm font-bold uppercase tracking-widest flex items-center gap-2 mb-5 pb-3 border-b ${border}`;
 
     const selectStyles = {
-        control: (b, s) => ({
-            ...b,
-            backgroundColor: isDark ? '#334155' : '#fff',
-            borderColor: s.isFocused ? '#3b82f6' : isDark ? '#475569' : '#e2e8f0',
-            boxShadow: s.isFocused ? '0 0 0 2px rgba(59,130,246,0.25)' : 'none',
-            borderRadius: '0.75rem',
-            minHeight: '42px',
-            fontSize: '0.875rem',
-            '&:hover': { borderColor: '#3b82f6' },
-        }),
+        control: (b, s) => ({ ...b, backgroundColor: isDark ? '#334155' : '#fff', borderColor: s.isFocused ? '#3b82f6' : isDark ? '#475569' : '#e2e8f0', boxShadow: s.isFocused ? '0 0 0 2px rgba(59,130,246,0.25)' : 'none', borderRadius: '0.75rem', minHeight: '42px', fontSize: '0.875rem' }),
         menu: b => ({ ...b, backgroundColor: isDark ? '#1e293b' : 'white', zIndex: 9999, borderRadius: '0.75rem' }),
-        option: (b, s) => ({
-            ...b,
-            backgroundColor: s.isSelected ? '#3b82f6' : s.isFocused ? (isDark ? '#334155' : '#f1f5f9') : 'transparent',
-            color: s.isSelected ? 'white' : isDark ? '#e2e8f0' : '#0f172a',
-            fontSize: '0.8rem',
-            padding: '8px 12px',
-        }),
+        option: (b, s) => ({ ...b, backgroundColor: s.isSelected ? '#3b82f6' : s.isFocused ? (isDark ? '#334155' : '#f1f5f9') : 'transparent', color: s.isSelected ? 'white' : isDark ? '#e2e8f0' : '#0f172a', fontSize: '0.8rem', padding: '8px 12px' }),
         singleValue: b => ({ ...b, color: isDark ? '#f1f5f9' : '#0f172a' }),
         input: b => ({ ...b, color: isDark ? '#f1f5f9' : '#0f172a' }),
-        placeholder: b => ({ ...b, color: isDark ? '#64748b' : '#94a3b8' }),
-        menuPortal: b => ({ ...b, zIndex: 9999 }),
     };
 
-    const nivelActual = NIVELES_GASOLINA.find(n => n.value === form.nivel_gasolina) || NIVELES_GASOLINA[2];
-
-    // ── Si ya se guardó, mostrar éxito ──
     if (recepcionId) {
         return (
             <div className={`flex-1 flex flex-col items-center justify-center ${pageBg} min-h-full`}>
                 <CheckCircle2 size={72} className="text-emerald-500 mb-4 animate-bounce" />
                 <h2 className={`text-2xl font-bold ${textPri}`}>¡Ingreso Registrado!</h2>
-                <p className={`mt-2 ${subText}`}>Abriendo boleta de recepción...</p>
+                <p className={`mt-2 ${subText}`}>Redirigiendo a la boleta...</p>
             </div>
         );
     }
@@ -168,11 +216,9 @@ export default function NuevaRecepcionPage() {
     return (
         <div className={`flex-1 w-full ${pageBg} min-h-full`}>
             <div className="max-w-4xl mx-auto p-6">
-
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
-                    <button onClick={() => navigate(-1)}
-                        className={`p-2.5 rounded-xl border transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-700 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'}`}>
+                    <button onClick={() => navigate(-1)} className={`p-2.5 rounded-xl border transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-700 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'}`}>
                         <ArrowLeft size={20} />
                     </button>
                     <div>
@@ -180,19 +226,16 @@ export default function NuevaRecepcionPage() {
                             <div className="p-2 bg-orange-500/15 rounded-xl">
                                 <Truck size={22} className="text-orange-500" />
                             </div>
-                            Nueva Recepción de Vehículo
+                            Recepción de Vehículo Interactiva
                         </h1>
-                        <p className={`text-sm mt-1 ml-14 ${subText}`}>Check-in oficial — al guardar se genera la boleta imprimible</p>
+                        <p className={`text-sm mt-1 ml-14 ${subText}`}>Use la pantalla táctil para dibujar daños y capturar firma.</p>
                     </div>
                 </div>
 
                 {error && (
                     <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 mb-6">
                         <AlertCircle size={20} className="shrink-0 mt-0.5" />
-                        <div>
-                            <p className="font-bold text-sm">Error al guardar</p>
-                            <p className="text-sm mt-0.5">{error}</p>
-                        </div>
+                        <div><p className="font-bold text-sm">Error al guardar</p><p className="text-sm mt-0.5">{error}</p></div>
                     </div>
                 )}
 
@@ -201,186 +244,210 @@ export default function NuevaRecepcionPage() {
                     {/* ── Sección 1: Datos del Ingreso ── */}
                     <div className={`${cardBg} rounded-2xl border ${border} p-6`}>
                         <h2 className={`${sectionTitle} ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                            <Truck size={16} /> 1. Datos del Ingreso
+                            <Truck size={16} /> 1. Datos del Vehículo
                         </h2>
 
-                        {/* Selector de Vehículo con búsqueda */}
                         <div className="mb-5">
                             <label className={labelCls}>Vehículo que ingresa *</label>
-                            <Select
-                                options={vehiculoOpciones}
-                                value={vehiculoSeleccionado}
-                                onChange={opt => setVehiculoSeleccionado(opt || null)}
-                                onInputChange={(val) => buscarVehiculos(val)}
-                                placeholder="Buscar por placa, marca, modelo o propietario..."
-                                isClearable
-                                isLoading={loadingVehiculos}
-                                noOptionsMessage={() => 'Sin resultados — escribe para buscar'}
-                                filterOption={() => true}
-                                styles={selectStyles}
-                                menuPortalTarget={document.body}
-                                loadingMessage={() => 'Buscando...'}
+                            <Select 
+                                options={vehiculoOpciones} 
+                                value={vehiculoSeleccionado} 
+                                onChange={opt => setVehiculoSeleccionado(opt || null)} 
+                                onInputChange={(val, { action }) => { if (action === 'input-change') buscarVehiculos(val); }} 
+                                placeholder="Buscar por placa, marca, modelo..." 
+                                isClearable 
+                                isLoading={loadingVehiculos} 
+                                styles={selectStyles} 
+                                menuPortalTarget={document.body} 
                             />
-                            {vehiculoSeleccionado && (
-                                <div className={`mt-2 flex items-center gap-3 px-3 py-2 rounded-xl border ${border} ${isDark ? 'bg-slate-700/40' : 'bg-slate-50'}`}>
-                                    <Car size={16} className="text-blue-400 shrink-0" />
-                                    <div className="text-xs">
-                                        <span className={`font-bold ${textPri}`}>{vehiculoSeleccionado.vehiculo?.marca} {vehiculoSeleccionado.vehiculo?.modelo} {vehiculoSeleccionado.vehiculo?.año}</span>
-                                        <span className={`ml-2 font-mono px-1.5 py-0.5 rounded ${isDark ? 'bg-slate-900 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{vehiculoSeleccionado.vehiculo?.placa}</span>
-                                        <span className={`ml-2 ${subText}`}>· {vehiculoSeleccionado.vehiculo?.propietario?.full_name || vehiculoSeleccionado.vehiculo?.propietario?.username}</span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {/* Kilometraje */}
                             <div>
                                 <label className={labelCls}>Kilometraje / Millaje Actual *</label>
-                                <input
-                                    type="number"
-                                    className={inputCls}
-                                    placeholder="Ej: 125000"
-                                    value={form.kilometraje}
-                                    onChange={e => setForm(f => ({ ...f, kilometraje: e.target.value }))}
-                                    min="0"
-                                    required
-                                />
+                                <div className="flex">
+                                    <input type="number" className={`${inputCls} rounded-r-none w-2/3 border-r-0`} placeholder="Ej: 125000" value={form.kilometraje} onChange={e => setForm(f => ({ ...f, kilometraje: e.target.value }))} required />
+                                    <select className={`${inputCls} rounded-l-none w-1/3 font-semibold`} value={form.unidad_distancia} onChange={e => setForm(f => ({...f, unidad_distancia: e.target.value}))}>
+                                        <option value="km">km</option>
+                                        <option value="mi">mi</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            {/* Nivel de Gasolina */}
                             <div>
-                                <label className={labelCls}>Nivel de Gasolina</label>
-                                <div className="relative">
-                                    <select
-                                        value={form.nivel_gasolina}
-                                        onChange={e => setForm(f => ({ ...f, nivel_gasolina: e.target.value }))}
-                                        className={`${inputCls} appearance-none pr-10`}
-                                    >
-                                        {NIVELES_GASOLINA.map(n => (
-                                            <option key={n.value} value={n.value}>{n.label}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={16} className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${subText}`} />
+                                <label className={labelCls}>Nivel de Combustible ({form.gasolina_pct}%)</label>
+                                <input 
+                                    type="range" 
+                                    min="0" max="100" 
+                                    value={form.gasolina_pct} 
+                                    onChange={e => setForm(f => ({...f, gasolina_pct: Number(e.target.value)}))}
+                                    className="w-full h-2 rounded-lg appearance-none cursor-pointer my-3 bg-slate-300"
+                                />
+                                <div className={`h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                                    <div className={`h-full rounded-full transition-all duration-300 ${fuelColor(form.gasolina_pct)}`} style={{ width: `${form.gasolina_pct}%` }} />
                                 </div>
-                                {/* Barra visual del tanque */}
-                                <div className="mt-2 flex items-center gap-2">
-                                    <span className="text-xs">🔴</span>
-                                    <div className={`flex-1 h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-500 ${fuelColor(nivelActual.pct)}`}
-                                            style={{ width: `${nivelActual.pct}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs">💚</span>
-                                </div>
-                                <p className={`text-center text-xs mt-1 font-semibold ${subText}`}>{nivelActual.label}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* ── Sección 2: Inventario a Bordo ── */}
+                    {/* ── Sección 2: Estado Mecánico y Visual ── */}
                     <div className={`${cardBg} rounded-2xl border ${border} p-6`}>
-                        <h2 className={`${sectionTitle} ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                            <Package size={16} /> 2. Inventario a Bordo
+                        <h2 className={`${sectionTitle} ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                            <Wrench size={16} /> 2. Tablero, Fluidos y Cristales
                         </h2>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                            {[
-                                { key: 'tiene_llanta_repuesto',   label: 'Llanta de\nRepuesto',     emoji: '🔧' },
-                                { key: 'tiene_gata_herramientas', label: 'Tricket /\nHerramienta',  emoji: '🛠️' },
-                                { key: 'tiene_radio',              label: 'Stéreo /\nPantalla',      emoji: '📻' },
-                                { key: 'tiene_documentos',         label: 'Documentos\nClave',       emoji: '📄' },
-                            ].map(item => (
-                                <label key={item.key} className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border cursor-pointer transition-all select-none text-center ${
-                                    form[item.key]
-                                        ? isDark ? 'border-emerald-600 bg-emerald-900/30 text-emerald-300' : 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                                        : isDark ? 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
-                                }`}>
-                                    <input type="checkbox" className="sr-only"
-                                        checked={form[item.key]}
-                                        onChange={e => setForm(f => ({ ...f, [item.key]: e.target.checked }))} />
-                                    <div className={`w-11 h-5 rounded-full relative transition-colors ${form[item.key] ? 'bg-emerald-500' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`}>
-                                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form[item.key] ? 'left-6' : 'left-0.5'}`} />
+                        <label className={labelCls}>Luces de Advertencia Encendidas en el Tablero</label>
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {LUCES_TABLERO.map(luz => (
+                                <button type="button" key={luz} onClick={() => toggleLuzTablero(luz)}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors flex gap-2 items-center ${
+                                        form.luces_tablero[luz] 
+                                            ? 'bg-red-500/10 border-red-500 text-red-500' 
+                                            : isDark ? 'border-slate-700 text-slate-400 hover:border-slate-500' : 'border-slate-300 text-slate-500 hover:border-slate-400'
+                                    }`}>
+                                    <div className={`w-3 h-3 rounded-full ${form.luces_tablero[luz] ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+                                    {luz}
+                                </button>
+                            ))}
+                        </div>
+
+                        <label className={labelCls}>Estado de Fluidos</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            {FLUIDOS.map(fluido => (
+                                <div key={fluido} className={`p-3 rounded-xl border ${border} ${isDark ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+                                    <p className="text-xs font-bold mb-2">{fluido}</p>
+                                    <div className="flex gap-1">
+                                        {ESTADOS_FLUIDO.map(estado => (
+                                            <button type="button" key={estado} onClick={() => selectEstadoFluido(fluido, estado)}
+                                                className={`flex-1 text-[10px] py-1.5 px-1 font-bold rounded-lg border transition-all ${
+                                                    form.estado_fluidos[fluido] === estado 
+                                                        ? 'bg-blue-500 text-white border-blue-500 scale-105' 
+                                                        : isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'
+                                                }`}>
+                                                {estado}
+                                            </button>
+                                        ))}
                                     </div>
-                                    <span className="text-2xl">{item.emoji}</span>
-                                    <span className="text-xs font-bold leading-tight whitespace-pre-line">{item.label}</span>
-                                </label>
+                                </div>
                             ))}
                         </div>
 
                         <div>
-                            <label className={labelCls}>Otros objetos de valor dejados por el cliente</label>
-                            <input className={inputCls}
-                                placeholder="Ej: Lentes de sol, cargador de celular, mochila..."
-                                value={form.otros_objetos}
-                                onChange={e => setForm(f => ({ ...f, otros_objetos: e.target.value }))} />
+                            <label className={labelCls}>Estado de Cristales y Parabrisas</label>
+                            <input className={inputCls} placeholder="Ej: Parabrisas estrellado lado conductor..." value={form.estado_cristales} onChange={e => setForm(f => ({ ...f, estado_cristales: e.target.value }))} />
                         </div>
                     </div>
 
-                    {/* ── Sección 3: Diagnóstico ── */}
+                    {/* ── Sección 3: Diagrama de Daños & Fotos ── */}
                     <div className={`${cardBg} rounded-2xl border ${border} p-6`}>
-                        <h2 className={`${sectionTitle} ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>
-                            <Wrench size={16} /> 3. Diagnóstico y Observaciones Visuales
+                        <h2 className={`${sectionTitle} ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                            <PenTool size={16} /> 3. Diagrama de Daños y Fotografías
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            {/* Fotos */}
+                            <div>
+                                <label className={labelCls}>Fotografías del Vehículo</label>
+                                <label className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${
+                                    isDark ? 'border-slate-600 hover:border-blue-400 bg-slate-800' : 'border-slate-300 hover:border-blue-500 bg-slate-50'
+                                }`}>
+                                    <Camera size={32} className={`mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                                    <span className={`text-sm font-bold ${textPri}`}>Tomar / Subir Fotos</span>
+                                    <input type="file" multiple accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+                                </label>
+                                
+                                {fotosPreview.length > 0 && (
+                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+                                        {fotosPreview.map((src, i) => (
+                                            <img key={i} src={src} className="h-16 w-16 object-cover rounded-lg border-2 border-slate-300 shadow-sm" alt="Preview preview" />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Falla Cliente */}
                             <div>
                                 <label className={labelCls}>🔧 Falla Reportada por el Cliente *</label>
-                                <textarea className={`${inputCls} resize-none`} rows={4}
-                                    placeholder="Ej: Ruido en el motor al acelerar, frenos chirrían..."
-                                    value={form.motivo_ingreso}
-                                    onChange={e => setForm(f => ({ ...f, motivo_ingreso: e.target.value }))}
-                                    required />
-                            </div>
-                            <div>
-                                <label className={labelCls}>🔍 Observación Inicial (Mecánico/Recepción)</label>
-                                <textarea className={`${inputCls} resize-none`} rows={4}
-                                    placeholder="Ej: Fuga de aceite visible cerca del carter..."
-                                    value={form.diagnostico_inicial}
-                                    onChange={e => setForm(f => ({ ...f, diagnostico_inicial: e.target.value }))} />
+                                <textarea className={`${inputCls} resize-none h-32`} placeholder="Ej: Ruido en el motor al acelerar..." value={form.motivo_ingreso} onChange={e => setForm(f => ({ ...f, motivo_ingreso: e.target.value }))} required />
                             </div>
                         </div>
 
-                        <div className="mt-5">
-                            <label className={`${labelCls} flex items-center gap-2`}>
-                                <AlertCircle size={13} className="text-amber-500" />
-                                Daños Previos / Golpes Visibles
-                            </label>
-                            <textarea className={`${inputCls} resize-none`} rows={3}
-                                placeholder="Ej: Rayón en puerta trasera derecha, abolladura en capó..."
-                                value={form.danos_previos}
-                                onChange={e => setForm(f => ({ ...f, danos_previos: e.target.value }))} />
+                        {/* Diagrama Interactivo */}
+                        <div>
+                            <div className="flex justify-between items-end mb-2">
+                                <label className={labelCls}>Diagrama Táctil de Daños (Dibuje rayones/golpes)</label>
+                                <button type="button" onClick={() => diagramRef.current?.clear()} className="text-xs text-blue-500 flex gap-1 items-center font-bold hover:underline">
+                                    <RefreshCw size={12} /> Limpiar
+                                </button>
+                            </div>
+                            <div className={`relative w-full overflow-hidden rounded-xl border-2 ${isDark ? 'border-slate-600 bg-white' : 'border-slate-300 bg-white'}`} style={{ height: '300px' }}>
+                                <img src="/car-diagram.png" alt="Auto Plantilla" className="absolute inset-0 w-full h-full object-contain opacity-40 pointer-events-none select-none" />
+                                <SignaturePad 
+                                    ref={diagramRef} 
+                                    penColor="red"
+                                    velocityFilterWeight={0.7}
+                                    canvasProps={{className: "absolute inset-0 w-full h-full touch-none"}}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* ── Sección 4: Conformidad ── */}
+                    {/* ── Sección 4: Conformidad y Firma ── */}
                     <div className={`${cardBg} rounded-2xl border ${border} p-6`}>
                         <h2 className={`${sectionTitle} ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
-                            <FileText size={16} /> 4. Conformidad del Cliente
+                            <FileText size={16} /> 4. Conformidad y Firmas
                         </h2>
-                        <div>
-                            <label className={labelCls}>Nombre completo del cliente (como firma de conformidad)</label>
-                            <input className={inputCls}
-                                placeholder="Ej: Juan Carlos Pérez López"
-                                value={form.firma_cliente_text}
-                                onChange={e => setForm(f => ({ ...f, firma_cliente_text: e.target.value }))} />
-                            <p className={`text-xs mt-2 ${subText}`}>
-                                Al registrar este ingreso, el cliente acepta que el vehículo entra en las condiciones descritas arriba.
-                            </p>
+                        
+                        <div className="grid grid-cols-1 xl:grid-cols-3 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className={labelCls}>Nombre Completo Cliente *</label>
+                                <input className={inputCls} placeholder="Nombre completo" value={form.firma_cliente_text} onChange={e => setForm(f => ({ ...f, firma_cliente_text: e.target.value }))} required />
+                                <p className={`text-[11px] mt-3 ${subText}`}>
+                                    Al firmar, el cliente acepta el inventario visual y que no dejará objetos de valor no declarados.
+                                </p>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-end mb-2">
+                                    <label className={labelCls}>Firma Digital (Cliente)</label>
+                                    <button type="button" onClick={() => signatureRef.current?.clear()} className="text-xs text-blue-500 font-bold hover:underline">
+                                        Limpiar
+                                    </button>
+                                </div>
+                                <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white overflow-hidden shadow-inner" style={{ height: '150px' }}>
+                                    <SignaturePad 
+                                        ref={signatureRef} 
+                                        penColor="black"
+                                        canvasProps={{className: "w-full h-full touch-none cursor-crosshair"}}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-end mb-2">
+                                    <label className={labelCls}>Firma Digital (Mecánico/Asesor)</label>
+                                    <button type="button" onClick={() => firmaMecanicoRef.current?.clear()} className="text-xs text-blue-500 font-bold hover:underline">
+                                        Limpiar
+                                    </button>
+                                </div>
+                                <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white overflow-hidden shadow-inner" style={{ height: '150px' }}>
+                                    <SignaturePad 
+                                        ref={firmaMecanicoRef} 
+                                        penColor="#1d4ed8" /* blue */
+                                        canvasProps={{className: "w-full h-full touch-none cursor-crosshair"}}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Botones */}
                     <div className="flex flex-col sm:flex-row gap-3 pb-6">
-                        <button type="button" onClick={() => navigate(-1)}
-                            className={`flex-1 py-3 px-6 rounded-2xl border font-semibold text-sm transition-colors ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'}`}>
-                            Cancelar
+                        <button type="button" onClick={() => navigate(-1)} className={`flex-1 py-4 px-6 rounded-2xl border font-bold text-sm transition-colors ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'}`}>
+                            Cancelar Regreso
                         </button>
-                        <button type="submit" disabled={loading}
-                            className="flex-1 py-3 px-6 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50 shadow-xl shadow-orange-500/25">
+                        <button type="submit" disabled={loading} className="flex-1 py-4 px-6 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50 shadow-xl shadow-orange-500/25">
                             {loading ? <Loader2 size={19} className="animate-spin" /> : <Truck size={19} />}
-                            {loading ? 'Registrando ingreso...' : 'Registrar Ingreso y Ver Boleta'}
+                            {loading ? 'Generando Boleta...' : 'Guardar y Generar PDF'}
                         </button>
                     </div>
                 </form>
