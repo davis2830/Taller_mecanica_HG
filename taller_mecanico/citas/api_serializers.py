@@ -28,7 +28,9 @@ class VehiculoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Vehiculo
-        fields = ['id', 'propietario', 'marca', 'modelo', 'año', 'placa', 'color', 'fecha_registro', 'total_citas', 'ultima_visita']
+        fields = ['id', 'propietario', 'marca', 'modelo', 'año', 'placa', 'color', 'fecha_registro', 'total_citas', 'ultima_visita',
+                  'vin_chasis', 'numero_motor', 'cilindrada_motor', 'tipo_combustible', 'transmision',
+                  'unidad_medida_kilometraje', 'kilometraje_actual']
 
     def get_total_citas(self, obj):
         return obj.citas.count()
@@ -43,7 +45,9 @@ class VehiculoWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Vehiculo
-        fields = ['propietario_id', 'marca', 'modelo', 'año', 'placa', 'color']
+        fields = ['propietario_id', 'marca', 'modelo', 'año', 'placa', 'color',
+                  'vin_chasis', 'numero_motor', 'cilindrada_motor', 'tipo_combustible', 'transmision',
+                  'unidad_medida_kilometraje', 'kilometraje_actual']
 
     def validate_propietario_id(self, value):
         if not User.objects.filter(pk=value).exists():

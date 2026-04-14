@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo
 from .api_serializers import (
     CitaSerializer, CitaCreacionSerializer,
@@ -17,12 +17,71 @@ from .tasks import enviar_correo_cita_task
 # SERVICIOS
 # ===========================================================================
 
-class ServicioListView(APIView):
+class ServiciosView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        servicios = TipoServicio.objects.all()
+        q = request.query_params.get('q', '')
+        categoria = request.query_params.get('categoria', '')
+        
+        filtros = Q()
+        if q:
+            filtros &= Q(nombre__icontains=q) | Q(descripcion__icontains=q)
+        if categoria:
+            filtros &= Q(categoria=categoria)
+            
+        servicios = TipoServicio.objects.filter(filtros).order_by('nombre')
         return Response(TipoServicioSerializer(servicios, many=True).data)
+
+    def post(self, request):
+        if not request.user.is_staff:
+            return Response({'error': 'Solo el personal administrativo puede crear servicios.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = TipoServicioSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ServicioDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return TipoServicio.objects.get(pk=pk)
+        except TipoServicio.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        servicio = self.get_object(pk)
+        if not servicio:
+            return Response({'error': 'No encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(TipoServicioSerializer(servicio).data)
+
+    def put(self, request, pk):
+        if not request.user.is_staff:
+            return Response({'error': 'Solo el personal administrativo puede modificar servicios.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        servicio = self.get_object(pk)
+        if not servicio:
+            return Response({'error': 'No encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            
+        serializer = TipoServicioSerializer(servicio, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        if not request.user.is_staff:
+            return Response({'error': 'Solo el personal administrativo puede eliminar servicios.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        servicio = self.get_object(pk)
+        if not servicio:
+            return Response({'error': 'No encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            
+        servicio.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 # ===========================================================================
 # CALENDARIO / CITAS

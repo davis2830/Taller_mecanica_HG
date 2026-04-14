@@ -27,6 +27,37 @@ class Vehiculo(models.Model):
     año = models.PositiveIntegerField()
     placa = models.CharField(max_length=10, unique=True)
     color = models.CharField(max_length=30)
+    
+    # Identidad Técnica
+    vin_chasis = models.CharField(max_length=50, blank=True, null=True, help_text="VIN / Número de Chasis")
+    numero_motor = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Especificaciones
+    cilindrada_motor = models.CharField(max_length=20, blank=True, null=True, help_text="Ej: 2.0L o 2000cc")
+    
+    COMBUSTIBLE_CHOICES = (
+        ('GASOLINA', 'Gasolina'),
+        ('DIESEL', 'Diesel'),
+        ('HIBRIDO', 'Híbrido'),
+        ('ELECTRICO', 'Eléctrico'),
+    )
+    tipo_combustible = models.CharField(max_length=15, choices=COMBUSTIBLE_CHOICES, blank=True, null=True)
+    
+    TRANSMISION_CHOICES = (
+        ('AUTOMATICA', 'Automática'),
+        ('MECANICA', 'Mecánica'),
+        ('CVT', 'CVT'),
+    )
+    transmision = models.CharField(max_length=15, choices=TRANSMISION_CHOICES, blank=True, null=True)
+    
+    # Control de Odómetro
+    UNIDAD_KM_CHOICES = (
+        ('KM', 'Kilómetros'),
+        ('MI', 'Millas'),
+    )
+    unidad_medida_kilometraje = models.CharField(max_length=2, choices=UNIDAD_KM_CHOICES, default='KM')
+    kilometraje_actual = models.PositiveIntegerField(blank=True, null=True, help_text="Último kilometraje/millaje registrado")
+
     fecha_registro = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -188,6 +219,25 @@ class RecepcionVehiculo(models.Model):
     firma_digital = models.TextField(blank=True, null=True, help_text="Base64 de la firma táctil digital del cliente")
     firma_mecanico = models.TextField(blank=True, null=True, help_text="Base64 de la firma táctil digital del mecánico")
     
+    def clean(self):
+        super().clean()
+        if self.vehiculo and self.kilometraje:
+            if self.vehiculo.kilometraje_actual and self.kilometraje < self.vehiculo.kilometraje_actual:
+                raise ValidationError({"kilometraje": f"El kilometraje o millaje ingresado ({self.kilometraje}) es menor al último registrado en este vehículo ({self.vehiculo.kilometraje_actual}). Revíselo."})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        # Verificar si es creación y no actualización
+        is_new = not self.pk
+        super().save(*args, **kwargs)
+        
+        if is_new and self.vehiculo and self.kilometraje:
+            self.vehiculo.kilometraje_actual = self.kilometraje
+            if self.unidad_distancia:
+                # Normalizar km vs mi a KM vs MI
+                self.vehiculo.unidad_medida_kilometraje = 'KM' if self.unidad_distancia.lower() == 'km' else 'MI'
+            self.vehiculo.save(update_fields=['kilometraje_actual', 'unidad_medida_kilometraje'])
+            
     def __str__(self):
         return f"Recepción {self.id:05d} - {self.vehiculo} - {self.fecha_ingreso.strftime('%d/%m/%Y')}"
 

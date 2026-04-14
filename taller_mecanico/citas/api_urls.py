@@ -8,7 +8,8 @@ urlpatterns = [
     path('citas/nueva/', api_views.NuevaCitaView.as_view(), name='api_citas_nueva'),
     path('citas/<int:pk>/cancelar/', api_views.CancelarCitaView.as_view(), name='api_citas_cancelar'),
     path('citas/vehiculos/', api_views.MisVehiculosView.as_view(), name='api_citas_vehiculos'),
-    path('citas/servicios/', api_views.ServicioListView.as_view(), name='api_citas_servicios'),
+    path('citas/servicios/', api_views.ServiciosView.as_view(), name='api_servicios_list'),
+    path('citas/servicios/<int:pk>/', api_views.ServicioDetailView.as_view(), name='api_servicio_detail'),
 
     # Vehículos CRUD
     path('vehiculos/', api_views.VehiculosView.as_view(), name='api_vehiculos_list'),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { X, Car, Plus, Trash2, Edit2, Loader2, AlertCircle } from 'lucide-react';
+import { X, Car, Plus, Trash2, Edit2, Loader2, AlertCircle, Navigation, Wrench, Settings2, Droplet, Fingerprint } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -89,13 +89,44 @@ export default function VehiculosClienteSlideOver({ isOpen, onClose, cliente, on
                                 <div key={v.id} className={`p-5 rounded-xl border ${border} ${isDark ? 'bg-slate-800/80 hover:bg-slate-800' : 'bg-white hover:border-blue-300 hover:shadow-md'} transition-all group relative`}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-lg">
+                                            <div className="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-lg shrink-0">
                                                 <Car size={24} />
                                             </div>
-                                            <div>
-                                                <h3 className={`font-bold text-lg leading-tight uppercase ${text}`}>{v.placa}</h3>
-                                                <p className={textMuted}>{v.marca} {v.modelo} - {v.año}</p>
-                                                <p className={`text-xs mt-1 px-2 border rounded-full inline-block ${isDark ? 'border-slate-600' : 'border-slate-300'} font-medium`}>{v.color}</p>
+                                            <div className="flex-1 w-full">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className={`font-bold text-lg leading-tight uppercase ${text}`}>{v.placa}</h3>
+                                                    {v.kilometraje_actual && (
+                                                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 ml-auto">
+                                                            <Navigation size={10}/> {v.kilometraje_actual.toLocaleString()} {v.unidad_medida_kilometraje}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className={textMuted}>{v.marca} {v.modelo} - {v.año} {v.color && `(${v.color})`}</p>
+                                                
+                                                {(v.cilindrada_motor || v.tipo_combustible || v.transmision || v.vin_chasis) && (
+                                                    <div className="mt-2.5 flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wider">
+                                                        {v.vin_chasis && (
+                                                            <span className={`px-1.5 py-0.5 rounded flex items-center gap-1 ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`} title="VIN / Chasis">
+                                                                <Fingerprint size={10}/> VIN: {v.vin_chasis.slice(-6)}
+                                                            </span>
+                                                        )}
+                                                        {v.cilindrada_motor && (
+                                                            <span className={`px-1.5 py-0.5 rounded flex items-center gap-1 ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                                                <Wrench size={10}/> {v.cilindrada_motor}
+                                                            </span>
+                                                        )}
+                                                        {v.tipo_combustible && (
+                                                            <span className={`px-1.5 py-0.5 rounded flex items-center gap-1 ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                                                <Droplet size={10}/> {v.tipo_combustible}
+                                                            </span>
+                                                        )}
+                                                        {v.transmision && (
+                                                            <span className={`px-1.5 py-0.5 rounded flex items-center gap-1 ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                                                <Settings2 size={10}/> {v.transmision === 'MECANICA' ? 'MEC' : v.transmision === 'AUTOMATICA' ? 'AUT' : v.transmision}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
