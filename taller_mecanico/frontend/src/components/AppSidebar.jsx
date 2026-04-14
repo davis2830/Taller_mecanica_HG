@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer } from 'lucide-react';
+import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -14,6 +14,8 @@ const ROUTE_SECTION_MAP = {
     '/citas/calendario':        'Citas',
     '/kanban':                  'Taller',
     '/citas/servicios':         'Taller',
+    '/taller/historial':        'Taller',
+    '/facturacion':             'Facturación',
     '/reportes/utilidades':     'Reportes',
 };
 
@@ -89,8 +91,17 @@ export default function AppSidebar() {
             subItems: [
                 { icon: <Clipboard size={18} />, label: 'Órdenes de Trabajo', path: '/kanban' },
                 { icon: <Wrench size={18} />, label: 'Catálogo de Servicios', path: '/citas/servicios' },
+                { icon: <List size={18} />, label: 'Historial de Órdenes', path: '/taller/historial' },
             ]
         },
+        ...(isStaff ? [{
+            icon: <Receipt size={20} />,
+            label: 'Facturación',
+            path: '#facturacion',
+            subItems: [
+                { icon: <Receipt size={18} />, label: 'Lista de Facturas', path: '/facturacion' },
+            ]
+        }] : []),
         ...(isStaff ? [{
             icon: <TrendingUp size={20} />,
             label: 'Reportes',

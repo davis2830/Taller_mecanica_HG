@@ -176,6 +176,184 @@ class AgregarRepuestoView(APIView):
         return Response(OrdenTrabajoDetalleSerializer(orden).data)
 
 
+class HistorialVehiculoView(APIView):
+    """
+    GET /api/v1/taller/vehiculo/<vehiculo_id>/historial/
+    Devuelve todas las órdenes de trabajo de un vehículo, ordeadas por fecha desc.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, vehiculo_id):
+        ordenes = OrdenTrabajo.objects.filter(
+            vehiculo_id=vehiculo_id
+        ).select_related(
+            'cita', 'cita__servicio', 'mecanico_asignado'
+        ).prefetch_related('repuestos__producto').order_by('-fecha_creacion')
+
+        return Response(OrdenTrabajoDetalleSerializer(ordenes, many=True).data)
+
+
+class HistorialOrdenesView(APIView):
+    """
+    GET /api/v1/taller/historial/
+    Params: q (texto libre), estado, page, page_size (default 20)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+        ordenes = OrdenTrabajo.objects.select_related(
+            'cita', 'cita__cliente', 'cita__servicio',
+            'vehiculo', 'mecanico_asignado'
+        ).prefetch_related('repuestos__producto').order_by('-fecha_creacion')
+
+        estado = request.query_params.get('estado', '')
+        q     = request.query_params.get('q', '')
+
+        if estado:
+            ordenes = ordenes.filter(estado=estado)
+
+        if q:
+            ordenes = ordenes.filter(
+                Q(vehiculo__placa__icontains=q)      |
+                Q(cita__cliente__first_name__icontains=q) |
+                Q(cita__cliente__last_name__icontains=q)  |
+                Q(diagnostico__icontains=q)
+            )
+
+        page_size = int(request.query_params.get('page_size', 20))
+        paginator = Paginator(ordenes, page_size)
+        page_num  = request.query_params.get('page', 1)
+
+        try:
+            page = paginator.page(page_num)
+        except (EmptyPage, PageNotAnInteger):
+            page = paginator.page(1)
+
+        return Response({
+            'count':    paginator.count,
+            'pages':    paginator.num_pages,
+            'page':     page.number,
+            'results':  OrdenTrabajoDetalleSerializer(page.object_list, many=True).data,
+        })
+
+
+class EliminarRepuestoView(APIView):
+    """DELETE /api/v1/taller/orden/<id>/repuesto/<rep_id>/"""
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def delete(self, request, orden_id, rep_id):
+        from taller.models import OrdenRepuesto
+        rep = OrdenRepuesto.objects.filter(id=rep_id, orden_id=orden_id).first()
+        if not rep:
+            return Response({'error': 'No encontrado'}, status=404)
+
+        # Devolver stock
+        producto = rep.producto
+        producto.stock_actual += rep.cantidad
+        producto.save()
+
+        rep.delete()
+        orden = OrdenTrabajo.objects.get(id=orden_id)
+        return Response(OrdenTrabajoDetalleSerializer(orden).data)
+
+
+class ProcesarFacturaView(APIView):
+    """
+    POST /api/v1/taller/orden/<id>/facturar/
+    Body: { metodo_pago: 'EFECTIVO|TARJETA|TRANSFERENCIA|OTROS', descuento: 0 }
+    Crea o actualiza el BORRADOR de factura y lo EMITE.
+    Solo admins y staff con permiso.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request, orden_id):
+        from facturacion.models import Factura
+        from django.utils import timezone
+        from citas.models import Notificacion
+
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'error': 'Solo el personal administrativo puede emitir facturas.'}, status=403)
+
+        orden = OrdenTrabajo.objects.filter(id=orden_id).first()
+        if not orden:
+            return Response({'error': 'Orden no encontrada'}, status=404)
+
+        if orden.estado not in ['LISTO', 'ENTREGADO']:
+            return Response({'error': f'No se puede facturar una orden en estado "{orden.get_estado_display()}". Debe estar Listo o Entregado.'}, status=400)
+
+        if not orden.cita:
+            return Response({'error': 'La orden no tiene una cita vinculada.'}, status=400)
+
+        metodo  = request.data.get('metodo_pago', 'EFECTIVO')
+        descuento = Decimal(str(request.data.get('descuento', 0)))
+        notas   = request.data.get('notas_internas', '')
+
+        costo_mo  = orden.cita.servicio.precio if orden.cita.servicio else Decimal('0')
+        costo_rep = orden.total_repuestos
+
+        # get_or_create borrador
+        factura, created = Factura.objects.get_or_create(
+            orden=orden,
+            defaults={
+                'costo_mano_obra': costo_mo,
+                'costo_repuestos': costo_rep,
+                'estado': 'BORRADOR'
+            }
+        )
+
+        if factura.estado == 'EMITIDA':
+            return Response({
+                'error': 'Esta orden ya tiene una factura emitida.',
+                'numero_factura': factura.numero_factura,
+                'total': float(factura.total_general)
+            }, status=400)
+
+        # Actualizar y emitir
+        factura.costo_mano_obra = costo_mo
+        factura.costo_repuestos = costo_rep
+        factura.metodo_pago     = metodo
+        factura.descuento       = descuento
+        factura.notas_internas  = notas
+        factura.estado          = 'EMITIDA'
+        factura.fecha_pagada    = timezone.now()
+        factura.save()
+        factura.generar_numero()
+
+        # Marcar orden y cita como ENTREGADO / COMPLETADA
+        if orden.estado != 'ENTREGADO':
+            orden.estado = 'ENTREGADO'
+            orden.save()
+        if orden.cita and orden.cita.estado != 'COMPLETADA':
+            orden.cita.estado = 'COMPLETADA'
+            orden.cita.save()
+
+        # Disparar correos async (si están configurados)
+        try:
+            from facturacion.tasks import enviar_factura_task
+            from citas.tasks import enviar_correo_cita_task
+            cliente = orden.cita.cliente if orden.cita else None
+            if cliente and cliente.email:
+                enviar_factura_task.delay(factura.id, cliente.email)
+                enviar_correo_cita_task.delay(orden.cita.id, 'encuesta')
+        except Exception as e:
+            print(f'[INFO] Celery email skipped: {e}')
+
+        return Response({
+            'success': True,
+            'numero_factura': factura.numero_factura,
+            'total_general': float(factura.total_general),
+            'costo_mano_obra': float(factura.costo_mano_obra),
+            'costo_repuestos': float(factura.costo_repuestos),
+            'descuento': float(factura.descuento),
+            'metodo_pago': factura.get_metodo_pago_display(),
+            'estado_orden': orden.estado,
+        })
+
+
 # ═══════════════════════════════════════════════════════════════
 #   REPORTE DE UTILIDADES
 # ═══════════════════════════════════════════════════════════════

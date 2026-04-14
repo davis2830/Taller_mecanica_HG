@@ -11,9 +11,16 @@ class MecanicoMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'last_name', 'username']
 
 class ClienteMiniSerializer(serializers.ModelSerializer):
+    telefono = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email']
+        fields = ['id', 'first_name', 'last_name', 'email', 'telefono']
+
+    def get_telefono(self, obj):
+        if hasattr(obj, 'perfil') and obj.perfil:
+            return obj.perfil.telefono or None
+        return None
 
 class TipoServicioMiniSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,14 +30,14 @@ class TipoServicioMiniSerializer(serializers.ModelSerializer):
 class VehiculoMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehiculo
-        fields = ['id', 'marca', 'modelo', 'placa', 'color']
+        fields = ['id', 'marca', 'modelo', 'placa', 'color', 'año']
 
 class CitaMiniSerializer(serializers.ModelSerializer):
     cliente = ClienteMiniSerializer(read_only=True)
     servicio = TipoServicioMiniSerializer(read_only=True)
     class Meta:
         model = Cita
-        fields = ['id', 'estado', 'cliente', 'servicio']
+        fields = ['id', 'estado', 'cliente', 'servicio', 'notas', 'fecha']
 
 class OrdenTrabajoKanbanSerializer(serializers.ModelSerializer):
     vehiculo = VehiculoMiniSerializer(read_only=True)

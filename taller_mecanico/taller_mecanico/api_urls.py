@@ -6,9 +6,10 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
-    # Aquí iremos añadiendo las rutas de los distintos módulos:
+    # Módulos:
     path('usuarios/', include('usuarios.api_urls')),
     path('taller/', include('taller.api_urls')),
+    path('facturacion/', include('facturacion.api_urls')),
     # Citas, Vehículos, Recepciones (prefijos definidos dentro de citas/api_urls.py)
     path('', include('citas.api_urls')),
 ]

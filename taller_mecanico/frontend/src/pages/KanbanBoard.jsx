@@ -147,9 +147,9 @@ function KanbanBoard() {
       </div>
 
       {/* Board — overflow-x:auto for horizontal scroll, NOT overflow-y:hidden so drag clone isn't clipped */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'visible' }}>
+      <div style={{ flex: 1, overflowX: 'auto', minHeight: 0 }}>
         <DragDropContext onDragEnd={onDragEnd}>
-          <div style={{ display: 'flex', gap: 16, padding: 20, minWidth: 'max-content', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: 16, padding: 20, minWidth: 'max-content', alignItems: 'flex-start', minHeight: '100%' }}>
             {data.columnOrder.map(columnId => {
               const column = data.columns[columnId];
               if (!column) return null;

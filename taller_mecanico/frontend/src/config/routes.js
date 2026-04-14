@@ -17,6 +17,8 @@ import ServiciosList from '../pages/Citas/ServiciosList';
 import NuevaRecepcionPage from '../pages/Citas/NuevaRecepcionPage';
 import BoletaRecepcionPage from '../pages/Citas/BoletaRecepcionPage';
 import ReporteUtilidades from '../pages/Reportes/ReporteUtilidades';
+import HistorialOrdenesPage from '../pages/Taller/HistorialOrdenesPage';
+import FacturasPage from '../pages/Facturacion/FacturasPage';
 
 /**
  * Estructura de rutas
@@ -106,14 +108,20 @@ export const routes = [
         layout: true,
         title: 'Órdenes de Trabajo'
     },
-    // Agregar más rutas aquí
-    // {
-    //     path: '/perfil',
-    //     element: ProfilePage,
-    //     private: true,
-    //     layout: true,
-    //     title: 'Mi Perfil'
-    // },
+    {
+        path: '/taller/historial',
+        element: HistorialOrdenesPage,
+        private: true,
+        layout: true,
+        title: 'Historial de Órdenes'
+    },
+    {
+        path: '/facturacion',
+        element: FacturasPage,
+        private: true,
+        layout: true,
+        title: 'Facturación'
+    },
 ];
 
 export default routes;
