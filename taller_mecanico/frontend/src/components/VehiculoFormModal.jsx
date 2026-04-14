@@ -16,7 +16,7 @@ export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const isEdit = !!vehiculo;
+    const isEdit = !!vehiculo?.id;
     const headers = { Authorization: `Bearer ${authTokens?.access}` };
 
     useEffect(() => {

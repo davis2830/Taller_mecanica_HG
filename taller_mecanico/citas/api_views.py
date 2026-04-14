@@ -64,16 +64,19 @@ class CancelarCitaView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
+        if not pk:
+            return Response({"error": "Debe proporcionar ID de cita."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             cita = Cita.objects.get(pk=pk)
-            if cita.estado in ['COMPLETADA', 'CANCELADA']:
-                return Response({'error': f'No se puede cancelar una cita en estado {cita.estado}'}, status=status.HTTP_400_BAD_REQUEST)
-            cita.estado = 'CANCELADA'
-            cita.save()
-            enviar_correo_cita_task.delay(cita.id, 'cambio_estado')
-            return Response(CitaSerializer(cita).data, status=status.HTTP_200_OK)
+            # Solo quien la creó o un staff puede borrar
+            if cita.cliente != request.user and not request.user.is_staff:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            cita.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Cita.DoesNotExist:
-            return Response({'error': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
 
 # ===========================================================================
 # VEHÍCULOS - CRUD
@@ -95,6 +98,9 @@ class VehiculosView(APIView):
                     Q(propietario__last_name__icontains=q) |
                     Q(propietario__username__icontains=q)
                 )
+            propietario_id = request.query_params.get('propietario_id')
+            if propietario_id:
+                qs = qs.filter(propietario_id=propietario_id)
         else:
             qs = Vehiculo.objects.filter(propietario=request.user)
         return Response(VehiculoSerializer(qs, many=True).data)
@@ -140,6 +146,19 @@ class VehiculoDetailView(APIView):
             serializer.save()
             return Response(VehiculoSerializer(v).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        v, err = self._get_vehiculo(pk, request.user)
+        if err: return err
+        try:
+            from django.db.models.deletion import ProtectedError, RestrictedError
+            v.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except (ProtectedError, RestrictedError) as e:
+            return Response(
+                {'error': f'No se puede eliminar el vehículo {v.placa} porque tiene Citas, Recepciones o Facturas atadas.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def delete(self, request, pk):
         if not request.user.is_staff:
