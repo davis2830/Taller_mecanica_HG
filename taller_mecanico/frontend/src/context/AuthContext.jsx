@@ -49,10 +49,13 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        if (authTokens) {
-            fetchUser(authTokens.access);
-        }
-        setLoading(false);
+        const init = async () => {
+            if (authTokens) {
+                await fetchUser(authTokens.access);
+            }
+            setLoading(false);
+        };
+        init();
     }, []);
 
     const contextData = {

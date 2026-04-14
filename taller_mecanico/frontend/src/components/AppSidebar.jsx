@@ -1,24 +1,62 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp } from 'lucide-react';
+import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
+
+// Route → parent section mapping for auto-expand
+const ROUTE_SECTION_MAP = {
+    '/citas':                   'Citas',
+    '/citas/vehiculos':         'Citas',
+    '/citas/recepcion/nueva':   'Citas',
+    '/citas/clientes':          'Citas',
+    '/citas/calendario':        'Citas',
+    '/kanban':                  'Taller',
+    '/citas/servicios':         'Taller',
+    '/reportes/utilidades':     'Reportes',
+};
+
+const STORAGE_KEY = 'sidebar_expanded';
+
+function getInitialExpanded(pathname) {
+    // Try persisted state first
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+    } catch {}
+    // Fall back to auto-expand based on current route
+    const section = ROUTE_SECTION_MAP[pathname];
+    return section ? { [section]: true } : {};
+}
 
 export default function AppSidebar() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useContext(AuthContext);
     const [collapsed, setCollapsed] = useState(false);
-    const [expandedMenu, setExpandedMenu] = useState({ 'Citas': true }); // Citas abierto por defecto
+    const [expandedMenu, setExpandedMenu] = useState(() => getInitialExpanded(location.pathname));
     const isStaff = user?.is_staff;
 
-    // Función para manejar el colapso de un menú padre
+    // Auto-expand parent section when route changes (e.g. navigating via link)
+    useEffect(() => {
+        const section = ROUTE_SECTION_MAP[location.pathname];
+        if (section) {
+            setExpandedMenu(prev => {
+                const next = { ...prev, [section]: true };
+                // Persist
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+                return next;
+            });
+        }
+    }, [location.pathname]);
+
     const toggleSubMenu = (label) => {
-        setExpandedMenu(prev => ({
-            ...prev,
-            [label]: !prev[label]
-        }));
+        setExpandedMenu(prev => {
+            const next = { ...prev, [label]: !prev[label] };
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+            return next;
+        });
     };
 
     // No mostrar sidebar en login
@@ -35,21 +73,23 @@ export default function AppSidebar() {
         {
             icon: <Calendar size={20} />,
             label: 'Citas',
-            path: '#citas', // Evitamos redirigir si es un padre
+            path: '#citas',
             subItems: [
                 { icon: <List size={18} />, label: 'Mis Citas', path: '/citas' },
                 { icon: <Car size={18} />, label: 'Directorio y Clínica', path: '/citas/vehiculos' },
                 ...(isStaff ? [{ icon: <Truck size={18} />, label: 'Nueva Recepción', path: '/citas/recepcion/nueva' }] : []),
                 { icon: <Users size={18} />, label: 'Base de Clientes', path: '/citas/clientes' },
                 { icon: <Calendar size={18} />, label: 'Calendario', path: '/citas/calendario' },
-                { icon: <Wrench size={18} />, label: 'Servicios', path: '/citas/servicios' },
             ]
         },
         {
-            icon: <Clipboard size={20} />,
-            label: 'Órdenes',
-            path: '/kanban',
-            badge: null
+            icon: <Hammer size={20} />,
+            label: 'Taller',
+            path: '#taller',
+            subItems: [
+                { icon: <Clipboard size={18} />, label: 'Órdenes de Trabajo', path: '/kanban' },
+                { icon: <Wrench size={18} />, label: 'Catálogo de Servicios', path: '/citas/servicios' },
+            ]
         },
         ...(isStaff ? [{
             icon: <TrendingUp size={20} />,

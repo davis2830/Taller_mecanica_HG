@@ -1,58 +1,124 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { Draggable } from '@hello-pangea/dnd';
-import { Car, Clock, Wrench, CheckCircle, User } from 'lucide-react';
+import { Clock, Wrench, CheckCircle, User, Package, Truck } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-const getBorderColor = (estado) => {
-  switch(estado) {
-      case 'EN_ESPERA': return 'border-l-4 border-l-slate-400';
-      case 'EN_REVISION': return 'border-l-4 border-l-blue-500';
-      case 'ESPERANDO_REPUESTOS': return 'border-l-4 border-l-orange-500';
-      case 'LISTO': return 'border-l-4 border-l-green-500';
-      default: return 'border-l-4 border-l-slate-300';
-  }
+const STATE_CONFIG = {
+  EN_ESPERA:           { bar: '#94a3b8', label: 'En Espera',     icon: <Clock size={11} />,       darkBadge: '#1e293b', darkText: '#94a3b8',   lightBadge: '#f1f5f9', lightText: '#475569'  },
+  EN_REVISION:         { bar: '#3b82f6', label: 'En Revisión',   icon: <Wrench size={11} />,      darkBadge: '#172554', darkText: '#93c5fd',   lightBadge: '#dbeafe', lightText: '#1d4ed8'  },
+  ESPERANDO_REPUESTOS: { bar: '#f59e0b', label: 'Esp. Repuesto', icon: <Package size={11} />,     darkBadge: '#431407', darkText: '#fcd34d',   lightBadge: '#fef3c7', lightText: '#92400e'  },
+  LISTO:               { bar: '#10b981', label: 'Listo',          icon: <CheckCircle size={11} />, darkBadge: '#022c22', darkText: '#6ee7b7',   lightBadge: '#d1fae5', lightText: '#065f46'  },
+  ENTREGADO:           { bar: '#a855f7', label: 'Entregado',      icon: <Truck size={11} />,       darkBadge: '#2e1065', darkText: '#d8b4fe',   lightBadge: '#ede9fe', lightText: '#6d28d9'  },
 };
 
-const IconState = ({estado}) => {
-  switch(estado) {
-      case 'EN_ESPERA': return <Clock size={16} className="text-slate-400" />;
-      case 'EN_REVISION': return <Wrench size={16} className="text-blue-500" />;
-      case 'ESPERANDO_REPUESTOS': return <Clock size={16} className="text-orange-500" />;
-      case 'LISTO': return <CheckCircle size={16} className="text-green-500" />;
-      default: return null;
+/**
+ * Get or create a portal container directly in document.body.
+ * document.body never has CSS transforms, so position:fixed children
+ * of this portal always use true viewport coordinates — fixing the
+ * classic @hello-pangea/dnd offset bug caused by transformed ancestors.
+ */
+function getDragPortal() {
+  let el = document.getElementById('kanban-drag-portal');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'kanban-drag-portal';
+    document.body.appendChild(el);
   }
+  return el;
 }
 
 function KanbanTask({ task, index, onOpen }) {
+  const { isDark } = useTheme();
+  const cfg = STATE_CONFIG[task.estado] ?? STATE_CONFIG.EN_ESPERA;
+
   return (
     <Draggable draggableId={task.id.toString()} index={index}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          onClick={() => onOpen(task.id)}
-          className={`bg-white rounded-md shadow-sm mb-3 p-3 select-none flex flex-col gap-2 cursor-pointer border border-transparent hover:border-slate-300
-            ${getBorderColor(task.estado)}
-            ${snapshot.isDragging ? 'shadow-lg rotate-2 z-50 ring-2 ring-blue-500' : ''}`}
-          style={provided.draggableProps.style}
-        >
-          <div className="flex justify-between items-center text-xs text-slate-500 font-semibold uppercase">
-              <span>{task.vehiculo?.placa || 'S/N'}</span>
-              <IconState estado={task.estado} />
+      {(provided, snapshot) => {
+        const card = (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            onClick={() => !snapshot.isDragging && onOpen(task.id)}
+            style={{
+              // DnD styles FIRST — never override transform
+              ...provided.draggableProps.style,
+              backgroundColor: snapshot.isDragging
+                ? (isDark ? '#0f172a' : '#e2e8f0')
+                : (isDark ? '#1e293b' : '#ffffff'),
+              borderRadius: 10,
+              marginBottom: 8,
+              overflow: 'hidden',
+              position: 'relative',
+              userSelect: 'none',
+              cursor: snapshot.isDragging ? 'grabbing' : 'grab',
+              border: snapshot.isDragging
+                ? `1.5px solid ${isDark ? 'rgba(99,179,237,0.6)' : 'rgba(59,130,246,0.5)'}`
+                : `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.09)'}`,
+              boxShadow: snapshot.isDragging
+                ? `0 20px 40px -8px ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.22)'},
+                   0 0 0 2px ${isDark ? 'rgba(99,179,237,0.3)' : 'rgba(59,130,246,0.25)'}`
+                : `0 1px 3px ${isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.07)'}`,
+            }}
+          >
+            {/* Accent bar */}
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: cfg.bar }} />
+
+            <div style={{ paddingLeft: 13, paddingRight: 11, paddingTop: 11, paddingBottom: 10 }}>
+
+              {/* Placa + badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.07em', color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                  {task.vehiculo?.placa || 'S/N'}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 9999, backgroundColor: isDark ? cfg.darkBadge : cfg.lightBadge, color: isDark ? cfg.darkText : cfg.lightText, whiteSpace: 'nowrap' }}>
+                  {cfg.icon} {cfg.label}
+                </span>
+              </div>
+
+              {/* Marca / Modelo */}
+              <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, color: isDark ? '#cbd5e1' : '#334155' }}>
+                {task.vehiculo?.marca || 'Marca'} {task.vehiculo?.modelo || ''}
+                {task.vehiculo?.año && <span style={{ fontWeight: 400, marginLeft: 4, color: isDark ? '#64748b' : '#94a3b8' }}>({task.vehiculo.año})</span>}
+              </div>
+
+              {/* Servicio */}
+              <div style={{ fontSize: 11, marginTop: 3, color: isDark ? '#64748b' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {task.cita?.servicio?.nombre || 'Diagnóstico General'}
+              </div>
+
+              {/* Footer */}
+              <div style={{ marginTop: 9, paddingTop: 7, borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: isDark ? '#64748b' : '#94a3b8', minWidth: 0, flex: 1 }}>
+                  <User size={11} style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {task.mecanico_asignado
+                      ? `${task.mecanico_asignado.first_name} ${task.mecanico_asignado.last_name || ''}`.trim()
+                      : <span style={{ color: '#f59e0b', fontWeight: 600 }}>Sin asignar</span>
+                    }
+                  </span>
+                </div>
+                {task.repuestos?.length > 0 && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>
+                    <Package size={10} /> {task.repuestos.length}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="text-sm font-bold text-slate-800">
-            {task.vehiculo?.marca || 'Vehículo'} {task.vehiculo?.modelo || 'Sin Modelo'}
-          </div>
-          <div className="text-xs text-slate-600 line-clamp-2">
-            {task.cita?.servicio?.nombre || 'Diagnóstico General'}
-          </div>
-          
-          <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-slate-100 text-xs text-slate-500">
-             <User size={14} className="text-slate-400" />
-             <span>{task.mecanico_asignado ? task.mecanico_asignado.first_name : 'No Asignado'}</span>
-          </div>
-        </div>
-      )}
+        );
+
+        // Portal: when @hello-pangea/dnd sets position:'fixed' on the dragged
+        // element, any CSS transform on an ancestor will trap it inside that
+        // ancestor's coordinate system (CSS spec §9.6). Rendering via a direct
+        // child of document.body guarantees true viewport coordinates.
+        if (snapshot.isDragging) {
+          return ReactDOM.createPortal(card, getDragPortal());
+        }
+
+        return card;
+      }}
     </Draggable>
   );
 }

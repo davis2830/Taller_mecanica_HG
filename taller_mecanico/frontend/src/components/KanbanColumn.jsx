@@ -1,26 +1,131 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import KanbanTask from './KanbanTask';
+import { useTheme } from '../context/ThemeContext';
+
+// Config de cada columna — colores separados para dark y light
+const COLUMN_CONFIG = {
+  EN_ESPERA: {
+    headerDark: 'bg-slate-700',
+    headerLight: 'bg-slate-300',
+    dotDark: 'bg-slate-400',
+    dotLight: 'bg-slate-500',
+    labelDark: 'text-white',
+    labelLight: 'text-slate-700',
+    countDark: 'bg-slate-600 text-slate-200',
+    countLight: 'bg-slate-400 text-white',
+    columnBgDark: 'bg-slate-800/60',
+    columnBgLight: 'bg-slate-100',
+    borderDark: 'border-white/10',
+    borderLight: 'border-slate-300',
+    dragOverDark: 'bg-slate-900/30',
+    dragOverLight: 'bg-slate-200/60',
+  },
+  EN_REVISION: {
+    headerDark: 'bg-blue-700',
+    headerLight: 'bg-blue-500',
+    dotDark: 'bg-blue-300',
+    dotLight: 'bg-blue-200',
+    labelDark: 'text-white',
+    labelLight: 'text-white',
+    countDark: 'bg-blue-600 text-blue-100',
+    countLight: 'bg-blue-400 text-white',
+    columnBgDark: 'bg-slate-800/60',
+    columnBgLight: 'bg-white',
+    borderDark: 'border-blue-700/30',
+    borderLight: 'border-blue-300',
+    dragOverDark: 'bg-blue-900/20',
+    dragOverLight: 'bg-blue-50',
+  },
+  ESPERANDO_REPUESTOS: {
+    headerDark: 'bg-amber-600',
+    headerLight: 'bg-amber-500',
+    dotDark: 'bg-amber-300',
+    dotLight: 'bg-amber-200',
+    labelDark: 'text-white',
+    labelLight: 'text-white',
+    countDark: 'bg-amber-500 text-amber-100',
+    countLight: 'bg-amber-400 text-white',
+    columnBgDark: 'bg-slate-800/60',
+    columnBgLight: 'bg-white',
+    borderDark: 'border-amber-600/30',
+    borderLight: 'border-amber-300',
+    dragOverDark: 'bg-amber-900/20',
+    dragOverLight: 'bg-amber-50',
+  },
+  LISTO: {
+    headerDark: 'bg-emerald-700',
+    headerLight: 'bg-emerald-500',
+    dotDark: 'bg-emerald-300',
+    dotLight: 'bg-emerald-200',
+    labelDark: 'text-white',
+    labelLight: 'text-white',
+    countDark: 'bg-emerald-600 text-emerald-100',
+    countLight: 'bg-emerald-400 text-white',
+    columnBgDark: 'bg-slate-800/60',
+    columnBgLight: 'bg-white',
+    borderDark: 'border-emerald-700/30',
+    borderLight: 'border-emerald-300',
+    dragOverDark: 'bg-emerald-900/20',
+    dragOverLight: 'bg-emerald-50',
+  },
+  ENTREGADO: {
+    headerDark: 'bg-purple-700',
+    headerLight: 'bg-purple-500',
+    dotDark: 'bg-purple-300',
+    dotLight: 'bg-purple-200',
+    labelDark: 'text-white',
+    labelLight: 'text-white',
+    countDark: 'bg-purple-600 text-purple-100',
+    countLight: 'bg-purple-400 text-white',
+    columnBgDark: 'bg-slate-800/60',
+    columnBgLight: 'bg-white',
+    borderDark: 'border-purple-700/30',
+    borderLight: 'border-purple-300',
+    dragOverDark: 'bg-purple-900/20',
+    dragOverLight: 'bg-purple-50',
+  },
+};
 
 function KanbanColumn({ column, tasks, onOpen }) {
+  const { isDark } = useTheme();
+  const c = COLUMN_CONFIG[column.id] ?? COLUMN_CONFIG.EN_ESPERA;
+
+  const header    = isDark ? c.headerDark    : c.headerLight;
+  const dot       = isDark ? c.dotDark       : c.dotLight;
+  const label     = isDark ? c.labelDark     : c.labelLight;
+  const count     = isDark ? c.countDark     : c.countLight;
+  const colBg     = isDark ? c.columnBgDark  : c.columnBgLight;
+  const border    = isDark ? c.borderDark    : c.borderLight;
+  const dragOver  = isDark ? c.dragOverDark  : c.dragOverLight;
+  const emptyText = isDark ? 'text-slate-600 border-slate-700/50' : 'text-slate-400 border-slate-300';
+
   return (
-    <div className="flex flex-col w-72 shrink-0 bg-slate-100 rounded-lg p-3">
-      <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center px-2">
-        {column.title} 
-        <span className="ml-2 bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-semibold">
-            {tasks.length}
+    <div className={`flex flex-col w-72 shrink-0 rounded-xl border ${border} ${colBg} shadow-lg`}>
+      {/* Header */}
+      <div className={`${header} rounded-t-xl px-4 py-3 flex items-center justify-between`}>
+        <div className="flex items-center gap-2.5">
+          <span className={`w-2.5 h-2.5 rounded-full ${dot} shrink-0`} />
+          <h3 className={`font-bold text-sm tracking-wide ${label}`}>{column.title}</h3>
+        </div>
+        <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${count}`}>
+          {tasks.length}
         </span>
-      </h3>
-      
+      </div>
+
+      {/* Drop zone */}
       <Droppable droppableId={column.id}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 transition-colors min-h-[150px] rounded-md ${
-              snapshot.isDraggingOver ? 'bg-slate-200' : ''
-            }`}
+            className={`flex-1 min-h-[200px] p-2 rounded-b-xl transition-colors duration-150 ${snapshot.isDraggingOver ? dragOver : ''}`}
           >
+            {tasks.length === 0 && !snapshot.isDraggingOver && (
+              <div className={`flex items-center justify-center h-24 text-xs font-medium italic border-2 border-dashed rounded-lg mx-1 ${emptyText}`}>
+                Sin órdenes aquí
+              </div>
+            )}
             {tasks.map((task, index) => (
               <KanbanTask key={task.id} task={task} index={index} onOpen={onOpen} />
             ))}

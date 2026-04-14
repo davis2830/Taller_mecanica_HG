@@ -504,11 +504,9 @@
     }
 }
 
-.app-sidebar {
-    animation: slideInLeft 0.3s ease-out;
-}
+/* slideInLeft animation removed — it used transform:translateX which corrupts @hello-pangea/dnd coordinate calculations */
 
-/* Transiciones suaves para cambios de tema */
-* {
+/* Targeted sidebar transitions only — avoid * rule that breaks DnD */
+.app-sidebar, .nav-item, .collapse-btn, .theme-toggle-btn, .logout-btn, .user-info {
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
