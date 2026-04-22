@@ -37,10 +37,11 @@ class KanbanBoardView(APIView):
         columns_dict = {
             'EN_ESPERA': {'id': 'EN_ESPERA', 'title': 'En Espera', 'taskIds': []},
             'EN_REVISION': {'id': 'EN_REVISION', 'title': 'En Revisión (Progreso)', 'taskIds': []},
+            'COTIZACION': {'id': 'COTIZACION', 'title': 'Cotización', 'taskIds': []},
             'ESPERANDO_REPUESTOS': {'id': 'ESPERANDO_REPUESTOS', 'title': 'Esperando Repuesto', 'taskIds': []},
             'LISTO': {'id': 'LISTO', 'title': 'Listo para Entrega', 'taskIds': []},
         }
-        column_order = ['EN_ESPERA', 'EN_REVISION', 'ESPERANDO_REPUESTOS', 'LISTO']
+        column_order = ['EN_ESPERA', 'EN_REVISION', 'COTIZACION', 'ESPERANDO_REPUESTOS', 'LISTO']
 
         for orden in ordenes:
             str_id = str(orden.id)
@@ -87,6 +88,8 @@ class ActualizarEstadoOrdenView(APIView):
                 try:
                     if nuevo_estado == 'EN_REVISION' and estado_anterior != 'EN_REVISION':
                         enviar_correo_cita_task.delay(cita.id, 'en_revision')
+                    elif nuevo_estado == 'COTIZACION' and estado_anterior != 'COTIZACION':
+                        enviar_correo_cita_task.delay(cita.id, 'cotizacion')
                     elif nuevo_estado == 'LISTO' and estado_anterior != 'LISTO':
                         enviar_correo_cita_task.delay(cita.id, 'listo')
                 except Exception as e:
@@ -344,6 +347,7 @@ class ProcesarFacturaView(APIView):
 
         return Response({
             'success': True,
+            'id': factura.id,
             'numero_factura': factura.numero_factura,
             'total_general': float(factura.total_general),
             'costo_mano_obra': float(factura.costo_mano_obra),

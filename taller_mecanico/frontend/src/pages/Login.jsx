@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/login.css';
 
@@ -9,6 +10,18 @@ function Login() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [successMessage, setSuccessMessage] = useState('');
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('verificado') === 'true') {
+            setSuccessMessage('¡Felicidades! Tu cuenta ha sido activada correctamente. Ya puedes iniciar sesión.');
+        } else if (params.get('verificado') === 'error') {
+            setError('⚠️ El enlace de activación es inválido o expiró.');
+        }
+    }, [location]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -48,6 +61,12 @@ function Login() {
                             <h1 className="login-form-title">AutoServi Pro</h1>
                             <p className="login-form-subtitle">Sistema de Gestión Integral</p>
                         </div>
+
+                        {successMessage && (
+                            <div className="login-alert" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)', padding: '12px', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                <span>{successMessage}</span>
+                            </div>
+                        )}
 
                         {/* Formulario */}
                         <form className="login-form" onSubmit={handleSubmit}>
@@ -123,7 +142,6 @@ function Login() {
                                     <input type="checkbox" />
                                     <span>Recuerda mis credenciales</span>
                                 </label>
-                                <a href="#" className="login-forgot-link">¿Olvidaste tu contraseña?</a>
                             </div>
 
                             {/* Botón Submit */}
@@ -141,6 +159,13 @@ function Login() {
                                     <polyline points="12 5 19 12 12 19"></polyline>
                                 </svg>
                             </button>
+                            
+                            <div className="mt-6 text-center" style={{ marginTop: '1.5rem' }}>
+                                <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>¿No tienes cuenta? </span>
+                                <button type="button" onClick={() => navigate('/register')} className="login-forgot-link">
+                                    Regístrate aquí
+                                </button>
+                            </div>
                         </form>
 
                         {/* Footer del formulario */}

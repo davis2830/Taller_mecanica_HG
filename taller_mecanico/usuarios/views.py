@@ -90,14 +90,15 @@ def activar_cuenta(request, uidb64, token):
     except(TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
 
+    from django.conf import settings
     if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
         messages.success(request, '¡Felicidades! Tu cuenta ha sido activada y verificada exitosamente. Ya puedes iniciar sesión.')
-        return redirect('login')
+        return redirect(f"{settings.FRONTEND_URL.rstrip('/')}/login?verificado=true")
     else:
         messages.error(request, '⚠️ El enlace de activación es inválido o ya expiró por seguridad. Intenta registrar tu cuenta de nuevo.')
-        return redirect('login')
+        return redirect(f"{settings.FRONTEND_URL.rstrip('/')}/login?verificado=error")
 
 def reenviar_activacion(request):
     if request.method == 'POST':

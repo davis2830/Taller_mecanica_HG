@@ -13,7 +13,8 @@ import {
 const ESTADOS = [
   { value: '',                    label: 'Todos los estados' },
   { value: 'EN_ESPERA',           label: 'En Espera'           },
-  { value: 'EN_REVISION',         label: 'En Revisión'         },
+  { value: 'EN_REVISION',         label: 'En Revisión (Progreso)' },
+  { value: 'COTIZACION',          label: 'Cotización' },
   { value: 'ESPERANDO_REPUESTOS', label: 'Esperando Repuestos' },
   { value: 'LISTO',               label: 'Listo para Entrega'  },
   { value: 'ENTREGADO',           label: 'Entregado'           },
@@ -22,8 +23,9 @@ const ESTADOS = [
 
 const STATE_CFG = {
   EN_ESPERA:           { icon: <Clock size={13} />,        label: 'En Espera',           dark: 'bg-amber-900/40 text-amber-300 border-amber-700/50',   light: 'bg-amber-100 text-amber-700 border-amber-300'   },
-  EN_REVISION:         { icon: <Wrench size={13} />,       label: 'En Revisión',         dark: 'bg-blue-900/40 text-blue-300 border-blue-700/50',       light: 'bg-blue-100 text-blue-700 border-blue-300'      },
-  ESPERANDO_REPUESTOS: { icon: <Package size={13} />,      label: 'Esp. Repuestos',      dark: 'bg-orange-900/40 text-orange-300 border-orange-700/50', light: 'bg-orange-100 text-orange-700 border-orange-300' },
+  EN_REVISION:         { icon: <Wrench size={13} />,       label: 'En Revisión',         dark: 'bg-blue-900/40 text-blue-300 border-blue-700/50',      light: 'bg-blue-100 text-blue-700 border-blue-300'      },
+  COTIZACION:          { icon: <CheckCircle size={13} />,  label: 'Cotización',          dark: 'bg-cyan-900/40 text-cyan-300 border-cyan-700/50',      light: 'bg-cyan-100 text-cyan-700 border-cyan-300'      },
+  ESPERANDO_REPUESTOS: { icon: <Package size={13} />,      label: 'Esp. Repuestos',      dark: 'bg-orange-900/40 text-orange-300 border-orange-700/50',light: 'bg-orange-100 text-orange-700 border-orange-300'},
   LISTO:               { icon: <CheckCircle size={13} />,  label: 'Listo',               dark: 'bg-emerald-900/40 text-emerald-300 border-emerald-700/50',light:'bg-emerald-100 text-emerald-700 border-emerald-300'},
   ENTREGADO:           { icon: <Truck size={13} />,        label: 'Entregado',           dark: 'bg-purple-900/40 text-purple-300 border-purple-700/50', light: 'bg-purple-100 text-purple-700 border-purple-300' },
   CANCELADO:           { icon: <XCircle size={13} />,      label: 'Cancelado',           dark: 'bg-red-900/40 text-red-300 border-red-700/50',         light: 'bg-red-100 text-red-700 border-red-300'         },

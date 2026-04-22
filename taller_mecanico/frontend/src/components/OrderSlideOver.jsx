@@ -18,6 +18,7 @@ const GTQ = (val) => val != null
 const STATE_BADGE = {
   EN_ESPERA:           { label: 'EN ESPERA',           cls: 'bg-amber-100 text-amber-700 border border-amber-300',     dark: 'bg-amber-900/40 text-amber-300 border border-amber-700/50'    },
   EN_REVISION:         { label: 'EN REVISIÓN',         cls: 'bg-blue-100 text-blue-700 border border-blue-300',        dark: 'bg-blue-900/40 text-blue-300 border border-blue-700/50'       },
+  COTIZACION:          { label: 'COTIZACIÓN',          cls: 'bg-cyan-100 text-cyan-700 border border-cyan-300',        dark: 'bg-cyan-900/40 text-cyan-300 border border-cyan-700/50'       },
   ESPERANDO_REPUESTOS: { label: 'ESP. REPUESTOS',      cls: 'bg-orange-100 text-orange-700 border border-orange-300',  dark: 'bg-orange-900/40 text-orange-300 border border-orange-700/50' },
   LISTO:               { label: 'LISTO PARA ENTREGA',  cls: 'bg-emerald-100 text-emerald-700 border border-emerald-300',dark: 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/50'},
   ENTREGADO:           { label: 'ENTREGADO',           cls: 'bg-purple-100 text-purple-700 border border-purple-300',  dark: 'bg-purple-900/40 text-purple-300 border border-purple-700/50'  },
@@ -46,7 +47,7 @@ function ClientModal({ cliente, isOpen, onClose, isDark }) {
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog onClose={onClose} className="relative z-[70]">
+      <Dialog onClose={onClose} className="relative z-[110]">
         <Transition.Child as={Fragment}
           enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100"
           leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0"
@@ -124,7 +125,7 @@ function BillingModal({ orderData, isOpen, onClose, onSuccess, isDark, headers }
   const bd  = isDark ? 'border-slate-700' : 'border-slate-200';
   const inputC = `w-full rounded-lg border text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500/50 ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300'}`;
 
-  const totalRepuestos = orderData?.repuestos?.reduce((s, r) => s + parseFloat(r.subtotal), 0) ?? 0;
+  const totalRepuestos = orderData?.repuestos?.reduce((s, r) => s + (r.cantidad * parseFloat(r.precio_unitario)), 0) ?? 0;
   const precioServicio = parseFloat(orderData?.cita?.servicio?.precio ?? 0);
   const subtotal = totalRepuestos + precioServicio;
   const descuentoNum = parseFloat(descuento) || 0;
@@ -149,7 +150,7 @@ function BillingModal({ orderData, isOpen, onClose, onSuccess, isDark, headers }
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog onClose={onClose} className="relative z-[70]">
+      <Dialog onClose={onClose} className="relative z-[110]">
         <Transition.Child as={Fragment}
           enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100"
           leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0"
@@ -295,6 +296,16 @@ function BillingSuccess({ data, onClose, isDark }) {
           {GTQ(data.total_general)}
         </p>
       </div>
+      <div className="mt-4 flex gap-2">
+        <a 
+          href={`http://localhost:8000/facturacion/imprimir/${data.id}/`} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors"
+        >
+          <Receipt size={15} /> Ver y Descargar Factura
+        </a>
+      </div>
     </div>
   );
 }
@@ -429,7 +440,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
   };
 
   // ── Derived ─────────────────────────────────────────────────────────────────
-  const totalRepuestos = orderData?.repuestos?.reduce((s, r) => s + parseFloat(r.subtotal), 0) ?? 0;
+  const totalRepuestos = orderData?.repuestos?.reduce((s, r) => s + (r.cantidad * parseFloat(r.precio_unitario)), 0) ?? 0;
   const precioServicio = parseFloat(orderData?.cita?.servicio?.precio ?? 0);
   const totalNeto = totalRepuestos + precioServicio;
   const badge = STATE_BADGE[orderData?.estado] ?? STATE_BADGE.EN_ESPERA;
@@ -463,7 +474,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
 
       {/* SlideOver */}
       <Transition.Root show={isOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Dialog as="div" className="relative z-[100]" onClose={onClose}>
           <Transition.Child as={Fragment}
             enter="ease-in-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
             leave="ease-in-out duration-300" leaveFrom="opacity-100" leaveTo="opacity-0"
@@ -620,15 +631,22 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
                                       </span>
                                       <div className="flex-1 min-w-0">
                                         <p className={`text-sm font-semibold truncate ${txt}`}>{rep.producto.nombre}</p>
-                                        <p className={`text-xs ${sub}`}>{GTQ(rep.precio_unitario)} c/u</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className={`text-xs ${sub}`}>{GTQ(rep.precio_unitario)} c/u</p>
+                                            {rep.en_transito && (
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-100/80 text-orange-600 border border-orange-200">
+                                                    📦 PENDIENTE OC
+                                                </span>
+                                            )}
+                                        </div>
                                       </div>
                                       <span className={`text-sm font-black shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                                        {GTQ(rep.subtotal)}
+                                        {GTQ(rep.cantidad * parseFloat(rep.precio_unitario))}
                                       </span>
                                       {canAddParts && (
                                         <button
                                           onClick={() => deletePart(rep.id)}
-                                          disabled={deletingId === rep.id}
+                                          disabled={deletingId === rep.id || rep.en_transito}
                                           className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-40"
                                         >
                                           {deletingId === rep.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
@@ -691,7 +709,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
                                         </div>
                                       )}
                                       {searchOpen && searchQuery && !searching && inventario.length === 0 && (
-                                        <div className={`absolute left-0 right-0 top-[calc(100%+4px)] rounded-xl border shadow-lg z-50 px-4 py-3 text-sm text-center ${isDark ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
+                                        <div className={`absolute left-0 right-0 top-[calc(100%+4px)] rounded-xl border shadow-lg z-[100] px-4 py-3 text-sm text-center ${isDark ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
                                           Sin resultados para «{searchQuery}»
                                         </div>
                                       )}

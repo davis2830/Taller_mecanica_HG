@@ -247,7 +247,6 @@ class OrdenCompraViewSet(viewsets.ModelViewSet):
             cita_taller_id=cita_taller_id if cita_taller_id else None
         )
 
-        
         for d in detalles_data:
             DetalleOrdenCompra.objects.create(
                 orden=orden,
@@ -255,6 +254,22 @@ class OrdenCompraViewSet(viewsets.ModelViewSet):
                 cantidad_solicitada=d.get('cantidad_solicitada'),
                 precio_unitario=d.get('precio_unitario')
             )
+            
+        # [NEW] Integración con Taller: Generar OrdenRepuesto en_transito
+        if cita_taller_id:
+            from taller.models import OrdenTrabajo, OrdenRepuesto
+            ot = OrdenTrabajo.objects.filter(cita_id=cita_taller_id).first()
+            if ot:
+                for d in detalles_data:
+                    prod = Producto.objects.filter(id=d.get('producto')).first()
+                    if prod:
+                        OrdenRepuesto.objects.create(
+                            orden=ot,
+                            producto=prod,
+                            cantidad=d.get('cantidad_solicitada'),
+                            precio_unitario=prod.precio_venta, # Cotizamos al cliente con precio de VENTA
+                            en_transito=True
+                        )
             
         orden.recalcular_total()
         return Response(self.get_serializer(orden).data, status=201)
@@ -298,6 +313,36 @@ class OrdenCompraViewSet(viewsets.ModelViewSet):
                     producto=producto,
                     defaults={'precio_ofrecido': detalle.precio_unitario}
                 )
+                
+                # [NEW] Si esta OC está atada a una OT, deducimos de una vez la pieza usada
+                if orden.cita_taller:
+                    from taller.models import OrdenTrabajo, OrdenRepuesto
+                    ot = OrdenTrabajo.objects.filter(cita=orden.cita_taller).first()
+                    if ot:
+                        # Buscamos el repuesto en tránsito exacto (usamos filter/first por si hay varios del mismo tipo)
+                        repuesto_transito = OrdenRepuesto.objects.filter(orden=ot, producto=producto, en_transito=True).first()
+                        if repuesto_transito:
+                            repuesto_transito.en_transito = False
+                            repuesto_transito.save()
+                            
+                            # Procedemos a extraerlo virtualmente del stock que acaba de entrar
+                            stock_descargado = stock_nuevo - pendiente
+                            if stock_descargado < 0: stock_descargado = 0
+                            
+                            MovimientoInventario.objects.create(
+                                producto=producto,
+                                tipo='SALIDA',
+                                motivo='SERVICIO',
+                                cantidad=pendiente,
+                                precio_unitario=producto.precio_venta,
+                                stock_anterior=stock_nuevo,
+                                stock_nuevo=stock_descargado,
+                                observaciones=f"Auto-consumo por vinculación OC-{orden.id:04d} a OT-{ot.id}",
+                                usuario=request.user,
+                                cita=orden.cita_taller
+                            )
+                            producto.stock_actual = stock_descargado
+                            producto.save()
         
         orden.estado = 'COMPLETA'
         orden.fecha_recepcion = timezone.now()

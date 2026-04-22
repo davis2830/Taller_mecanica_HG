@@ -124,6 +124,7 @@ class CuentaProveedorSerializer(serializers.ModelSerializer):
     proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True)
     pagos = PagoProveedorSerializer(many=True, read_only=True)
     orden_compra_codigo = serializers.SerializerMethodField()
+    saldo_pendiente = serializers.ReadOnlyField()
     
     class Meta:
         model = CuentaProveedor

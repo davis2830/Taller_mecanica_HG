@@ -153,7 +153,7 @@ export default function TabCuentasPagar() {
                                             {c.pagos.length === 0 ? (
                                                 <p className={`text-xs italic ${sub}`}>No hay abonos registrados en esta cuenta.</p>
                                             ) : (
-                                                <div className={`rounded-lg border ${borderC} overflow-hidden bg-white ${isDark ? 'bg-slate-800' : ''}`}>
+                                                <div className={`rounded-lg border ${borderC} overflow-hidden ${isDark ? 'bg-slate-800/80' : 'bg-white'}`}>
                                                     <table className="w-full text-xs">
                                                         <thead>
                                                             <tr className={`border-b ${borderC} ${thdBg}`}>

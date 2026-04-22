@@ -6,6 +6,7 @@
  */
 
 import Login from '../pages/Login';
+import Register from '../pages/Register';
 import Dashboard from '../pages/Dashboard';
 import CitasCalendar from '../pages/CitasCalendar';
 import KanbanBoard from '../pages/KanbanBoard';
@@ -41,6 +42,13 @@ export const routes = [
         private: false,
         layout: false,
         title: 'Iniciar Sesión'
+    },
+    {
+        path: '/register',
+        element: Register,
+        private: false,
+        layout: false,
+        title: 'Crear Cuenta'
     },
     {
         path: '/',

@@ -57,6 +57,7 @@ class OrdenRepuesto(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='usos_orden')
     cantidad = models.PositiveIntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, help_text="Precio al momento de usar el repuesto")
+    en_transito = models.BooleanField(default=False, help_text="Indica si fue agregado desde una Orden de Compra pero no ha llegado")
     fecha_agregado = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

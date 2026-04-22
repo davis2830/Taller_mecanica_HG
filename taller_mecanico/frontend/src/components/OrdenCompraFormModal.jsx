@@ -15,6 +15,7 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
     const [fetchingDeps, setFetchingDeps] = useState(false);
     
     const [proveedores, setProveedores] = useState([]);
+    const [ordenesActivas, setOrdenesActivas] = useState([]);
     
     // Auto-complete custom logic para productos
     const [searchQ, setSearchQ] = useState('');
@@ -49,12 +50,25 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
     const fetchDependencies = async () => {
         setFetchingDeps(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/inventario/proveedores-mini/', {
-                headers: { Authorization: `Bearer ${authTokens?.access}` }
-            });
-            setProveedores(res.data);
+            const config = { headers: { Authorization: `Bearer ${authTokens?.access}` } };
+            // Fetch Proveedores y Kanban
+            const [provRes, kanbanRes] = await Promise.all([
+                axios.get('http://localhost:8000/api/v1/inventario/proveedores/', config),
+                axios.get('http://localhost:8000/api/v1/taller/kanban/', config)
+            ]);
+            setProveedores(provRes.data);
+            
+            if (kanbanRes.data && kanbanRes.data.tasks) {
+                const activeOts = Object.values(kanbanRes.data.tasks).map(ot => ({
+                    id: ot.cita?.id,
+                    orden_id: ot.id,
+                    titulo: `OT-${String(ot.id).padStart(4, '0')} - ${ot.vehiculo?.marca} ${ot.vehiculo?.modelo} (${ot.vehiculo?.placa})`,
+                    estado: ot.estado
+                }));
+                setOrdenesActivas(activeOts.filter(ot => ot.id));
+            }
         } catch (e) {
-            console.error('Error fetching Proveedores', e);
+            console.error('Error fetching dependencies', e);
         }
         setFetchingDeps(false);
     };
@@ -162,7 +176,7 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
     const granTotal = detalles.reduce((acc, d) => acc + (d.cantidad_solicitada * d.precio_unitario), 0);
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
             <div className={`w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] ${bg}`}>
                 
                 <div className="px-6 py-5 border-b flex justify-between items-center shrink-0"
@@ -204,10 +218,24 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                                     <textarea name="observaciones" value={formData.observaciones} onChange={(e) => setFormData({...formData, observaciones: e.target.value})} rows="2" className={`${inputCls} resize-none`} placeholder="Indicaciones para el proveedor..." />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Asociar a Orden de Trabajo # (Opcional)</label>
+                                    <label className={labelCls}>Asociar a Orden de Trabajo Activa (Opcional)</label>
                                     <div className="relative">
-                                        <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-bold text-xs ${sub}`}>OT -</span>
-                                        <input type="number" name="cita_taller" value={formData.cita_taller} onChange={(e) => setFormData({...formData, cita_taller: e.target.value})} className={`${inputCls} pl-10`} placeholder="Ej. 245" />
+                                        <select 
+                                            name="cita_taller"
+                                            value={formData.cita_taller}
+                                            onChange={(e) => setFormData({...formData, cita_taller: e.target.value})}
+                                            className={`${inputCls} appearance-none cursor-pointer`}
+                                        >
+                                            <option value="">-- No asociar a ninguna OT --</option>
+                                            {ordenesActivas.map(ot => (
+                                                <option key={ot.id} value={ot.id}>
+                                                    {ot.titulo} [{ot.estado}]
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -256,11 +284,13 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                                             </div>
                                         </div>
                                     ))}
-                                    {productosBuscados.length === 0 && searchQ.length > 2 && !fetchingProds && (
-                                        <div className="p-4 text-center border-t border-dashed" style={{ borderColor: isDark ? '#334155' : '#cbd5e1' }}>
-                                            <p className={`text-xs mb-3 ${sub}`}>No se encontró el repuesto en catálogo.</p>
-                                            <button type="button" onClick={() => setQuickAddModal(true)} className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 justify-center mx-auto ${isDark ? 'border-orange-500/50 text-orange-400 hover:bg-orange-500/10' : 'border-orange-300 text-orange-600 hover:bg-orange-50'}`}>
-                                                <Plus size={12} /> Añadir Repuesto Rápido
+                                    {searchQ.length > 0 && !fetchingProds && (
+                                        <div className="p-3 text-center border-t border-dashed bg-slate-500/5 mt-1" style={{ borderColor: isDark ? '#334155' : '#cbd5e1' }}>
+                                            {productosBuscados.length === 0 && (
+                                                <p className={`text-xs mb-2 ${sub}`}>No se encontró el repuesto en catálogo.</p>
+                                            )}
+                                            <button type="button" onClick={() => setQuickAddModal(true)} className={`w-full text-xs font-bold px-3 py-2 rounded-lg border flex items-center justify-center gap-2 ${isDark ? 'border-orange-500/50 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20' : 'border-orange-300 bg-orange-50 text-orange-600 hover:bg-orange-100'}`}>
+                                                <Plus size={14} /> Crear Nuevo Repuesto Rápido
                                             </button>
                                         </div>
                                     )}

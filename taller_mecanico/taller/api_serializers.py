@@ -61,7 +61,7 @@ class OrdenRepuestoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = OrdenRepuesto
-        fields = ['id', 'producto', 'cantidad', 'precio_unitario', 'subtotal']
+        fields = ['id', 'producto', 'cantidad', 'precio_unitario', 'en_transito', 'fecha_agregado']
 
 class OrdenTrabajoDetalleSerializer(OrdenTrabajoKanbanSerializer):
     repuestos = OrdenRepuestoSerializer(many=True, read_only=True)

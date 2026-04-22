@@ -120,7 +120,7 @@ export default function ProductoFormModal({ isOpen, onClose, producto, onSaved }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
             <div className={`w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] ${bg}`}>
                 
                 {/* Header */}

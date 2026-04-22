@@ -6,6 +6,7 @@ from decimal import Decimal
 
 class Proveedor(models.Model):
     nombre = models.CharField(max_length=100)
+    nit = models.CharField(max_length=20, blank=True, null=True, verbose_name="NIT / RTU")
     contacto = models.CharField(max_length=100, blank=True, null=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
@@ -280,8 +281,9 @@ class CuentaProveedor(models.Model):
         return self.monto_total - self.monto_pagado
 
     def actualizar_saldos(self):
-        # Sumar los pagos activos
-        total_pagos = sum(pago.monto for pago in self.pagos.all())
+        from django.db.models import Sum
+        # Sumar los pagos activos directamente en SQL para evadir el caché de prefetch_related
+        total_pagos = self.pagos.aggregate(total=Sum('monto'))['total'] or 0
         self.monto_pagado = total_pagos
         
         if self.monto_pagado >= self.monto_total:

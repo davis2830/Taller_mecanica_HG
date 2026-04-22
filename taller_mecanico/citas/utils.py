@@ -91,6 +91,17 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
         color_principal = '#8b5cf6'  # Violeta
         cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
 
+    elif tipo_email == 'cotizacion':
+        emoji = '📝'
+        asunto = f'📝 Cotización de Reparación - Tu Vehículo en AutoServi Pro'
+        titulo = 'Cotización Generada'
+        mensaje_principal = (
+            'Hemos finalizado el diagnóstico y elaborado la cotización de los repuestos necesarios '
+            'para la reparación de tu vehículo. Te invitamos a revisarla y autorizarla para continuar.'
+        )
+        color_principal = '#0ea5e9'  # Cyan / Sky
+        cuando = f"el {formato_fecha_es(cita.fecha)} a las {cita.hora_inicio.strftime('%H:%M')}"
+
     elif tipo_email == 'listo':
         emoji = '🚗'
         asunto = f'🚗 ¡Tu vehículo está listo para recoger! — {cita.servicio.nombre}'
@@ -149,6 +160,34 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
             precio_mostrar += float(cita.orden_trabajo.total_repuestos)
         except Exception:
             pass
+
+    tabla_repuestos = ""
+    if hasattr(cita, 'orden_trabajo') and cita.orden_trabajo and cita.orden_trabajo.repuestos.exists():
+        filas = ""
+        for r in cita.orden_trabajo.repuestos.all():
+            filas += f'''
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #e9ecef; color: #212529;">{r.cantidad}x {r.producto.nombre}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e9ecef; text-align: right; color: #212529;">Q{r.subtotal:.2f}</td>
+            </tr>
+            '''
+        
+        tabla_repuestos = f'''
+        <div style="background-color: #fcfcfc; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 15px 0;">
+            <h4 style="margin: 0 0 15px 0; color: #495057;">🛠 Detalle de Repuestos e Insumos</h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                {filas}
+                <tr>
+                    <td style="padding: 10px 8px 0 8px; font-weight: bold; text-align: right; color: #495057;">Mano de Obra:</td>
+                    <td style="padding: 10px 8px 0 8px; font-weight: bold; text-align: right; color: #495057;">Q{cita.servicio.precio:.2f}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 8px 0 8px; font-weight: bold; text-align: right; color: #495057;">Total a Pagar:</td>
+                    <td style="padding: 4px 8px 0 8px; font-weight: bold; text-align: right; color: {color_principal};">Q{precio_mostrar:.2f}</td>
+                </tr>
+            </table>
+        </div>
+        '''
     
     mensaje_html = f"""
     <html>
@@ -237,6 +276,8 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
                         </tr>
                     </table>
                 </div>
+                
+                {tabla_repuestos}
                 
                 {boton_confirmar}
                 
