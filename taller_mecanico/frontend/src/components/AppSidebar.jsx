@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt, Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart } from 'lucide-react';
+import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt, Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -21,6 +21,8 @@ const ROUTE_SECTION_MAP = {
     '/inventario/compras':      'Inventario',
     '/facturacion':             'Facturación',
     '/reportes/utilidades':     'Reportes',
+    '/sistema/usuarios':        'Sistema',
+    '/sistema/roles':           'Sistema',
 };
 
 const STORAGE_KEY = 'sidebar_expanded';
@@ -211,6 +213,15 @@ export default function AppSidebar() {
             path: '#reportes',
             subItems: [
                 { icon: <BarChart3 size={18} />, label: 'Utilidades', path: '/reportes/utilidades' },
+            ]
+        }] : []),
+        ...(isStaff ? [{
+            icon: <Settings size={20} />,
+            label: 'Sistema',
+            path: '#sistema',
+            subItems: [
+                { icon: <Users size={18} />,  label: 'Usuarios', path: '/sistema/usuarios' },
+                { icon: <Shield size={18} />, label: 'Roles',    path: '/sistema/roles' },
             ]
         }] : []),
     ];

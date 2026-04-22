@@ -5,8 +5,9 @@ from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
 from django.db import transaction
-from .api_serializers import UserSerializer, ClienteSerializer
+from .api_serializers import UserSerializer, ClienteSerializer, RolSerializer
 from .permisos import es_admin_o_secretaria
+from .models import Rol, Perfil
 
 
 class IsAdminOrSecretariaPermission(BasePermission):
@@ -126,3 +127,111 @@ class RegistroUsuarioView(APIView):
             for field, err_list in form.errors.items():
                 errors[field] = err_list[0]
             return Response({'error': 'Errores de validación', 'details': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ─── Gestión de Usuarios (Admin) ─────────────────────────────────────────────
+class IsAdminPermission(BasePermission):
+    message = "Solo los administradores pueden realizar esta acción."
+    def has_permission(self, request, view):
+        return bool(
+            request.user and request.user.is_authenticated and
+            (request.user.is_superuser or request.user.is_staff or
+             (hasattr(request.user, 'perfil') and request.user.perfil.rol and
+              request.user.perfil.rol.nombre == 'Administrador'))
+        )
+
+class UsuarioViewSet(viewsets.ModelViewSet):
+    """
+    CRUD completo de usuarios para el panel de Sistema (solo Admins).
+    GET /api/v1/usuarios/  → lista
+    PATCH /api/v1/usuarios/{id}/ → editar rol
+    DELETE /api/v1/usuarios/{id}/ → eliminar
+    POST /api/v1/usuarios/{id}/toggle_estado/ → activar/desactivar
+    POST /api/v1/usuarios/{id}/asignar_rol/ → cambiar rol
+    """
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminPermission]
+
+    def get_queryset(self):
+        return User.objects.select_related('perfil__rol').order_by('id')
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.id == request.user.id:
+            return Response({'error': 'No puedes eliminar tu propia cuenta.'}, status=status.HTTP_400_BAD_REQUEST)
+        nombre = instance.get_full_name() or instance.username
+        try:
+            from django.db.models.deletion import ProtectedError, RestrictedError
+            instance.delete()
+            return Response({'message': f'Usuario {nombre} eliminado.'}, status=status.HTTP_200_OK)
+        except (ProtectedError, RestrictedError):
+            return Response({'error': f'No se puede eliminar a {nombre} porque tiene registros vinculados.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def toggle_estado(self, request, pk=None):
+        usuario = self.get_object()
+        if usuario.id == request.user.id:
+            return Response({'error': 'No puedes deshabilitarte a ti mismo.'}, status=status.HTTP_400_BAD_REQUEST)
+        usuario.is_active = not usuario.is_active
+        usuario.save()
+        return Response({'is_active': usuario.is_active}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def asignar_rol(self, request, pk=None):
+        usuario = self.get_object()
+        rol_id = request.data.get('rol_id')
+        try:
+            # Usar update() directamente para evitar caché de instancia
+            perfil, _ = Perfil.objects.get_or_create(usuario=usuario)
+            if rol_id:
+                rol = Rol.objects.get(id=rol_id)
+                # Actualizar perfil con el nuevo rol
+                Perfil.objects.filter(pk=perfil.pk).update(rol=rol)
+
+                # Sincronizar is_staff: Administrador → staff, otros → no staff
+                es_admin = rol.nombre == 'Administrador'
+                User.objects.filter(pk=usuario.pk).update(is_staff=es_admin)
+            else:
+                Perfil.objects.filter(pk=perfil.pk).update(rol=None)
+                User.objects.filter(pk=usuario.pk).update(is_staff=False)
+
+            # Recargar el usuario fresco desde la DB (sin caché)
+            usuario_fresco = User.objects.select_related('perfil__rol').get(pk=usuario.pk)
+            return Response(UserSerializer(usuario_fresco).data)
+        except Rol.DoesNotExist:
+            return Response({'error': 'Rol no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ─── Gestión de Roles (Admin) ─────────────────────────────────────────────────
+class RolViewSet(viewsets.ModelViewSet):
+    """
+    CRUD de roles.
+    GET    /api/v1/usuarios/roles/
+    POST   /api/v1/usuarios/roles/
+    PATCH  /api/v1/usuarios/roles/{id}/
+    DELETE /api/v1/usuarios/roles/{id}/
+    """
+    queryset = Rol.objects.all().order_by('nombre')
+    serializer_class = RolSerializer
+    permission_classes = [IsAdminPermission]
+
+    def list(self, request, *args, **kwargs):
+        from django.db.models import Count
+        roles = Rol.objects.annotate(total_usuarios=Count('perfil')).order_by('nombre')
+        # Serialize manually adding total_usuarios
+        data = []
+        for r in roles:
+            data.append({
+                'id': r.id,
+                'nombre': r.nombre,
+                'descripcion': r.descripcion,
+                'total_usuarios': r.total_usuarios,
+            })
+        return Response(data)
+
+    def destroy(self, request, *args, **kwargs):
+        rol = self.get_object()
+        if Perfil.objects.filter(rol=rol).exists():
+            return Response({'error': f'No se puede eliminar: hay usuarios con el rol "{rol.nombre}".'}, status=status.HTTP_400_BAD_REQUEST)
+        rol.delete()
+        return Response({'message': f'Rol "{rol.nombre}" eliminado.'}, status=status.HTTP_200_OK)

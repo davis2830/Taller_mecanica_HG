@@ -24,17 +24,9 @@ import ProductosPage from '../pages/Inventario/ProductosPage';
 import CategoriasPage from '../pages/Inventario/CategoriasPage';
 import MovimientosPage from '../pages/Inventario/MovimientosPage';
 import DashboardComprasPage from '../pages/Inventario/DashboardComprasPage';
+import SistemaUsuariosPage from '../pages/Sistema/SistemaUsuariosPage';
+import SistemaRolesPage from '../pages/Sistema/SistemaRolesPage';
 
-/**
- * Estructura de rutas
- * {
- *   path: string - Ruta de acceso
- *   element: React Component - Componente a renderizar
- *   private: boolean - Si requiere autenticación
- *   layout: boolean - Si usa el layout estándar
- *   title: string - Título de la página
- * }
- */
 export const routes = [
     {
         path: '/login',
@@ -161,6 +153,20 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Compras y Proveedores'
+    },
+    {
+        path: '/sistema/usuarios',
+        element: SistemaUsuariosPage,
+        private: true,
+        layout: true,
+        title: 'Gestión de Usuarios'
+    },
+    {
+        path: '/sistema/roles',
+        element: SistemaRolesPage,
+        private: true,
+        layout: true,
+        title: 'Gestión de Roles'
     },
 ];
 
