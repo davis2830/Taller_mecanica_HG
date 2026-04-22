@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt } from 'lucide-react';
+import { BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight, List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt, Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -15,6 +15,10 @@ const ROUTE_SECTION_MAP = {
     '/kanban':                  'Taller',
     '/citas/servicios':         'Taller',
     '/taller/historial':        'Taller',
+    '/inventario/productos':    'Inventario',
+    '/inventario/categorias':   'Inventario',
+    '/inventario/movimientos':  'Inventario',
+    '/inventario/compras':      'Inventario',
     '/facturacion':             'Facturación',
     '/reportes/utilidades':     'Reportes',
 };
@@ -102,6 +106,17 @@ export default function AppSidebar() {
                 { icon: <Receipt size={18} />, label: 'Lista de Facturas', path: '/facturacion' },
             ]
         }] : []),
+        {
+            icon: <Package size={20} />,
+            label: 'Inventario',
+            path: '#inventario',
+            subItems: [
+                { icon: <Archive size={18} />, label: 'Productos', path: '/inventario/productos' },
+                { icon: <LayoutList size={18} />, label: 'Categorías', path: '/inventario/categorias' },
+                { icon: <ArrowRightLeft size={18} />, label: 'Movimientos', path: '/inventario/movimientos' },
+                { icon: <ShoppingCart size={18} />, label: 'Compras y Proveedores', path: '/inventario/compras' },
+            ]
+        },
         ...(isStaff ? [{
             icon: <TrendingUp size={20} />,
             label: 'Reportes',

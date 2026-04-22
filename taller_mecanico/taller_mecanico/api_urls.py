@@ -10,6 +10,7 @@ urlpatterns = [
     path('usuarios/', include('usuarios.api_urls')),
     path('taller/', include('taller.api_urls')),
     path('facturacion/', include('facturacion.api_urls')),
+    path('inventario/', include('inventario.api_urls')),
     # Citas, Vehículos, Recepciones (prefijos definidos dentro de citas/api_urls.py)
     path('', include('citas.api_urls')),
 ]

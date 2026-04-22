@@ -19,6 +19,10 @@ import BoletaRecepcionPage from '../pages/Citas/BoletaRecepcionPage';
 import ReporteUtilidades from '../pages/Reportes/ReporteUtilidades';
 import HistorialOrdenesPage from '../pages/Taller/HistorialOrdenesPage';
 import FacturasPage from '../pages/Facturacion/FacturasPage';
+import ProductosPage from '../pages/Inventario/ProductosPage';
+import CategoriasPage from '../pages/Inventario/CategoriasPage';
+import MovimientosPage from '../pages/Inventario/MovimientosPage';
+import DashboardComprasPage from '../pages/Inventario/DashboardComprasPage';
 
 /**
  * Estructura de rutas
@@ -121,6 +125,34 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Facturación'
+    },
+    {
+        path: '/inventario/productos',
+        element: ProductosPage,
+        private: true,
+        layout: true,
+        title: 'Catálogo de Inventario'
+    },
+    {
+        path: '/inventario/categorias',
+        element: CategoriasPage,
+        private: true,
+        layout: true,
+        title: 'Categorías de Inventario'
+    },
+    {
+        path: '/inventario/movimientos',
+        element: MovimientosPage,
+        private: true,
+        layout: true,
+        title: 'Movimientos de Inventario'
+    },
+    {
+        path: '/inventario/compras',
+        element: DashboardComprasPage,
+        private: true,
+        layout: true,
+        title: 'Compras y Proveedores'
     },
 ];
 
