@@ -42,6 +42,14 @@ class Producto(models.Model):
     tipo = models.CharField(max_length=15, choices=TIPOS)
     categoria = models.ForeignKey(CategoriaProducto, on_delete=models.SET_NULL, null=True, blank=True)
     proveedor_principal = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    CALIDADES = (
+        ('ORIGINAL', 'Original'),
+        ('OEM', 'OEM'),
+        ('GENERICO', 'Genérico'),
+    )
+    marca = models.CharField(max_length=50, blank=True, null=True)
+    calidad = models.CharField(max_length=20, choices=CALIDADES, blank=True, null=True)
     precio_compra = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stock_minimo = models.PositiveIntegerField(default=5)
@@ -203,6 +211,11 @@ class OrdenCompra(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     observaciones = models.TextField(blank=True, null=True)
     creada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='ordenes_compra_creadas')
+    
+    # NUEVOS CAMPOS (FASE 4.1)
+    cita_taller = models.ForeignKey('citas.Cita', on_delete=models.SET_NULL, null=True, blank=True, related_name='ordenes_compra')
+    motivo_cancelacion = models.TextField(blank=True, null=True)
+    cancelada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ordenes_canceladas')
     
     def __str__(self):
         return f"OC-{self.id:04d} - {self.proveedor.nombre}"

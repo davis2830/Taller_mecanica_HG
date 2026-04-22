@@ -24,7 +24,7 @@ class ProductoSerializer(serializers.ModelSerializer):
 class ProductoListSerializer(ProductoSerializer):
     class Meta(ProductoSerializer.Meta):
         fields = [
-            'id', 'codigo', 'nombre', 'tipo', 'precio_venta', 'precio_compra',
+            'id', 'codigo', 'nombre', 'marca', 'calidad', 'tipo', 'precio_venta', 'precio_compra',
             'stock_actual', 'stock_minimo', 'unidad_medida', 'necesita_reposicion',
             'activo', 'categoria_nombre', 'proveedor_nombre', 'valor_inventario'
         ]
@@ -72,26 +72,40 @@ class ProveedorSerializer(serializers.ModelSerializer):
 class DetalleOrdenCompraSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
     producto_codigo = serializers.CharField(source='producto.codigo', read_only=True)
+    producto_calidad = serializers.CharField(source='producto.calidad', read_only=True)
+    producto_marca = serializers.CharField(source='producto.marca', read_only=True)
     
     class Meta:
         model = DetalleOrdenCompra
-        fields = ['id', 'producto', 'producto_nombre', 'producto_codigo', 'cantidad_solicitada', 'cantidad_recibida', 'precio_unitario', 'subtotal']
+        fields = ['id', 'producto', 'producto_nombre', 'producto_codigo', 'producto_calidad', 'producto_marca', 'cantidad_solicitada', 'cantidad_recibida', 'precio_unitario', 'subtotal']
         read_only_fields = ['subtotal', 'cantidad_recibida']
 
 class OrdenCompraSerializer(serializers.ModelSerializer):
     proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True)
     detalles = DetalleOrdenCompraSerializer(many=True, read_only=True)
     creada_por_nombre = serializers.SerializerMethodField()
+    cancelada_por_nombre = serializers.SerializerMethodField()
+    cita_taller_descripcion = serializers.SerializerMethodField()
 
     class Meta:
         model = OrdenCompra
         fields = '__all__'
-        read_only_fields = ['total', 'estado', 'fecha_recepcion', 'creada_por']
+        read_only_fields = ['total', 'estado', 'fecha_recepcion', 'creada_por', 'cancelada_por']
         
     def get_creada_por_nombre(self, obj):
         if obj.creada_por:
             return f"{obj.creada_por.first_name} {obj.creada_por.last_name}".strip() or obj.creada_por.username
         return "Sistema"
+
+    def get_cancelada_por_nombre(self, obj):
+        if obj.cancelada_por:
+            return f"{obj.cancelada_por.first_name} {obj.cancelada_por.last_name}".strip() or obj.cancelada_por.username
+        return None
+
+    def get_cita_taller_descripcion(self, obj):
+        if obj.cita_taller:
+            return f"OT-{obj.cita_taller.id:04d} ({obj.cita_taller.vehiculo.placa})"
+        return None
 
 class PagoProveedorSerializer(serializers.ModelSerializer):
     registrado_por_nombre = serializers.SerializerMethodField()

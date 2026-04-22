@@ -7,6 +7,7 @@ class OrdenTrabajo(models.Model):
     ESTADO_CHOICES = [
         ('EN_ESPERA', 'En Espera'),
         ('EN_REVISION', 'En Revisión'),
+        ('COTIZACION', 'Cotización Enviada'),
         ('ESPERANDO_REPUESTOS', 'Esperando Repuestos'),
         ('LISTO', 'Listo para Entrega'),
         ('ENTREGADO', 'Entregado'),
@@ -29,7 +30,7 @@ class OrdenTrabajo(models.Model):
         # Sincronización automática de Citas y Kanban
         if self.cita:
             # Si el auto ya está en el taller o bajo revisión, aseguramos que la cita diga CONFIRMADA
-            if self.estado in ['EN_ESPERA', 'EN_REVISION', 'ESPERANDO_REPUESTOS']:
+            if self.estado in ['EN_ESPERA', 'EN_REVISION', 'COTIZACION', 'ESPERANDO_REPUESTOS']:
                 if self.cita.estado in ['PENDIENTE', 'COMPLETADA', 'LISTO']:
                     self.cita.estado = 'CONFIRMADA'
                     self.cita.save()

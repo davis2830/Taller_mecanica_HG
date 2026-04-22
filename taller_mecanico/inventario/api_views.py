@@ -237,9 +237,16 @@ class OrdenCompraViewSet(viewsets.ModelViewSet):
         if not detalles_data:
             return Response({'error': 'Una orden de compra debe tener al menos un detalle.'}, status=400)
             
+        cita_taller_id = request.data.get('cita_taller')
+            
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        orden = serializer.save(creada_por=request.user, estado='SOLICITADA')
+        orden = serializer.save(
+            creada_por=request.user, 
+            estado='SOLICITADA',
+            cita_taller_id=cita_taller_id if cita_taller_id else None
+        )
+
         
         for d in detalles_data:
             DetalleOrdenCompra.objects.create(
@@ -309,5 +316,64 @@ class OrdenCompraViewSet(viewsets.ModelViewSet):
                 }
             )
             
+        return Response(self.get_serializer(orden).data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def cancelar(self, request, pk=None):
+        orden = self.get_object()
+        motivo = request.data.get('motivo_cancelacion')
+        
+        if orden.estado == 'CANCELADA':
+            return Response({'error': 'La orden ya se encuentra cancelada.'}, status=400)
+            
+        if not motivo:
+            return Response({'error': 'Debe proveer un motivo de cancelación.'}, status=400)
+            
+        estado_previo = orden.estado
+
+        # Si ya se había recibido mercancía, revertir inventario
+        if estado_previo in ['COMPLETA', 'PARCIAL']:
+            for detalle in orden.detalles.all():
+                if detalle.cantidad_recibida > 0:
+                    producto = detalle.producto
+                    stock_anterior = producto.stock_actual
+                    stock_nuevo = stock_anterior - detalle.cantidad_recibida
+                    
+                    if stock_nuevo < 0:
+                        stock_nuevo = 0
+                        
+                    MovimientoInventario.objects.create(
+                        producto=producto,
+                        tipo='SALIDA',
+                        motivo='ANULACION_COMPRA',
+                        cantidad=detalle.cantidad_recibida,
+                        precio_unitario=detalle.precio_unitario,
+                        stock_anterior=stock_anterior,
+                        stock_nuevo=stock_nuevo,
+                        observaciones=f"Reversión por anulación OC-{orden.id:04d}. Motivo: {motivo}",
+                        usuario=request.user
+                    )
+                    
+                    producto.stock_actual = stock_nuevo
+                    producto.save()
+                    
+            # Anular cuenta por pagar si existe y no tiene pagos
+            cuentas = CuentaProveedor.objects.filter(orden_compra=orden)
+            for cuenta in cuentas:
+                if cuenta.estado == 'PENDIENTE' and cuenta.monto_pagado == 0:
+                    cuenta.estado = 'CANCELADO'
+                    cuenta.observaciones = f"{cuenta.observaciones}\nAnulada por cancelación de OC."
+                    cuenta.save()
+                else:
+                    # Alertar pero no impedir la cancelación de la OC. Se requiere intervención manual.
+                    cuenta.observaciones = f"{cuenta.observaciones}\nCUIDADO: La OC fue cancelada pero esta cuenta tiene abonos."
+                    cuenta.save()
+                    
+        orden.estado = 'CANCELADA'
+        orden.motivo_cancelacion = motivo
+        orden.cancelada_por = request.user
+        orden.save()
+        
         return Response(self.get_serializer(orden).data)
 

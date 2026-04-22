@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { AuthContext } from '../../../context/AuthContext';
 import axios from 'axios';
-import { Plus, RefreshCw, Loader2, Download, PackageCheck, ShoppingCart, Calendar, User, Search, Filter, AlertTriangle } from 'lucide-react';
+import { Plus, RefreshCw, Loader2, Download, PackageCheck, ShoppingCart, Calendar, User, Search, Filter, AlertTriangle, Ban } from 'lucide-react';
 import OrdenCompraFormModal from '../../../components/OrdenCompraFormModal';
 
 const GTQ = (v) => v != null ? new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(v) : 'Q0.00';
@@ -25,6 +25,11 @@ export default function TabOrdenesCompra() {
     // Confirmación modal de Recepción
     const [confirmModalData, setConfirmModalData] = useState(null);
     const [receiving, setReceiving] = useState(null); // id of order being received
+
+    // Confirmación modal de Cancelación
+    const [cancelModalData, setCancelModalData] = useState(null);
+    const [motivoCancelacion, setMotivoCancelacion] = useState('');
+    const [canceling, setCanceling] = useState(null);
 
     const headers = { Authorization: `Bearer ${authTokens?.access}` };
 
@@ -61,6 +66,30 @@ export default function TabOrdenesCompra() {
         }
         setReceiving(null);
         setConfirmModalData(null);
+    };
+
+    const promptCancelar = (e, id) => {
+        e.stopPropagation();
+        setCancelModalData(id);
+        setMotivoCancelacion('');
+    };
+
+    const handleCancelarConfirm = async () => {
+        if (!cancelModalData) return;
+        if (!motivoCancelacion.trim()) return alert("Debe ingresar el motivo de anulación.");
+
+        setCanceling(cancelModalData);
+        try {
+            await axios.post(`http://localhost:8000/api/v1/inventario/ordenes-compra/${cancelModalData}/cancelar/`, {
+                motivo_cancelacion: motivoCancelacion
+            }, { headers });
+            fetchOrdenes();
+        } catch (error) {
+            console.error(error);
+            alert("Error al anular la orden. Verifique consola.");
+        }
+        setCanceling(null);
+        setCancelModalData(null);
     };
 
     const StatusBadge = ({ status }) => {
@@ -155,6 +184,7 @@ export default function TabOrdenesCompra() {
                                         <div>
                                             <p className={`text-[10px] font-black uppercase ${sub}`}>OC-{oc.id.toString().padStart(4, '0')}</p>
                                             <p className={`font-bold text-lg ${txt}`}>{oc.proveedor_nombre}</p>
+                                            {oc.cita_taller_descripcion && <p className={`text-xs mt-1 font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{oc.cita_taller_descripcion}</p>}
                                         </div>
                                         <div className="hidden md:block">
                                             <p className={`text-[10px] uppercase font-bold ${sub}`}>Fecha Emisión</p>
@@ -180,16 +210,29 @@ export default function TabOrdenesCompra() {
                                     <div className={`border-t ${borderC} ${isDark ? 'bg-slate-900/50' : 'bg-slate-50/50'} p-4`}>
                                         <div className="flex justify-between items-center mb-4">
                                             <h4 className={`text-sm font-bold uppercase tracking-wider ${sub}`}>Detalle de Productos Solicitados</h4>
-                                            {['SOLICITADA', 'PARCIAL'].includes(oc.estado) && (
-                                                <button 
-                                                    onClick={(e) => promptRecepcionar(e, oc.id)}
-                                                    disabled={receiving === oc.id}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 disabled:opacity-50"
-                                                >
-                                                    {receiving === oc.id ? <Loader2 size={14} className="animate-spin" /> : <PackageCheck size={14} />}
-                                                    Recibir Todo (Completar OC)
-                                                </button>
-                                            )}
+                                            
+                                            <div className="flex items-center gap-2">
+                                                {['SOLICITADA', 'PARCIAL', 'COMPLETA'].includes(oc.estado) && (
+                                                    <button 
+                                                        onClick={(e) => promptCancelar(e, oc.id)}
+                                                        disabled={canceling === oc.id}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-md shadow-rose-500/20 disabled:opacity-50"
+                                                    >
+                                                        {canceling === oc.id ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                                                        Anular
+                                                    </button>
+                                                )}
+                                                {['SOLICITADA', 'PARCIAL'].includes(oc.estado) && (
+                                                    <button 
+                                                        onClick={(e) => promptRecepcionar(e, oc.id)}
+                                                        disabled={receiving === oc.id}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 disabled:opacity-50"
+                                                    >
+                                                        {receiving === oc.id ? <Loader2 size={14} className="animate-spin" /> : <PackageCheck size={14} />}
+                                                        Recibir Todo
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className={`rounded-xl border ${borderC} overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
                                             <table className="w-full text-xs">
@@ -221,6 +264,13 @@ export default function TabOrdenesCompra() {
                                                 </tbody>
                                             </table>
                                         </div>
+
+                                        {oc.estado === 'CANCELADA' && oc.motivo_cancelacion && (
+                                            <div className={`mt-4 p-3 rounded-lg text-xs font-semibold ${isDark ? 'bg-rose-500/10 text-rose-300' : 'bg-rose-50 text-rose-800'}`}>
+                                                <span className="font-bold uppercase tracking-wider mr-2">Motivo Anulación:</span> {oc.motivo_cancelacion}
+                                                <span className="ml-3 italic opacity-75">(Cancelado por {oc.cancelada_por_nombre || 'Sistema'})</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -255,6 +305,50 @@ export default function TabOrdenesCompra() {
                                     className="flex-1 py-2 rounded-xl text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20"
                                 >
                                     Confirmar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Confirm Modal */}
+            {cancelModalData && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                    <div className={`w-full max-w-md rounded-2xl shadow-2xl p-6 relative ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'}`}>
+                        <div className="flex flex-col items-center text-center gap-4">
+                            <div className={`p-4 rounded-full ${isDark ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}>
+                                <Ban size={36} />
+                            </div>
+                            <div>
+                                <h3 className={`text-lg font-black ${txt}`}>¿Anular Órden de Compra?</h3>
+                                <p className={`mt-2 text-sm ${sub}`}>
+                                    Esta acción es irreversible. Se liberará el stock ingresado si ya fue recibida.
+                                </p>
+                            </div>
+                            <div className="w-full text-left mt-2">
+                                <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Motivo de la Anulación *</label>
+                                <textarea 
+                                    rows="3"
+                                    value={motivoCancelacion}
+                                    onChange={(e) => setMotivoCancelacion(e.target.value)}
+                                    placeholder="Explica qué ocurrió..."
+                                    className={`w-full rounded-xl border text-sm px-3 py-2.5 outline-none resize-none transition-colors ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                                />
+                            </div>
+                            <div className="flex gap-3 mt-2 w-full">
+                                <button 
+                                    onClick={() => setCancelModalData(null)}
+                                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={handleCancelarConfirm}
+                                    disabled={!motivoCancelacion.trim()}
+                                    className="flex-1 py-2 rounded-xl text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                                >
+                                    Confirmar Anulación
                                 </button>
                             </div>
                         </div>

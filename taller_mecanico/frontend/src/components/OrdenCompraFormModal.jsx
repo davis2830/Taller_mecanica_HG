@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { X, ShoppingCart, Loader2, Save, Search, Plus, Trash2, Package } from 'lucide-react';
+import { X, ShoppingCart, Loader2, Save, Search, Plus, Trash2, Package, Tag, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import ProductoFormModal from './ProductoFormModal';
 
 const GTQ = (v) => v != null ? new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(v) : 'Q0.00';
 
@@ -23,10 +24,12 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
     const [formData, setFormData] = useState({
         proveedor: '',
         fecha_esperada: '',
-        observaciones: ''
+        observaciones: '',
+        cita_taller: ''
     });
 
     const [detalles, setDetalles] = useState([]);
+    const [quickAddModal, setQuickAddModal] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -34,7 +37,8 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
             setFormData({
                 proveedor: '',
                 fecha_esperada: '',
-                observaciones: ''
+                observaciones: '',
+                cita_taller: ''
             });
             setDetalles([]);
             setSearchQ('');
@@ -97,6 +101,8 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                 producto: p.id, 
                 nombre: p.nombre, 
                 codigo: p.codigo,
+                marca: p.marca || '',
+                calidad: p.calidad || '',
                 cantidad_solicitada: 1, 
                 precio_unitario: p.precio_compra 
             }
@@ -145,6 +151,14 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
         setLoading(false);
     };
 
+    const handleClose = () => {
+        if (detalles.length > 0 || formData.proveedor) {
+            const warn = window.confirm("¿Seguro que deseas salir? Se perderán los datos ingresados en esta orden.");
+            if (!warn) return;
+        }
+        onClose();
+    };
+
     const granTotal = detalles.reduce((acc, d) => acc + (d.cantidad_solicitada * d.precio_unitario), 0);
 
     return (
@@ -162,7 +176,7 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                             <p className={`text-xs ${sub}`}>Solicitud de mercancía a proveedor</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
+                    <button onClick={handleClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
                         <X size={20} />
                     </button>
                 </div>
@@ -186,13 +200,21 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                                     <input type="date" name="fecha_esperada" value={formData.fecha_esperada} onChange={(e) => setFormData({...formData, fecha_esperada: e.target.value})} className={inputCls} />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Observaciones (Opcional)</label>
-                                    <textarea name="observaciones" value={formData.observaciones} onChange={(e) => setFormData({...formData, observaciones: e.target.value})} rows="4" className={`${inputCls} resize-none`} placeholder="Indicaciones para el proveedor..." />
+                                    <label className={labelCls}>Observaciones / Motivo</label>
+                                    <textarea name="observaciones" value={formData.observaciones} onChange={(e) => setFormData({...formData, observaciones: e.target.value})} rows="2" className={`${inputCls} resize-none`} placeholder="Indicaciones para el proveedor..." />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Asociar a Orden de Trabajo # (Opcional)</label>
+                                    <div className="relative">
+                                        <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-bold text-xs ${sub}`}>OT -</span>
+                                        <input type="number" name="cita_taller" value={formData.cita_taller} onChange={(e) => setFormData({...formData, cita_taller: e.target.value})} className={`${inputCls} pl-10`} placeholder="Ej. 245" />
+                                    </div>
                                 </div>
                                 
                                 <div className={`p-4 rounded-xl mt-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     <p className={`text-xs font-bold uppercase mb-1 ${sub}`}>Total Estimado</p>
                                     <p className={`text-3xl font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{GTQ(granTotal)}</p>
+                                    <p className={`text-[10px] uppercase font-bold mt-2 flex items-center gap-1 ${sub}`}><AlertCircle size={10} /> Base + IVA = Total (Incluye IVA)</p>
                                 </div>
                             </>
                         )}
@@ -222,7 +244,11 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                                              className={`px-4 py-2.5 cursor-pointer flex justify-between items-center transition-colors ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                                             <div>
                                                 <p className={`text-sm font-bold ${text}`}>{p.nombre}</p>
-                                                <p className={`text-[10px] ${sub}`}>{p.codigo}</p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <p className={`text-[10px] ${sub}`}>{p.codigo}</p>
+                                                    {p.calidad && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-600'}`}>{p.calidad}</span>}
+                                                    {p.marca && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-600'}`}>{p.marca}</span>}
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className={`text-xs ${sub}`}>Stock: {p.stock_actual}</span>
@@ -230,6 +256,14 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                                             </div>
                                         </div>
                                     ))}
+                                    {productosBuscados.length === 0 && searchQ.length > 2 && !fetchingProds && (
+                                        <div className="p-4 text-center border-t border-dashed" style={{ borderColor: isDark ? '#334155' : '#cbd5e1' }}>
+                                            <p className={`text-xs mb-3 ${sub}`}>No se encontró el repuesto en catálogo.</p>
+                                            <button type="button" onClick={() => setQuickAddModal(true)} className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 justify-center mx-auto ${isDark ? 'border-orange-500/50 text-orange-400 hover:bg-orange-500/10' : 'border-orange-300 text-orange-600 hover:bg-orange-50'}`}>
+                                                <Plus size={12} /> Añadir Repuesto Rápido
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -257,7 +291,10 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                                             <tr key={index} className={isDark ? 'bg-slate-900/50' : 'bg-white'}>
                                                 <td className="px-4 py-3">
                                                     <p className={`font-bold ${text}`}>{d.nombre}</p>
-                                                    <p className={`text-[10px] font-mono ${sub}`}>{d.codigo}</p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <p className={`text-[10px] font-mono ${sub}`}>{d.codigo}</p>
+                                                        {d.calidad && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${isDark ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-500'}`}>{d.calidad}</span>}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <input 
@@ -296,7 +333,7 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
 
                 <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0 bg-black/5"
                      style={{ borderColor: isDark ? '#1e293b' : '#e2e8f0' }}>
-                    <button type="button" onClick={onClose} disabled={loading}
+                    <button type="button" onClick={handleClose} disabled={loading}
                         className={`px-4 py-2 text-sm font-semibold rounded-xl border transition-colors ${
                             isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}>Cancelar</button>
@@ -307,6 +344,17 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
                     </button>
                 </div>
             </div>
+
+            {quickAddModal && (
+                <ProductoFormModal 
+                    isOpen={true} 
+                    onClose={() => setQuickAddModal(false)}
+                    onSaved={() => {
+                        setQuickAddModal(false);
+                        // Truco para re-trigger visual: cambiar algo inane o notificar. 
+                    }}
+                />
+            )}
         </div>
     );
 }
