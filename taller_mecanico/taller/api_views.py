@@ -510,3 +510,165 @@ class ReporteUtilidadesView(APIView):
                 'categoria_id': categoria_id,
             }
         })
+
+
+# ─── Dashboard Operativo ───────────────────────────────────────────────────────
+class DashboardView(APIView):
+    """
+    Endpoint de agregación que calcula todos los KPIs del dashboard en
+    una sola llamada. Optimizado con aggregate() para evitar N+1 queries.
+    GET /api/v1/taller/dashboard/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.utils import timezone
+        from django.db.models import DurationField
+        from citas.models import Cita
+        from facturacion.models import Factura
+        from inventario.models import Producto, OrdenCompra, CuentaProveedor
+
+        now   = timezone.now()
+        today = now.date()
+        mes   = now.month
+        anio  = now.year
+
+        # ── 1. Órdenes activas en taller ─────────────────────────────────────
+        estados_activos = ['EN_ESPERA', 'EN_REVISION', 'COTIZACION', 'ESPERANDO_REPUESTOS']
+        ordenes_activas = OrdenTrabajo.objects.filter(estado__in=estados_activos).count()
+        listos_entrega  = OrdenTrabajo.objects.filter(estado='LISTO').count()
+
+        # ── 2. Pipeline: distribución por estado ──────────────────────────────
+        pipeline_qs = (
+            OrdenTrabajo.objects
+            .exclude(estado__in=['ENTREGADO', 'CANCELADO'])
+            .values('estado')
+            .annotate(total=Count('id'))
+        )
+        pipeline = {item['estado']: item['total'] for item in pipeline_qs}
+
+        ORDEN_PIPELINE = ['EN_ESPERA', 'EN_REVISION', 'COTIZACION', 'ESPERANDO_REPUESTOS', 'LISTO']
+        LABELS_PIPELINE = {
+            'EN_ESPERA':            'Recibido',
+            'EN_REVISION':          'Diagnóstico',
+            'COTIZACION':           'Cotización',
+            'ESPERANDO_REPUESTOS':  'Esperando Repuestos',
+            'LISTO':                'Listo',
+        }
+        pipeline_data = [
+            {'estado': e, 'label': LABELS_PIPELINE[e], 'total': pipeline.get(e, 0)}
+            for e in ORDEN_PIPELINE
+        ]
+
+        # ── 3. Promedio de días en taller (activas) ───────────────────────────
+        promedio_dias = 0
+        try:
+            ots_activas = OrdenTrabajo.objects.filter(estado__in=estados_activos)
+            if ots_activas.exists():
+                total_dias = sum(
+                    (now - ot.fecha_creacion).days
+                    for ot in ots_activas.only('fecha_creacion')
+                )
+                promedio_dias = round(total_dias / ots_activas.count(), 1)
+        except Exception:
+            promedio_dias = 0
+
+        # ── 4. Citas de hoy ───────────────────────────────────────────────────
+        citas_hoy_qs = (
+            Cita.objects
+            .filter(fecha=today, estado__in=['PENDIENTE', 'CONFIRMADA'])
+            .select_related('vehiculo', 'cliente', 'servicio')
+            .order_by('hora_inicio')
+        )
+        citas_hoy = [
+            {
+                'id':        c.id,
+                'hora':      c.hora_inicio.strftime('%H:%M'),
+                'cliente':   f"{c.cliente.first_name} {c.cliente.last_name}".strip() or c.cliente.username,
+                'vehiculo':  f"{c.vehiculo.marca} {c.vehiculo.modelo} ({c.vehiculo.placa})",
+                'servicio':  c.servicio.nombre,
+                'estado':    c.estado,
+            }
+            for c in citas_hoy_qs
+        ]
+
+        # ── 5. Ingresos del mes (facturas emitidas) ───────────────────────────
+        ingresos_mes_agg = Factura.objects.filter(
+            estado='EMITIDA',
+            fecha_emision__year=anio,
+            fecha_emision__month=mes
+        ).aggregate(
+            total=Sum(F('costo_mano_obra') + F('costo_repuestos') - F('descuento'))
+        )
+        ingresos_mes = float(ingresos_mes_agg['total'] or 0)
+
+        # ── 6. OC pendientes ──────────────────────────────────────────────────
+        oc_pendiente_agg = OrdenCompra.objects.filter(
+            estado__in=['BORRADOR', 'SOLICITADA', 'PARCIAL']
+        ).aggregate(
+            count=Count('id'),
+            valor=Sum('total')
+        )
+        oc_count = oc_pendiente_agg['count'] or 0
+        oc_valor = float(oc_pendiente_agg['valor'] or 0)
+
+        # ── 7. Deuda total a proveedores (CuentaProveedor) ────────────────────
+        deuda_agg = CuentaProveedor.objects.filter(
+            estado__in=['PENDIENTE', 'PARCIAL']
+        ).aggregate(
+            total_deuda=Sum(F('monto_total') - F('monto_pagado'))
+        )
+        deuda_proveedores = float(deuda_agg['total_deuda'] or 0)
+
+        # ── 8. Inventario ─────────────────────────────────────────────────────
+        productos_activos = Producto.objects.filter(activo=True)
+
+        # Valor total en bodega
+        valor_inventario_agg = productos_activos.aggregate(
+            valor=Sum(ExpressionWrapper(F('stock_actual') * F('precio_compra'), output_field=DecimalField()))
+        )
+        valor_inventario = float(valor_inventario_agg['valor'] or 0)
+
+        # Productos bajo stock mínimo (top 10 para la lista)
+        stock_bajo_qs = (
+            productos_activos
+            .filter(stock_actual__lte=F('stock_minimo'))
+            .only('codigo', 'nombre', 'stock_actual', 'stock_minimo', 'unidad_medida')
+            .order_by('stock_actual')[:10]
+        )
+        stock_bajo = [
+            {
+                'codigo':       p.codigo,
+                'nombre':       p.nombre,
+                'stock_actual': p.stock_actual,
+                'stock_minimo': p.stock_minimo,
+                'unidad':       p.unidad_medida,
+                'pct':          round((p.stock_actual / p.stock_minimo * 100) if p.stock_minimo > 0 else 0),
+            }
+            for p in stock_bajo_qs
+        ]
+        total_alertas_stock = productos_activos.filter(stock_actual__lte=F('stock_minimo')).count()
+
+        # ── Respuesta unificada ───────────────────────────────────────────────
+        return Response({
+            'meta': {
+                'generado_en': now.isoformat(),
+                'fecha_hoy':   str(today),
+                'mes':         f"{mes}/{anio}",
+            },
+            'kpis': {
+                'ordenes_activas':   ordenes_activas,
+                'listos_entrega':    listos_entrega,
+                'promedio_dias':     promedio_dias,
+                'citas_hoy_count':   len(citas_hoy),
+                'ingresos_mes':      ingresos_mes,
+                'oc_count':          oc_count,
+                'oc_valor':          oc_valor,
+                'deuda_proveedores': deuda_proveedores,
+                'valor_inventario':  valor_inventario,
+                'alertas_stock':     total_alertas_stock,
+            },
+            'pipeline':   pipeline_data,
+            'citas_hoy':  citas_hoy,
+            'stock_bajo': stock_bajo,
+        })
