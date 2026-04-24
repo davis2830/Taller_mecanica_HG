@@ -1,5 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { Droppable } from '@hello-pangea/dnd';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import KanbanTask from './KanbanTask';
 import { useTheme } from '../context/ThemeContext';
 
@@ -87,7 +88,7 @@ const COLUMN_CONFIG = {
   },
 };
 
-function KanbanColumn({ column, tasks, onOpen }) {
+function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollapse }) {
   const { isDark } = useTheme();
   const c = COLUMN_CONFIG[column.id] ?? COLUMN_CONFIG.EN_ESPERA;
 
@@ -100,17 +101,72 @@ function KanbanColumn({ column, tasks, onOpen }) {
   const dragOver  = isDark ? c.dragOverDark  : c.dragOverLight;
   const emptyText = isDark ? 'text-slate-600 border-slate-700/50' : 'text-slate-400 border-slate-300';
 
+  // Columna colapsada: header vertical angosto con conteo y botón para expandir.
+  // Sigue siendo drop target (se ensancha visualmente al arrastrar encima).
+  if (collapsed) {
+    return (
+      <Droppable droppableId={column.id}>
+        {(provided, snapshot) => (
+          <div
+            className={`flex flex-col shrink-0 rounded-xl border ${border} ${colBg} shadow-lg transition-all duration-200 ${
+              snapshot.isDraggingOver ? 'w-56' : 'w-12'
+            }`}
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+          >
+            <button
+              type="button"
+              onClick={() => onToggleCollapse?.(column.id)}
+              title={`Expandir ${column.title}`}
+              className={`${header} rounded-t-xl flex flex-col items-center justify-start gap-2 py-3 hover:brightness-110 transition ${label}`}
+              style={{ minHeight: 180 }}
+            >
+              <ChevronRight size={14} />
+              <span className={`text-xs font-black px-2 py-0.5 rounded-full ${count}`}>
+                {tasks.length}
+              </span>
+              <span
+                className="font-bold text-xs tracking-wide mt-1"
+                style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap' }}
+              >
+                {column.title}
+              </span>
+            </button>
+            <div
+              className={`flex-1 min-h-[40px] rounded-b-xl transition-colors duration-150 ${snapshot.isDraggingOver ? dragOver : ''}`}
+            >
+              {/* Placeholder oculto — mantiene DnD funcional aunque no se vean tareas */}
+              <div style={{ display: 'none' }}>{provided.placeholder}</div>
+            </div>
+          </div>
+        )}
+      </Droppable>
+    );
+  }
+
   return (
     <div className={`flex flex-col w-72 shrink-0 rounded-xl border ${border} ${colBg} shadow-lg`}>
       {/* Header */}
-      <div className={`${header} rounded-t-xl px-4 py-3 flex items-center justify-between`}>
-        <div className="flex items-center gap-2.5">
+      <div className={`${header} rounded-t-xl px-4 py-3 flex items-center justify-between gap-2`}>
+        <div className="flex items-center gap-2.5 min-w-0">
           <span className={`w-2.5 h-2.5 rounded-full ${dot} shrink-0`} />
-          <h3 className={`font-bold text-sm tracking-wide ${label}`}>{column.title}</h3>
+          <h3 className={`font-bold text-sm tracking-wide truncate ${label}`}>{column.title}</h3>
         </div>
-        <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${count}`}>
-          {tasks.length}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${count}`}>
+            {tasks.length}
+          </span>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={() => onToggleCollapse(column.id)}
+              title={`Colapsar ${column.title}`}
+              className={`p-1 rounded-md hover:bg-black/10 transition ${label}`}
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Drop zone */}
