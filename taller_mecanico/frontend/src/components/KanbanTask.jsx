@@ -38,6 +38,24 @@ function KanbanTask({ task, index, onOpen }) {
   return (
     <Draggable draggableId={task.id.toString()} index={index}>
       {(provided, snapshot) => {
+        // Enriquecer la animación sin pisar el transform que usa @hello-pangea/dnd
+        // para seguir el cursor: concatenamos un rotate() mientras se arrastra y
+        // un scale() durante la animación de soltado.
+        const dndStyle = provided.draggableProps.style || {};
+        let transform = dndStyle.transform;
+        if (snapshot.isDragging && !snapshot.isDropAnimating && transform) {
+          transform = `${transform} rotate(2.5deg)`;
+        } else if (snapshot.isDropAnimating && transform) {
+          transform = `${transform} scale(0.96)`;
+        }
+        // Solo transicionamos propiedades no-transform (el transform ya lo maneja
+        // la librería con su curva de drop animation).
+        const nonTransformTransition =
+          'background-color 180ms ease, border-color 180ms ease, box-shadow 220ms ease';
+        const mergedTransition = dndStyle.transition
+          ? `${dndStyle.transition}, ${nonTransformTransition}`
+          : nonTransformTransition;
+
         const card = (
           <div
             ref={provided.innerRef}
@@ -45,8 +63,10 @@ function KanbanTask({ task, index, onOpen }) {
             {...provided.dragHandleProps}
             onClick={() => !snapshot.isDragging && onOpen(task.id)}
             style={{
-              // DnD styles FIRST — never override transform
-              ...provided.draggableProps.style,
+              // DnD styles FIRST — override solo transform y transition de forma controlada
+              ...dndStyle,
+              transform,
+              transition: mergedTransition,
               backgroundColor: snapshot.isDragging
                 ? (isDark ? '#0f172a' : '#e2e8f0')
                 : (isDark ? '#1e293b' : '#ffffff'),
@@ -57,11 +77,11 @@ function KanbanTask({ task, index, onOpen }) {
               userSelect: 'none',
               cursor: snapshot.isDragging ? 'grabbing' : 'grab',
               border: snapshot.isDragging
-                ? `1.5px solid ${isDark ? 'rgba(99,179,237,0.6)' : 'rgba(59,130,246,0.5)'}`
+                ? `1.5px solid ${isDark ? 'rgba(99,179,237,0.7)' : 'rgba(59,130,246,0.6)'}`
                 : `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.09)'}`,
               boxShadow: snapshot.isDragging
-                ? `0 20px 40px -8px ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.22)'},
-                   0 0 0 2px ${isDark ? 'rgba(99,179,237,0.3)' : 'rgba(59,130,246,0.25)'}`
+                ? `0 24px 50px -10px ${isDark ? 'rgba(0,0,0,0.85)' : 'rgba(15,23,42,0.28)'},
+                   0 0 0 3px ${isDark ? 'rgba(99,179,237,0.35)' : 'rgba(59,130,246,0.28)'}`
                 : `0 1px 3px ${isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.07)'}`,
             }}
           >

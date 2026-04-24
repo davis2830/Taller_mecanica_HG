@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
 import KanbanColumn from '../components/KanbanColumn';
 import OrderSlideOver from '../components/OrderSlideOver';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
-import { RefreshCw, Hammer, Loader2 } from 'lucide-react';
+import { RefreshCw, Hammer, Loader2, Minimize2, Maximize2 } from 'lucide-react';
+
+const COLLAPSED_STORAGE_KEY = 'kanban:collapsedColumns';
 
 function KanbanBoard() {
   const { authTokens, logoutUser } = useContext(AuthContext);
@@ -14,13 +16,41 @@ function KanbanBoard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorToast, setErrorToast] = useState(null);
-  
+
   const [isSlideOpen, setIsSlideOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  // Columnas colapsadas — persistido en localStorage. El usuario elige qué columnas
+  // mantener angostas; también se auto-colapsan las vacías en el primer render.
+  const hasSavedPrefRef = useRef(false);
+  const [collapsedIds, setCollapsedIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      if (raw !== null) {
+        hasSavedPrefRef.current = true;
+        return new Set(JSON.parse(raw));
+      }
+    } catch { /* noop */ }
+    return new Set();
+  });
+  const userCustomizedRef = useRef(false);
+
+  // Sombras de scroll horizontal — indican que hay más columnas fuera de la vista.
+  const scrollRef = useRef(null);
+  const [scrollShadow, setScrollShadow] = useState({ left: false, right: false });
 
   useEffect(() => {
     fetchBoard();
   }, []);
+
+  useEffect(() => {
+    // Solo persistir cuando el usuario interactúa, para no enmascarar el auto-colapso
+    // inicial con un "[]" guardado en el primer render.
+    if (!userCustomizedRef.current) return;
+    try {
+      localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify([...collapsedIds]));
+    } catch { /* noop */ }
+  }, [collapsedIds]);
 
   const fetchBoard = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -29,6 +59,19 @@ function KanbanBoard() {
         headers: { 'Authorization': `Bearer ${authTokens.access}` }
       });
       setData(response.data);
+
+      // Primera carga: auto-colapsar columnas vacías solo si el usuario no ha
+      // guardado una preferencia previa (evita reaparecer columnas que expandió).
+      if (!hasSavedPrefRef.current) {
+        const emptyIds = response.data.columnOrder.filter(id => {
+          const col = response.data.columns[id];
+          return col && (col.taskIds?.length ?? 0) === 0;
+        });
+        if (emptyIds.length > 0) {
+          setCollapsedIds(new Set(emptyIds));
+        }
+        hasSavedPrefRef.current = true;
+      }
     } catch (error) {
       console.error('Error fetching board', error);
       if (error.response?.status === 401) logoutUser();
@@ -77,9 +120,19 @@ function KanbanBoard() {
       columns: { ...data.columns, [newStart.id]: newStart, [newFinish.id]: newFinish }
     });
 
+    // Auto-expandir la columna destino si estaba colapsada (ahora tiene una tarjeta).
+    if (collapsedIds.has(finishColumn.id)) {
+      userCustomizedRef.current = true;
+      setCollapsedIds(prev => {
+        const next = new Set(prev);
+        next.delete(finishColumn.id);
+        return next;
+      });
+    }
+
     try {
       await axios.patch(
-        `http://localhost:8000/api/v1/taller/orden/${draggableId}/mover/`, 
+        `http://localhost:8000/api/v1/taller/orden/${draggableId}/mover/`,
         { nuevo_estado: finishColumn.id },
         { headers: { 'Authorization': `Bearer ${authTokens.access}` } }
       );
@@ -93,8 +146,68 @@ function KanbanBoard() {
     }
   };
 
+  const toggleCollapse = (id) => {
+    userCustomizedRef.current = true;
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const collapseAllEmpty = () => {
+    userCustomizedRef.current = true;
+    const emptyIds = data.columnOrder.filter(id => {
+      const col = data.columns[id];
+      return col && (col.taskIds?.length ?? 0) === 0;
+    });
+    setCollapsedIds(new Set(emptyIds));
+  };
+
+  const expandAll = () => {
+    userCustomizedRef.current = true;
+    setCollapsedIds(new Set());
+  };
+
+  const updateScrollShadow = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setScrollShadow({
+      left: el.scrollLeft > 4,
+      right: maxScroll > 4 && el.scrollLeft < maxScroll - 4,
+    });
+  };
+
+  useEffect(() => {
+    updateScrollShadow();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateScrollShadow, { passive: true });
+    window.addEventListener('resize', updateScrollShadow);
+    return () => {
+      el.removeEventListener('scroll', updateScrollShadow);
+      window.removeEventListener('resize', updateScrollShadow);
+    };
+  }, [data.columnOrder.length]);
+
+  // Recalcula sombras cuando cambia el set de colapsadas (cambia el scrollWidth).
+  useEffect(() => {
+    const id = window.requestAnimationFrame(updateScrollShadow);
+    return () => window.cancelAnimationFrame(id);
+  }, [collapsedIds]);
+
   // Total active orders
   const totalOrdenes = Object.values(data.tasks || {}).length;
+
+  const hasAnyCollapsed = collapsedIds.size > 0;
+  const hasEmptyExpanded = useMemo(() => (
+    data.columnOrder.some(id => {
+      const col = data.columns[id];
+      return col && (col.taskIds?.length ?? 0) === 0 && !collapsedIds.has(id);
+    })
+  ), [data, collapsedIds]);
 
   if (loading) {
     return (
@@ -109,7 +222,7 @@ function KanbanBoard() {
 
   return (
     <div className={`flex flex-col h-full ${isDark ? 'bg-[#0a0f1e]' : 'bg-slate-100'}`}>
-      
+
       {/* Toast */}
       {errorToast && (
         <div className="fixed top-5 right-5 bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-2xl z-[100] flex items-center gap-3 border border-red-500/50">
@@ -118,56 +231,110 @@ function KanbanBoard() {
       )}
 
       {/* Header — no backdrop-filter: it creates a stacking context that traps position:fixed DnD elements */}
-      <div className={`shrink-0 px-6 py-5 flex items-center justify-between border-b ${isDark ? 'border-white/10 bg-slate-900' : 'border-slate-200 bg-white'}`}>
-        <div className="flex items-center gap-3">
+      <div className={`shrink-0 px-6 py-5 flex items-center justify-between gap-4 border-b ${isDark ? 'border-white/10 bg-slate-900' : 'border-slate-200 bg-white'}`}>
+        <div className="flex items-center gap-3 min-w-0">
           <div className={`p-2.5 rounded-xl ${isDark ? 'bg-blue-500/15' : 'bg-blue-100'}`}>
             <Hammer size={22} className="text-blue-500" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className={`text-2xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Tablero de Órdenes
             </h1>
-            <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-sm mt-0.5 truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {totalOrdenes} orden{totalOrdenes !== 1 ? 'es' : ''} activa{totalOrdenes !== 1 ? 's' : ''} · Arrastra para cambiar estado
             </p>
           </div>
         </div>
-        <button 
-          onClick={() => fetchBoard(true)} 
-          disabled={refreshing}
-          className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
-            isDark 
-              ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10' 
-              : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
-          } disabled:opacity-50`}
-        >
-          <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
-          {refreshing ? 'Actualizando...' : 'Refrescar'}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {hasEmptyExpanded && (
+            <button
+              onClick={collapseAllEmpty}
+              title="Colapsar columnas vacías"
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${
+                isDark
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
+                  : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
+              }`}
+            >
+              <Minimize2 size={14} />
+              <span className="hidden md:inline">Colapsar vacías</span>
+            </button>
+          )}
+          {hasAnyCollapsed && (
+            <button
+              onClick={expandAll}
+              title="Expandir todas las columnas"
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${
+                isDark
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
+                  : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
+              }`}
+            >
+              <Maximize2 size={14} />
+              <span className="hidden md:inline">Expandir todo</span>
+            </button>
+          )}
+          <button
+            onClick={() => fetchBoard(true)}
+            disabled={refreshing}
+            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+              isDark
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
+                : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
+            } disabled:opacity-50`}
+          >
+            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Actualizando...' : 'Refrescar'}
+          </button>
+        </div>
       </div>
 
       {/* Board — overflow-x:auto for horizontal scroll, NOT overflow-y:hidden so drag clone isn't clipped */}
-      <div style={{ flex: 1, overflowX: 'auto', minHeight: 0 }}>
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div style={{ display: 'flex', gap: 16, padding: 20, minWidth: 'max-content', alignItems: 'flex-start', minHeight: '100%' }}>
-            {data.columnOrder.map(columnId => {
-              const column = data.columns[columnId];
-              if (!column) return null;
-              const tasks = column.taskIds.map(taskId => data.tasks[taskId]).filter(t => t);
-              return (
-                <KanbanColumn 
-                  key={column.id}
-                  column={column} 
-                  tasks={tasks} 
-                  onOpen={(id) => { setSelectedOrderId(id); setIsSlideOpen(true); }}
-                />
-              );
-            })}
-          </div>
-        </DragDropContext>
+      <div className="relative" style={{ flex: 1, minHeight: 0 }}>
+        {/* Sombras laterales indican scroll disponible */}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute top-0 bottom-0 left-0 w-6 z-10 transition-opacity duration-200 ${
+            scrollShadow.left ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{
+            background: `linear-gradient(to right, ${isDark ? 'rgba(10,15,30,0.9)' : 'rgba(241,245,249,0.9)'}, transparent)`,
+          }}
+        />
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute top-0 bottom-0 right-0 w-6 z-10 transition-opacity duration-200 ${
+            scrollShadow.right ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{
+            background: `linear-gradient(to left, ${isDark ? 'rgba(10,15,30,0.9)' : 'rgba(241,245,249,0.9)'}, transparent)`,
+          }}
+        />
+
+        <div ref={scrollRef} style={{ height: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div style={{ display: 'flex', gap: 12, padding: 20, minWidth: 'max-content', alignItems: 'flex-start', minHeight: '100%' }}>
+              {data.columnOrder.map(columnId => {
+                const column = data.columns[columnId];
+                if (!column) return null;
+                const tasks = column.taskIds.map(taskId => data.tasks[taskId]).filter(t => t);
+                return (
+                  <KanbanColumn
+                    key={column.id}
+                    column={column}
+                    tasks={tasks}
+                    onOpen={(id) => { setSelectedOrderId(id); setIsSlideOpen(true); }}
+                    collapsed={collapsedIds.has(column.id)}
+                    onToggleCollapse={toggleCollapse}
+                  />
+                );
+              })}
+            </div>
+          </DragDropContext>
+        </div>
       </div>
 
-      <OrderSlideOver 
+      <OrderSlideOver
         isOpen={isSlideOpen}
         orderId={selectedOrderId}
         onClose={() => setIsSlideOpen(false)}

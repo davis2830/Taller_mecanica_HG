@@ -82,19 +82,26 @@ class ActualizarEstadoOrdenView(APIView):
 
             orden.save()
 
-            # Disparar Celery mails asíncronamente
+            # Disparar Celery mails asíncronamente, después del commit para que el
+            # worker vea el nuevo estado ya persistido (evita race con @transaction.atomic).
             if hasattr(orden, 'cita') and orden.cita and orden.cita.cliente.email:
-                cita = orden.cita
+                cita_id = orden.cita.id
                 from citas.tasks import enviar_correo_cita_task
-                try:
-                    if nuevo_estado == 'EN_REVISION' and estado_anterior != 'EN_REVISION':
-                        enviar_correo_cita_task.delay(cita.id, 'en_revision')
-                    elif nuevo_estado == 'COTIZACION' and estado_anterior != 'COTIZACION':
-                        enviar_correo_cita_task.delay(cita.id, 'cotizacion')
-                    elif nuevo_estado == 'LISTO' and estado_anterior != 'LISTO':
-                        enviar_correo_cita_task.delay(cita.id, 'listo')
-                except Exception as e:
-                    print(f"Celery Error: {e}")
+
+                estado_a_tipo = {
+                    'EN_REVISION': 'en_revision',
+                    'COTIZACION':  'cotizacion',
+                    'LISTO':       'listo',
+                    'ENTREGADO':   'encuesta',
+                }
+                tipo_email = estado_a_tipo.get(nuevo_estado)
+                if tipo_email and nuevo_estado != estado_anterior:
+                    def _dispatch(cita_id=cita_id, tipo_email=tipo_email):
+                        try:
+                            enviar_correo_cita_task.delay(cita_id, tipo_email)
+                        except Exception as e:
+                            print(f"Celery Error al enviar '{tipo_email}' para cita {cita_id}: {e}")
+                    transaction.on_commit(_dispatch)
 
             return Response({'success': True, 'estado': orden.estado, 'mecanico_nombre': orden.mecanico_asignado.get_full_name() if orden.mecanico_asignado else None})
             

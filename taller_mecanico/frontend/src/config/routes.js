@@ -110,6 +110,10 @@ export const routes = [
         element: KanbanBoard,
         private: true,
         layout: true,
+        // fullHeight evita que layout-main tenga overflow-y: auto, que @hello-pangea/dnd
+        // usaba como contenedor de auto-scroll vertical al arrastrar — provocaba que la
+        // tarjeta "se fuera al fondo" porque scrolleaba la página en vez del tablero.
+        fullHeight: true,
         title: 'Órdenes de Trabajo'
     },
     {

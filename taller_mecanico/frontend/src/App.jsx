@@ -43,7 +43,7 @@ function AppRoutes() {
                 const element = (
                     <PrivateRoute isPrivate={route.private}>
                         {route.layout ? (
-                            <Layout>
+                            <Layout fullHeight={route.fullHeight}>
                                 <route.element />
                             </Layout>
                         ) : (
