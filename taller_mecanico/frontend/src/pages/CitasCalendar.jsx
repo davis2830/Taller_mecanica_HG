@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Calendar, Hourglass, CheckCircle2, Key, Flag, Ban, Eye, ClipboardCheck } from 'lucide-react';
+import { Calendar, Hourglass, CheckCircle2, Key, Flag, Ban, Eye, ClipboardCheck, Loader2, Hash } from 'lucide-react';
 import NuevaCitaSlideOver from '../components/NuevaCitaSlideOver';
 import DetalleCitaSlideOver from '../components/DetalleCitaSlideOver';
 
 export default function CitasCalendar() {
   const { authTokens, logoutUser } = useContext(AuthContext);
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [citasRaw, setCitasRaw] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [checkInLoading, setCheckInLoading] = useState(null); // id de la cita en proceso
   
   // States Modal Nueva Cita
   const [isNuevoOpen, setIsNuevoOpen] = useState(false);
@@ -83,11 +86,27 @@ export default function CitasCalendar() {
       setIsDetalleOpen(true);
   };
   
-  const handleCheckInAction = (cita) => {
+  const handleCheckInAction = async (cita) => {
       if (cita.tiene_orden) {
-          window.location.href = `http://localhost:8000/taller/orden/${cita.orden_trabajo_id}/`;
-      } else {
-          window.location.href = `http://localhost:8000/taller/orden/crear-desde-cita/${cita.id}/`;
+          // Ya tiene OT — ir al Kanban en React
+          navigate('/kanban');
+          return;
+      }
+      // Crear OT via API y luego navegar al Kanban
+      setCheckInLoading(cita.id);
+      try {
+          await axios.post(
+              `http://localhost:8000/api/v1/taller/orden/crear-desde-cita/${cita.id}/`,
+              {},
+              { headers: { Authorization: `Bearer ${authTokens.access}` } }
+          );
+          fetchCitas(); // refrescar para que la cita muestre OT
+          navigate('/kanban');
+      } catch (e) {
+          const msg = e.response?.data?.error || 'Error al crear la orden de trabajo.';
+          alert(msg);
+      } finally {
+          setCheckInLoading(null);
       }
   };
 
@@ -192,6 +211,8 @@ export default function CitasCalendar() {
                 <table className={`min-w-full divide-y ${divider}`}>
                     <thead className={theadBg}>
                         <tr>
+                            <th scope="col" className={`px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider ${thText}`}>Cita #</th>
+                            <th scope="col" className={`px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider ${thText}`}>OT #</th>
                             <th scope="col" className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${thText}`}>Fecha y Hora</th>
                             <th scope="col" className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${thText}`}>Cliente</th>
                             <th scope="col" className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${thText}`}>Vehículo</th>
@@ -202,11 +223,11 @@ export default function CitasCalendar() {
                     </thead>
                     <tbody className={`${tbodyBg} divide-y ${divider}`}>
                         {loading && (
-                            <tr><td colSpan="6" className={`px-6 py-10 text-center ${subText}`}>Cargando agenda...</td></tr>
+                            <tr><td colSpan="7" className={`px-6 py-10 text-center ${subText}`}>Cargando agenda...</td></tr>
                         )}
                         {!loading && citasFiltradas.length === 0 && (
                             <tr>
-                                <td colSpan="6" className="px-6 py-16 text-center">
+                                <td colSpan="7" className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center justify-center">
                                         <Calendar className={`mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} size={48} />
                                         <h3 className={`text-lg font-medium ${cellText}`}>Sin citas encontradas</h3>
@@ -217,6 +238,34 @@ export default function CitasCalendar() {
                         )}
                         {!loading && citasFiltradas.map((cita) => (
                             <tr key={cita.id} className={`${rowHover} transition-colors`}>
+                                {/* Columna Cita # */}
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black tabular-nums border ${
+                                        isDark
+                                            ? 'bg-slate-800 border-slate-700 text-slate-300'
+                                            : 'bg-slate-100 border-slate-200 text-slate-600'
+                                    }`}>
+                                        <Hash size={10} />{cita.id}
+                                    </span>
+                                </td>
+                                {/* Columna OT # */}
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                    {cita.orden_trabajo_id ? (
+                                        <button
+                                            onClick={() => navigate('/kanban')}
+                                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black tabular-nums border transition-colors ${
+                                                isDark
+                                                    ? 'bg-blue-900/30 border-blue-700/50 text-blue-400 hover:bg-blue-800/50'
+                                                    : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                                            }`}
+                                            title="Ver en Kanban"
+                                        >
+                                            <Hash size={10} />{cita.orden_trabajo_id}
+                                        </button>
+                                    ) : (
+                                        <span className={`text-xs ${subText}`}>—</span>
+                                    )}
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className={`text-sm font-bold ${cellText}`}>
                                         {new Date(cita.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric'})}
@@ -265,10 +314,18 @@ export default function CitasCalendar() {
                                         {cita.estado !== 'CANCELADA' && (
                                             <button 
                                                 onClick={() => handleCheckInAction(cita)}
-                                                className={`p-1.5 rounded border transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-400 hover:text-emerald-400 hover:border-emerald-500' : 'bg-white border-slate-200 text-slate-400 hover:text-emerald-600'}`}
-                                                title={cita.tiene_orden ? "Ver Orden" : "Ingresar Vehículo"}
+                                                disabled={checkInLoading === cita.id}
+                                                className={`p-1.5 rounded border transition-colors ${
+                                                    cita.tiene_orden
+                                                        ? isDark ? 'bg-blue-900/30 border-blue-700/50 text-blue-400 hover:bg-blue-800/50' : 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100'
+                                                        : isDark ? 'bg-slate-700 border-slate-600 text-slate-400 hover:text-emerald-400 hover:border-emerald-500' : 'bg-white border-slate-200 text-slate-400 hover:text-emerald-600'
+                                                } disabled:opacity-50`}
+                                                title={cita.tiene_orden ? `Ver OT #${cita.orden_trabajo_id} en Kanban` : "Crear OT e Ingresar al Taller"}
                                             >
-                                                <ClipboardCheck size={15} />
+                                                {checkInLoading === cita.id
+                                                    ? <Loader2 size={15} className="animate-spin" />
+                                                    : <ClipboardCheck size={15} />
+                                                }
                                             </button>
                                         )}
                                     </div>

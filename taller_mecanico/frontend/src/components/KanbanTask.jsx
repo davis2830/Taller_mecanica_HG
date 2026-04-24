@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import { Draggable } from '@hello-pangea/dnd';
 import { Clock, Wrench, CheckCircle, User, Package, Truck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
+import FlowTrail from './FlowTrail';
 
 const STATE_CONFIG = {
   EN_ESPERA:           { bar: '#94a3b8', label: 'En Espera',     icon: <Clock size={11} />,       darkBadge: '#1e293b', darkText: '#94a3b8',   lightBadge: '#f1f5f9', lightText: '#475569'  },
@@ -30,6 +32,7 @@ function getDragPortal() {
 
 function KanbanTask({ task, index, onOpen }) {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const cfg = STATE_CONFIG[task.estado] ?? STATE_CONFIG.EN_ESPERA;
 
   return (
@@ -89,21 +92,41 @@ function KanbanTask({ task, index, onOpen }) {
               </div>
 
               {/* Footer */}
-              <div style={{ marginTop: 9, paddingTop: 7, borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: isDark ? '#64748b' : '#94a3b8', minWidth: 0, flex: 1 }}>
-                  <User size={11} style={{ flexShrink: 0 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {task.mecanico_asignado
-                      ? `${task.mecanico_asignado.first_name} ${task.mecanico_asignado.last_name || ''}`.trim()
-                      : <span style={{ color: '#f59e0b', fontWeight: 600 }}>Sin asignar</span>
-                    }
-                  </span>
+              <div style={{ marginTop: 9, paddingTop: 7, borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: isDark ? '#64748b' : '#94a3b8', minWidth: 0, flex: 1 }}>
+                    <User size={11} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {task.mecanico_asignado
+                        ? `${task.mecanico_asignado.first_name} ${task.mecanico_asignado.last_name || ''}`.trim()
+                        : <span style={{ color: '#f59e0b', fontWeight: 600 }}>Sin asignar</span>
+                      }
+                    </span>
+                  </div>
+                  {task.repuestos?.length > 0 && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>
+                      <Package size={10} /> {task.repuestos.length}
+                    </span>
+                  )}
                 </div>
-                {task.repuestos?.length > 0 && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>
-                    <Package size={10} /> {task.repuestos.length}
-                  </span>
-                )}
+                {/* Flow Trail */}
+                <div
+                  style={{ marginTop: 7 }}
+                  onClick={e => { e.stopPropagation(); }}
+                >
+                  <FlowTrail
+                    citaId={task.cita?.id}
+                    ordenId={task.id}
+                    facturaId={task.factura_id}
+                    facturaNum={task.factura_numero}
+                    facturaEstado={task.factura_estado}
+                    isDark={isDark}
+                    compact
+                    onOpenOrden={null}
+                    onNavCalendar={() => navigate('/citas/calendario')}
+                    onNavFacturas={() => navigate('/facturacion')}
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -43,13 +43,36 @@ class OrdenTrabajoKanbanSerializer(serializers.ModelSerializer):
     vehiculo = VehiculoMiniSerializer(read_only=True)
     cita = CitaMiniSerializer(read_only=True)
     mecanico_asignado = MecanicoMiniSerializer(read_only=True)
+    cita_id = serializers.SerializerMethodField()
+    factura_id = serializers.SerializerMethodField()
+    factura_numero = serializers.SerializerMethodField()
+    factura_estado = serializers.SerializerMethodField()
     
     class Meta:
         model = OrdenTrabajo
         fields = [
             'id', 'estado', 'diagnostico', 'fecha_creacion', 'fecha_actualizacion',
-            'vehiculo', 'cita', 'mecanico_asignado', 'costo_total'
+            'vehiculo', 'cita', 'mecanico_asignado', 'costo_total',
+            'cita_id', 'factura_id', 'factura_numero', 'factura_estado',
         ]
+
+    def get_cita_id(self, obj):
+        return obj.cita_id if obj.cita_id else None
+
+    def get_factura_id(self, obj):
+        if hasattr(obj, 'factura') and obj.factura:
+            return obj.factura.id
+        return None
+
+    def get_factura_numero(self, obj):
+        if hasattr(obj, 'factura') and obj.factura:
+            return obj.factura.numero_factura
+        return None
+
+    def get_factura_estado(self, obj):
+        if hasattr(obj, 'factura') and obj.factura:
+            return obj.factura.estado
+        return None
 
 class ProductoMiniSerializer(serializers.ModelSerializer):
     class Meta:

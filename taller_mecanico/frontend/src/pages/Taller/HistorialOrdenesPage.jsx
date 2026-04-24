@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import OrderSlideOver from '../../components/OrderSlideOver';
+import FlowTrail from '../../components/FlowTrail';
 import axios from 'axios';
 import {
   Search, Filter, History, ChevronLeft, ChevronRight,
@@ -47,6 +49,7 @@ function StateBadge({ estado, isDark }) {
 export default function HistorialOrdenesPage() {
   const { isDark } = useTheme();
   const { authTokens } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [results, setResults]       = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -195,7 +198,7 @@ export default function HistorialOrdenesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`border-b ${borderC} ${thdBg}`}>
-                    {['Orden', 'Vehículo', 'Cliente', 'Servicio', 'Mecánico', 'Estado', 'Costo', 'Fecha', ''].map(h => (
+                    {['Orden', 'Flujo', 'Vehículo', 'Cliente', 'Servicio', 'Mecánico', 'Estado', 'Costo', 'Fecha', ''].map(h => (
                       <th key={h} className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${thdTxt}`}>{h}</th>
                     ))}
                   </tr>
@@ -215,6 +218,22 @@ export default function HistorialOrdenesPage() {
                           <span className={`font-black font-mono text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
                             #{String(orden.id).padStart(5, '0')}
                           </span>
+                        </td>
+
+                        {/* Flow Trail: Cita → OT → Factura */}
+                        <td className="px-4 py-3.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <FlowTrail
+                            citaId={orden.cita?.id}
+                            ordenId={orden.id}
+                            facturaId={orden.factura_id}
+                            facturaNum={orden.factura_numero}
+                            facturaEstado={orden.factura_estado}
+                            isDark={isDark}
+                            compact
+                            onOpenOrden={(id) => { setSelectedId(id); setSlideOpen(true); }}
+                            onNavCalendar={() => navigate('/citas/calendario')}
+                            onNavFacturas={() => navigate('/facturacion')}
+                          />
                         </td>
 
                         {/* Vehículo */}

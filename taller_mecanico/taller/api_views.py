@@ -25,7 +25,8 @@ class KanbanBoardView(APIView):
             'vehiculo', 
             'cita__cliente', 
             'cita__servicio', 
-            'mecanico_asignado'
+            'mecanico_asignado',
+            'factura'
         ).exclude(
             cita__estado__in=['CANCELADA', 'COMPLETADA', 'PENDIENTE']
         ).order_by('-fecha_creacion')
@@ -208,7 +209,7 @@ class HistorialOrdenesView(APIView):
 
         ordenes = OrdenTrabajo.objects.select_related(
             'cita', 'cita__cliente', 'cita__servicio',
-            'vehiculo', 'mecanico_asignado'
+            'vehiculo', 'mecanico_asignado', 'factura'
         ).prefetch_related('repuestos__producto').order_by('-fecha_creacion')
 
         estado = request.query_params.get('estado', '')
@@ -672,3 +673,57 @@ class DashboardView(APIView):
             'citas_hoy':  citas_hoy,
             'stock_bajo': stock_bajo,
         })
+
+
+# ─── Crear OrdenTrabajo desde una Cita (migración final a React) ──────────────
+class CrearOrdenDesdeCitaView(APIView):
+    """
+    POST /api/v1/taller/orden/crear-desde-cita/<cita_id>/
+    Si la cita ya tiene OT, retorna la OT existente.
+    Si no, la crea y la retorna.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, cita_id):
+        from citas.models import Cita
+
+        try:
+            cita = Cita.objects.select_related('orden_trabajo', 'vehiculo').get(pk=cita_id)
+        except Cita.DoesNotExist:
+            return Response({'error': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Si ya tiene OT, solo devolver su ID
+        if hasattr(cita, 'orden_trabajo') and cita.orden_trabajo:
+            return Response({
+                'creada': False,
+                'orden_id': cita.orden_trabajo.id,
+                'message': 'La cita ya tiene una orden de trabajo asociada.',
+            })
+
+        # Validar estado de cita
+        if cita.estado == 'CANCELADA':
+            return Response({'error': 'No se puede crear una OT para una cita cancelada.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Crear OT
+        try:
+            with transaction.atomic():
+                orden = OrdenTrabajo.objects.create(
+                    cita=cita,
+                    vehiculo=cita.vehiculo,
+                    mecanico_asignado=None,
+                    estado='EN_ESPERA',
+                )
+                # Actualizar estado de la cita a CONFIRMADA
+                if cita.estado == 'PENDIENTE':
+                    cita.estado = 'CONFIRMADA'
+                    cita.save(update_fields=['estado'])
+
+            return Response({
+                'creada': True,
+                'orden_id': orden.id,
+                'message': f'Orden de trabajo #{orden.id} creada exitosamente.',
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

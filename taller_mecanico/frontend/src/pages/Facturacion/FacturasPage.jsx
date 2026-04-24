@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import OrderSlideOver from '../../components/OrderSlideOver';
+import FlowTrail from '../../components/FlowTrail';
 import axios from 'axios';
 import {
   Search, Filter, Receipt, ChevronLeft, ChevronRight,
@@ -67,6 +69,7 @@ function StatCard({ label, value, icon, accent, isDark }) {
 export default function FacturasPage() {
   const { isDark } = useTheme();
   const { authTokens } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [results, setResults]           = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -220,7 +223,7 @@ export default function FacturasPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`border-b ${borderC} ${thdBg}`}>
-                    {['N° Factura', 'Cliente', 'Vehículo', 'Servicio', 'Mano Obra', 'Repuestos', 'Descuento', 'Total', 'Método', 'Estado', 'Fecha', ''].map(h => (
+                    {['N° Factura', 'Flujo', 'Cliente', 'Vehículo', 'Servicio', 'Mano Obra', 'Repuestos', 'Descuento', 'Total', 'Método', 'Estado', 'Fecha', ''].map(h => (
                       <th key={h} className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider whitespace-nowrap ${thdTxt}`}>{h}</th>
                     ))}
                   </tr>
@@ -236,6 +239,22 @@ export default function FacturasPage() {
                         <span className={`font-black font-mono text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                           {f.numero_factura ?? <span className="italic opacity-60">Borrador</span>}
                         </span>
+                      </td>
+
+                      {/* Flow Trail */}
+                      <td className="px-4 py-3.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <FlowTrail
+                          citaId={f.cita_id}
+                          ordenId={f.orden_id}
+                          facturaId={f.id}
+                          facturaNum={f.numero_factura}
+                          facturaEstado={f.estado}
+                          isDark={isDark}
+                          compact
+                          onOpenOrden={(id) => { setSelectedOrdenId(id); setSlideOpen(true); }}
+                          onNavCalendar={() => navigate('/citas/calendario')}
+                          onNavFacturas={null}
+                        />
                       </td>
 
                       {/* Cliente */}

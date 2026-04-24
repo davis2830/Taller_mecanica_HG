@@ -13,6 +13,7 @@ from taller.models import OrdenTrabajo
 
 class FacturaListSerializer(serializers.ModelSerializer):
     orden_id      = serializers.IntegerField(source='orden.id', read_only=True)
+    cita_id       = serializers.SerializerMethodField()
     cliente_nombre = serializers.SerializerMethodField()
     cliente_email  = serializers.SerializerMethodField()
     vehiculo_placa = serializers.SerializerMethodField()
@@ -26,7 +27,7 @@ class FacturaListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Factura
         fields = [
-            'id', 'numero_factura', 'orden_id',
+            'id', 'numero_factura', 'orden_id', 'cita_id',
             'cliente_nombre', 'cliente_email',
             'vehiculo_placa', 'vehiculo_desc', 'servicio_nombre',
             'costo_mano_obra', 'costo_repuestos', 'descuento',
@@ -39,6 +40,12 @@ class FacturaListSerializer(serializers.ModelSerializer):
 
     def _get_orden(self, obj):
         return obj.orden
+
+    def get_cita_id(self, obj):
+        try:
+            return obj.orden.cita_id
+        except Exception:
+            return None
 
     def get_cliente_nombre(self, obj):
         try:

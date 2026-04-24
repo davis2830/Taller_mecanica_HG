@@ -6,10 +6,13 @@ import { useTheme } from '../context/ThemeContext';
 import Select from 'react-select';
 
 export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }) {
-    const { authTokens } = useContext(AuthContext);
+    const { authTokens, user } = useContext(AuthContext);
     const { isDark } = useTheme();
     const [clientes, setClientes] = useState([]);
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+
+    // Si es cliente (no staff/admin) el propietario siempre es él mismo
+    const isCliente = user && !user.is_staff && !user.is_superuser;
     
     const [form, setForm] = useState({
         marca: '', modelo: '', año: new Date().getFullYear(), placa: '', color: '', propietario_id: '',
@@ -26,7 +29,8 @@ export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }
 
     useEffect(() => {
         if (isOpen) {
-            fetchClientes('');
+            if (!isCliente) fetchClientes('');
+
             if (vehiculo) {
                 const p = vehiculo.propietario;
                 setForm({
@@ -48,12 +52,20 @@ export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }
                     setClienteSeleccionado({ value: p.id, label: `${p.full_name || p.username} (${p.username})` });
                 }
             } else {
-                setForm({ 
+                const resetForm = {
                     marca: '', modelo: '', año: new Date().getFullYear(), placa: '', color: '', propietario_id: '',
                     vin_chasis: '', numero_motor: '', cilindrada_motor: '', tipo_combustible: '', transmision: '',
                     kilometraje_actual: '', unidad_medida_kilometraje: 'KM'
-                });
-                setClienteSeleccionado(null);
+                };
+                // Si es cliente, auto-asignar propietario
+                if (isCliente && user?.id) {
+                    resetForm.propietario_id = user.id;
+                    const nombreCompleto = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
+                    setClienteSeleccionado({ value: user.id, label: `${nombreCompleto} (${user.username})` });
+                } else {
+                    setClienteSeleccionado(null);
+                }
+                setForm(resetForm);
             }
             setError('');
         }
@@ -176,22 +188,42 @@ export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }
                             </div>
                         )}
 
-                        <div className="mb-4">
-                            <label className={labelCls}>Propietario / Cliente *</label>
-                            <Select
-                                options={clientes}
-                                value={clienteSeleccionado}
-                                onChange={opt => {
-                                    setClienteSeleccionado(opt || null);
-                                    setForm(f => ({ ...f, propietario_id: opt ? opt.value : '' }));
-                                }}
-                                onInputChange={(v) => { if (v.length >= 0) fetchClientes(v); }}
-                                placeholder="Buscar por nombre o usuario..."
-                                isClearable
-                                styles={selectStyles}
-                                menuPortalTarget={document.body}
-                            />
-                        </div>
+                        {/* Propietario: oculto para clientes (auto-asignado), visible para staff */}
+                        {isCliente ? (
+                            <div className="mb-4">
+                                <label className={labelCls}>Propietario</label>
+                                <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm font-semibold ${
+                                    isDark ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+                                }`}>
+                                    <span className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-black shrink-0">
+                                        {(user?.first_name?.[0] || user?.username?.[0] || 'C').toUpperCase()}
+                                    </span>
+                                    <span>
+                                        {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username}
+                                        <span className={`ml-1.5 text-xs font-normal ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                            (tú)
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mb-4">
+                                <label className={labelCls}>Propietario / Cliente *</label>
+                                <Select
+                                    options={clientes}
+                                    value={clienteSeleccionado}
+                                    onChange={opt => {
+                                        setClienteSeleccionado(opt || null);
+                                        setForm(f => ({ ...f, propietario_id: opt ? opt.value : '' }));
+                                    }}
+                                    onInputChange={(v) => { if (v.length >= 0) fetchClientes(v); }}
+                                    placeholder="Buscar por nombre o usuario..."
+                                    isClearable
+                                    styles={selectStyles}
+                                    menuPortalTarget={document.body}
+                                />
+                            </div>
+                        )}
 
                         {/* SECCIÓN 1: Identificación */}
                         <h3 className={sectionTitleCls}><Fingerprint size={16}/> Identificación Básica y Legal</h3>

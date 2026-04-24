@@ -12,7 +12,9 @@ urlpatterns = [
     path('orden/<int:orden_id>/repuesto/', api_views.AgregarRepuestoView.as_view(), name='api_taller_agregar_repuesto'),
     path('orden/<int:orden_id>/repuesto/<int:rep_id>/', api_views.EliminarRepuestoView.as_view(), name='api_taller_eliminar_repuesto'),
     path('orden/<int:orden_id>/facturar/', api_views.ProcesarFacturaView.as_view(), name='api_taller_facturar'),
+    path('orden/crear-desde-cita/<int:cita_id>/', api_views.CrearOrdenDesdeCitaView.as_view(), name='api_taller_crear_orden_cita'),
     path('inventario/buscar/', api_views.BuscarInventarioView.as_view(), name='api_taller_buscar_inventario'),
     # Reportes
     path('reportes/utilidades/', api_views.ReporteUtilidadesView.as_view(), name='api_reporte_utilidades'),
 ]
+

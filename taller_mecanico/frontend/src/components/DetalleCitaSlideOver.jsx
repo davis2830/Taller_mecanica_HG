@@ -1,13 +1,16 @@
 import React, { useState, useContext } from 'react';
 import { X, Calendar, Clock, Loader2, Car, Wrench, Receipt, FileText, Ban, ClipboardCheck, ArrowRight } from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 export default function DetalleCitaSlideOver({ isOpen, onClose, cita, onUpdate }) {
     const { authTokens } = useContext(AuthContext);
     const { isDark } = useTheme();
+    const navigate = useNavigate();
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isCheckingIn, setIsCheckingIn] = useState(false);
     const [error, setError] = useState(null);
 
     // Si no está abierto o no hay cita, no renderizar funcionalidad
@@ -39,16 +42,40 @@ export default function DetalleCitaSlideOver({ isOpen, onClose, cita, onUpdate }
         setError(null);
         try {
             await axios.patch(`http://localhost:8000/api/v1/citas/${cita.id}/cancelar/`, {}, {
-                headers: {
-                    'Authorization': `Bearer ${authTokens.access}`
-                }
+                headers: { 'Authorization': `Bearer ${authTokens.access}` }
             });
-            onUpdate(); // Recarga la tabla de citas
-            onClose(); // Cierra el modal
+            onUpdate();
+            onClose();
         } catch (err) {
             setError(err.response?.data?.error || "Ocurrió un error al cancelar la cita");
         } finally {
             setIsCancelling(false);
+        }
+    };
+
+    const handleIngresarAlTaller = async () => {
+        if (cita.tiene_orden) {
+            // Ya tiene OT — navegar al Kanban
+            onClose();
+            navigate('/kanban');
+            return;
+        }
+        // Crear OT via API
+        setIsCheckingIn(true);
+        setError(null);
+        try {
+            await axios.post(
+                `http://localhost:8000/api/v1/taller/orden/crear-desde-cita/${cita.id}/`,
+                {},
+                { headers: { Authorization: `Bearer ${authTokens.access}` } }
+            );
+            onUpdate(); // refrescar lista
+            onClose();
+            navigate('/kanban');
+        } catch (e) {
+            setError(e.response?.data?.error || 'Error al crear la orden de trabajo.');
+        } finally {
+            setIsCheckingIn(false);
         }
     };
 
@@ -202,20 +229,24 @@ export default function DetalleCitaSlideOver({ isOpen, onClose, cita, onUpdate }
                             <div className="w-full sm:w-auto mt-2 sm:mt-0">
                                 {!cita.tiene_orden ? (
                                     <button 
-                                        onClick={() => window.location.href = `http://localhost:8000/taller/orden/crear-desde-cita/${cita.id}/`}
-                                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2 font-bold text-sm transition-colors shadow-sm"
+                                        onClick={handleIngresarAlTaller}
+                                        disabled={isCheckingIn}
+                                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2 font-bold text-sm transition-colors shadow-sm disabled:opacity-60"
                                     >
-                                        <ClipboardCheck size={18} />
-                                        Ingresar al Taller
-                                        <ArrowRight size={16} className="ml-1 opacity-70" />
+                                        {isCheckingIn
+                                            ? <Loader2 size={16} className="animate-spin" />
+                                            : <ClipboardCheck size={18} />
+                                        }
+                                        {isCheckingIn ? 'Creando orden...' : 'Ingresar al Taller'}
+                                        {!isCheckingIn && <ArrowRight size={16} className="ml-1 opacity-70" />}
                                     </button>
                                 ) : (
                                     <button 
-                                        onClick={() => window.location.href = `http://localhost:8000/taller/orden/${cita.orden_trabajo_id}/`}
+                                        onClick={handleIngresarAlTaller}
                                         className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-5 py-2 font-bold text-sm transition-colors shadow-sm"
                                     >
                                         <Receipt size={18} />
-                                        Ver Orden de Trabajo
+                                        Ver Orden de Trabajo #{cita.orden_trabajo_id}
                                     </button>
                                 )}
                             </div>

@@ -7,8 +7,10 @@ import {
   CreditCard, Banknote, ArrowRightLeft, BadgeCheck, ChevronDown
 } from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import FlowTrail from './FlowTrail';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const GTQ = (val) => val != null
@@ -314,6 +316,7 @@ function BillingSuccess({ data, onClose, isDark }) {
 export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
   const { authTokens, logoutUser, user } = useContext(AuthContext);
   const { isDark } = useTheme();
+  const navigate = useNavigate();
 
   const [orderData, setOrderData]       = useState(null);
   const [diagText, setDiagText]         = useState('');
@@ -539,6 +542,21 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
                                 <span className="opacity-60">· Mecánico</span>
                               </span>
                             )}
+                          </div>
+
+                          {/* Flow Trail: Cita → OT → Factura */}
+                          <div className={`mt-3 pt-3 border-t ${borderC}`}>
+                            <FlowTrail
+                              citaId={orderData?.cita?.id}
+                              ordenId={orderData?.id}
+                              facturaId={orderData?.factura_id}
+                              facturaNum={orderData?.factura_numero}
+                              facturaEstado={orderData?.factura_estado}
+                              isDark={isDark}
+                              onOpenOrden={null}
+                              onNavCalendar={() => { onClose(); navigate('/citas/calendario'); }}
+                              onNavFacturas={() => { onClose(); navigate('/facturacion'); }}
+                            />
                           </div>
                         </div>
 
