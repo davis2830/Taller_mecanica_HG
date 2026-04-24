@@ -145,41 +145,56 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
   }
 
   return (
-    <div className={`flex flex-col w-72 shrink-0 rounded-xl border ${border} ${colBg} shadow-lg`}>
-      {/* Header */}
-      <div className={`${header} rounded-t-xl px-4 py-3 flex items-center justify-between gap-2`}>
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className={`w-2.5 h-2.5 rounded-full ${dot} shrink-0`} />
-          <h3 className={`font-bold text-sm tracking-wide truncate ${label}`}>{column.title}</h3>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${count}`}>
-            {tasks.length}
-          </span>
-          {onToggleCollapse && (
-            <button
-              type="button"
-              onClick={() => onToggleCollapse(column.id)}
-              title={`Colapsar ${column.title}`}
-              className={`p-1 rounded-md hover:bg-black/10 transition ${label}`}
-            >
-              <ChevronLeft size={14} />
-            </button>
-          )}
-        </div>
-      </div>
+    <Droppable droppableId={column.id}>
+      {(provided, snapshot) => (
+        <div
+          className={`flex flex-col w-72 shrink-0 rounded-xl border ${border} ${colBg} shadow-lg transition-all duration-200 ${
+            snapshot.isDraggingOver ? 'scale-[1.01]' : ''
+          }`}
+          style={{
+            boxShadow: snapshot.isDraggingOver
+              ? `0 10px 30px -8px ${isDark ? 'rgba(0,0,0,0.7)' : 'rgba(15,23,42,0.18)'}, 0 0 0 2px rgba(59,130,246,0.35)`
+              : undefined,
+          }}
+        >
+          {/* Header */}
+          <div className={`${header} rounded-t-xl px-4 py-3 flex items-center justify-between gap-2`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className={`w-2.5 h-2.5 rounded-full ${dot} shrink-0`} />
+              <h3 className={`font-bold text-sm tracking-wide truncate ${label}`}>{column.title}</h3>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${count}`}>
+                {tasks.length}
+              </span>
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={() => onToggleCollapse(column.id)}
+                  title={`Colapsar ${column.title}`}
+                  className={`p-1 rounded-md hover:bg-black/10 transition ${label}`}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+              )}
+            </div>
+          </div>
 
-      {/* Drop zone */}
-      <Droppable droppableId={column.id}>
-        {(provided, snapshot) => (
+          {/* Drop zone */}
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 min-h-[200px] p-2 rounded-b-xl transition-colors duration-150 ${snapshot.isDraggingOver ? dragOver : ''}`}
           >
-            {tasks.length === 0 && !snapshot.isDraggingOver && (
-              <div className={`flex items-center justify-center h-24 text-xs font-medium italic border-2 border-dashed rounded-lg mx-1 ${emptyText}`}>
-                Sin órdenes aquí
+            {tasks.length === 0 && (
+              <div
+                className={`flex items-center justify-center h-24 text-xs font-medium italic border-2 border-dashed rounded-lg mx-1 transition-all duration-150 ${
+                  snapshot.isDraggingOver
+                    ? (isDark ? 'text-blue-300 border-blue-500/70 bg-blue-500/5' : 'text-blue-600 border-blue-400 bg-blue-50')
+                    : emptyText
+                }`}
+              >
+                {snapshot.isDraggingOver ? 'Suelta aquí' : 'Sin órdenes aquí'}
               </div>
             )}
             {tasks.map((task, index) => (
@@ -187,9 +202,9 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
             ))}
             {provided.placeholder}
           </div>
-        )}
-      </Droppable>
-    </div>
+        </div>
+      )}
+    </Droppable>
   );
 }
 

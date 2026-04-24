@@ -51,6 +51,7 @@ LOGOUT_REDIRECT_URL = '/usuarios/login/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'usuarios.tunnel_auth.XAuthorizationHeaderMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -140,6 +141,9 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+# Evita que un SMTP inalcanzable bloquee al worker de Celery indefinidamente
+# (con --pool=solo un email colgado detiene toda la cola).
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=15, cast=int)
 
 # =====================================================================
 # CELERY — Configuración
@@ -182,4 +186,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",  # Alternativo
 ]
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.devinapps\.com$",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "https://*.devinapps.com",
+]
