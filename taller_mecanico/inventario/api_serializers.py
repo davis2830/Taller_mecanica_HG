@@ -24,9 +24,11 @@ class ProductoSerializer(serializers.ModelSerializer):
 class ProductoListSerializer(ProductoSerializer):
     class Meta(ProductoSerializer.Meta):
         fields = [
-            'id', 'codigo', 'nombre', 'marca', 'calidad', 'tipo', 'precio_venta', 'precio_compra',
+            'id', 'codigo', 'nombre', 'descripcion', 'marca', 'calidad', 'tipo',
+            'precio_venta', 'precio_compra',
             'stock_actual', 'stock_minimo', 'unidad_medida', 'necesita_reposicion',
-            'activo', 'categoria_nombre', 'proveedor_nombre', 'valor_inventario'
+            'activo', 'categoria', 'categoria_nombre',
+            'proveedor_principal', 'proveedor_nombre', 'valor_inventario'
         ]
 
 class MovimientoInventarioSerializer(serializers.ModelSerializer):
