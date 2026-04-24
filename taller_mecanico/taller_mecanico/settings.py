@@ -155,6 +155,12 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
+# Desactiva las colas temporales de control y eventos (Sintaxis Celery 5+)
+CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
+CELERY_WORKER_SEND_TASK_EVENTS = False
+
+# Agrega esta también para evitar el warning amarillo de reconexión
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # =====================================================================
 # REST FRAMEWORK Y JWT
