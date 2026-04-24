@@ -60,6 +60,15 @@ body {
     overflow: hidden;
 }
 
+/* En páginas full-height (p. ej. Kanban) el main no debe scrollear verticalmente:
+   @hello-pangea/dnd elegiría ese contenedor para auto-scroll al arrastrar y la
+   tarjeta parecería "caerse" mientras la página scrollea. La página maneja su
+   propio scroll interno. */
+.layout-container.full-height .layout-main {
+    overflow: hidden;
+    height: 100%;
+}
+
 .layout-wrapper {
     flex: 1;
     display: flex;
