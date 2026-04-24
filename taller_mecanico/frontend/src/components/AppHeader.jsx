@@ -84,17 +84,40 @@ export default function AppHeader() {
             {/* RIGHT — Acciones */}
             <div className="flex items-center gap-2 shrink-0">
 
-                {/* Toggle Tema */}
-                <button
-                    onClick={toggleTheme}
-                    title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-                    className={`p-2 rounded-xl transition-all ${isDark ? 'text-slate-400 hover:text-yellow-300 hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
-                >
-                    {isDark
-                        ? <Sun size={18} className="transition-transform hover:rotate-45 duration-300" />
-                        : <Moon size={18} />
-                    }
-                </button>
+                {/* Toggle Tema — con tooltip custom y animación del icono */}
+                <div className="relative group">
+                    <button
+                        onClick={toggleTheme}
+                        aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                        className={`p-2 rounded-xl transition-all overflow-hidden ${
+                            isDark
+                                ? 'text-yellow-300 hover:bg-slate-800 hover:shadow-[0_0_18px_-4px_rgba(253,224,71,0.45)]'
+                                : 'text-indigo-500 hover:bg-slate-100 hover:text-indigo-600'
+                        } active:scale-90`}
+                    >
+                        {/* Icono rota 180° al cambiar de tema. Solo un ícono visible a la vez. */}
+                        <span
+                            className="block transition-transform duration-500"
+                            style={{ transform: isDark ? 'rotate(0deg)' : 'rotate(180deg)' }}
+                        >
+                            {isDark
+                                ? <Sun size={18} className="drop-shadow-[0_0_4px_rgba(253,224,71,0.5)]" />
+                                : <Moon size={18} />
+                            }
+                        </span>
+                    </button>
+                    {/* Tooltip custom — aparece al hover */}
+                    <span
+                        role="tooltip"
+                        className={`pointer-events-none absolute top-full right-0 mt-2 px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-lg z-50 ${
+                            isDark
+                                ? 'bg-slate-800 text-slate-200 border border-slate-700'
+                                : 'bg-slate-900 text-white'
+                        }`}
+                    >
+                        {isDark ? 'Modo claro' : 'Modo oscuro'}
+                    </span>
+                </div>
 
                 {/* Separador */}
                 <div className={`w-px h-6 mx-1 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />

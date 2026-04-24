@@ -24,6 +24,47 @@ html, body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* ── Inputs de fecha — unificar look & feel entre temas ────────────────────
+   Los inputs nativos <input type="date"> tienen un indicador (el iconito de
+   calendario) con su propio color. Por defecto en dark mode queda blanco
+   muy marcado. Se invierte en dark y se pone discreto en light. */
+.dark-theme input[type="date"],
+.dark-theme input[type="time"],
+.dark-theme input[type="datetime-local"] {
+  color-scheme: dark;
+}
+.light-theme input[type="date"],
+.light-theme input[type="time"],
+.light-theme input[type="datetime-local"] {
+  color-scheme: light;
+}
+/* Indicador (iconito calendario) más sutil en dark */
+.dark-theme input[type="date"]::-webkit-calendar-picker-indicator,
+.dark-theme input[type="time"]::-webkit-calendar-picker-indicator,
+.dark-theme input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) brightness(0.9);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.dark-theme input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.dark-theme input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.dark-theme input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+.light-theme input[type="date"]::-webkit-calendar-picker-indicator,
+.light-theme input[type="time"]::-webkit-calendar-picker-indicator,
+.light-theme input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.light-theme input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.light-theme input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.light-theme input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.95;
+}
+
 /* Overrides para React Big Calendar (SaaS UI) */
 .rbc-calendar {
   font-family: inherit;
