@@ -29,12 +29,16 @@ const PIPELINE_COLORS = [
 ];
 
 /* ── Skeleton ─────────────────────────────────────────── */
-function SkeletonCard() {
+function SkeletonCard({ isDark }) {
+    const border = isDark ? 'border-slate-700/50' : 'border-slate-200';
+    const bg     = isDark ? 'bg-slate-800/40'     : 'bg-white';
+    const bar    = isDark ? 'bg-slate-700'        : 'bg-slate-200';
+    const barDim = isDark ? 'bg-slate-700/60'     : 'bg-slate-200/60';
     return (
-        <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 animate-pulse">
-            <div className="h-3 w-24 bg-slate-700 rounded-full mb-4" />
-            <div className="h-8 w-16 bg-slate-700 rounded-xl mb-2" />
-            <div className="h-3 w-32 bg-slate-700/60 rounded-full" />
+        <div className={`rounded-2xl border ${border} ${bg} p-5 animate-pulse`}>
+            <div className={`h-3 w-24 ${bar} rounded-full mb-4`} />
+            <div className={`h-8 w-16 ${bar} rounded-xl mb-2`} />
+            <div className={`h-3 w-32 ${barDim} rounded-full`} />
         </div>
     );
 }
@@ -62,9 +66,10 @@ function KpiCard({ icon, label, value, sub, accent, isDark, onClick }) {
                 {onClick && <ChevronRight size={15} className={isDark ? 'text-slate-600' : 'text-slate-300'} />}
             </div>
             <div>
-                <p className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
-                <p className={`text-[11px] font-bold uppercase tracking-widest mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-                {sub && <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{sub}</p>}
+                {/* Label pequeño y apagado arriba — el número debe dominar visualmente */}
+                <p className={`text-[10px] font-semibold uppercase tracking-[0.15em] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{label}</p>
+                <p className={`text-3xl font-black tracking-tight leading-none mt-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+                {sub && <p className={`text-[11px] mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{sub}</p>}
             </div>
         </div>
     );
@@ -127,37 +132,35 @@ export default function Dashboard() {
 
     return (
         <div className={`flex flex-col h-full ${bg} overflow-auto`}>
-            {/* ── Header ─────────────────────────────────────── */}
-            <div className={`shrink-0 px-6 py-5 border-b flex items-center justify-between ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-                <div>
-                    <h1 className={`text-xl font-black ${txt}`}>Centro de Operaciones</h1>
-                    <p className={`text-xs ${sub}`}>
-                        {lastUpdate
-                            ? `Actualizado ${lastUpdate.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })} · Auto-refresh 60s`
-                            : 'Cargando datos…'}
-                    </p>
-                </div>
+            {/* Meta + acciones — el título lo maneja AppHeader, aquí solo auto-refresh
+                y último update para no duplicar un H1. */}
+            <div className="flex items-center justify-between gap-3 px-6 pt-5">
+                <p className={`text-xs ${sub}`}>
+                    {lastUpdate
+                        ? `Actualizado ${lastUpdate.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })} · Auto-refresh 60s`
+                        : 'Cargando datos…'}
+                </p>
                 <button
                     onClick={fetchData}
                     disabled={loading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all ${
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                         isDark
                             ? 'border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white'
                             : 'border-slate-200 text-slate-500 hover:bg-slate-100'
                     }`}
                 >
-                    <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+                    <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                     Actualizar
                 </button>
             </div>
 
             {/* ── Contenido ──────────────────────────────────── */}
-            <div className="flex-1 p-6 space-y-6">
+            <div className="flex-1 px-6 pb-6 pt-4 space-y-6">
 
                 {/* ── ROW 1: KPI Cards ─────────────────────── */}
                 {loading && !data ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                        {Array.from({length: 5}).map((_,i) => <SkeletonCard key={i} />)}
+                        {Array.from({length: 5}).map((_,i) => <SkeletonCard key={i} isDark={isDark} />)}
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -331,13 +334,20 @@ export default function Dashboard() {
                         {loading && !data ? (
                             <div className="space-y-2">
                                 {Array.from({length: 4}).map((_,i) => (
-                                    <div key={i} className="h-10 rounded-xl bg-slate-700/30 animate-pulse" />
+                                    <div key={i} className={`h-10 rounded-xl animate-pulse ${isDark ? 'bg-slate-700/30' : 'bg-slate-200/70'}`} />
                                 ))}
                             </div>
                         ) : (data?.stock_bajo || []).length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 gap-2">
-                                <Package size={28} className="text-emerald-400" />
-                                <p className={`text-sm ${sub}`}>Stock en niveles óptimos ✓</p>
+                            <div className={`flex flex-col items-center justify-center py-8 gap-2 rounded-xl border ${
+                                isDark
+                                    ? 'bg-emerald-500/10 border-emerald-500/20'
+                                    : 'bg-emerald-50 border-emerald-200'
+                            }`}>
+                                <div className={`p-2.5 rounded-full ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
+                                    <Package size={22} className={isDark ? 'text-emerald-300' : 'text-emerald-700'} />
+                                </div>
+                                <p className={`text-sm font-semibold ${isDark ? 'text-emerald-300' : 'text-emerald-800'}`}>Stock en niveles óptimos</p>
+                                <p className={`text-xs ${isDark ? 'text-emerald-400/70' : 'text-emerald-700/80'}`}>Sin productos por reabastecer</p>
                             </div>
                         ) : (
                             <div className="space-y-2.5">
