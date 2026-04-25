@@ -243,3 +243,80 @@ class Factura(models.Model):
         verbose_name = "Factura"
         verbose_name_plural = "Facturas"
         ordering = ['-fecha_emision']
+
+
+class DocumentoElectronico(models.Model):
+    """
+    Un DTE (Documento Tributario Electrónico) asociado a una factura.
+    Puede ser FACT (factura), NCRE (nota de crédito), etc.
+
+    Cada intento de certificación crea uno nuevo — así queda el historial
+    completo de envíos, rechazos, reintentos y anulaciones.
+    """
+    TIPO_CHOICES = [
+        ('FACT', 'Factura (FACT)'),
+        ('NCRE', 'Nota de Crédito (NCRE)'),
+        ('FCAM', 'Factura Cambiaria (FCAM)'),
+        ('NDEB', 'Nota de Débito (NDEB)'),
+        ('FPEQ', 'Factura Pequeño Contribuyente (FPEQ)'),
+    ]
+    ESTADO_CHOICES = [
+        ('PENDIENTE',   'Pendiente de certificar'),
+        ('CERTIFICADO', 'Certificado por SAT'),
+        ('ANULADO',     'Anulado ante SAT'),
+        ('RECHAZADO',   'Rechazado por el certificador'),
+        ('ERROR',       'Error en la comunicación'),
+    ]
+
+    factura = models.ForeignKey(
+        Factura,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+    )
+    documento_original = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='referenciado_por',
+        help_text="Para NCRE, apunta al FACT original que se corrige.",
+    )
+
+    tipo_dte = models.CharField(max_length=5, choices=TIPO_CHOICES, default='FACT')
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='PENDIENTE')
+
+    # ── Identificadores SAT (los devuelve el certificador) ──
+    uuid_sat = models.CharField(max_length=50, blank=True, default='')
+    serie = models.CharField(max_length=20, blank=True, default='')
+    numero_autorizacion = models.CharField(max_length=50, blank=True, default='')
+
+    # ── XML ──
+    xml_generado = models.TextField(blank=True, default='', help_text="XML que enviamos al certificador.")
+    xml_certificado = models.TextField(blank=True, default='', help_text="XML firmado que devuelve el certificador.")
+
+    # ── Metadatos del envío ──
+    certificador_usado = models.CharField(max_length=20, blank=True, default='')
+    ambiente = models.CharField(max_length=10, blank=True, default='PRUEBAS')
+    errores = models.TextField(blank=True, default='')
+
+    motivo_anulacion = models.TextField(blank=True, default='')
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_certificacion = models.DateTimeField(null=True, blank=True)
+    fecha_anulacion = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Documento Electrónico (DTE)"
+        verbose_name_plural = "Documentos Electrónicos (DTE)"
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        ref = self.uuid_sat or f"BORR-{self.id}"
+        return f"{self.tipo_dte} {ref} ({self.get_estado_display()})"
+
+    @property
+    def serie_numero(self):
+        """Devuelve 'SERIE-NUMERO' formato humano. Vacío si no certificado."""
+        if self.serie and self.numero_autorizacion:
+            return f"{self.serie}-{self.numero_autorizacion}"
+        return ''
