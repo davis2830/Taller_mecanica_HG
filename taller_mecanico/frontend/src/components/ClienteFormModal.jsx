@@ -8,7 +8,8 @@ export default function ClienteFormModal({ isOpen, onClose, cliente, onSaved }) 
     const { authTokens } = useContext(AuthContext);
     const { isDark } = useTheme();
     const [form, setForm] = useState({
-        first_name: '', last_name: '', email: '', telefono: ''
+        first_name: '', last_name: '', email: '', telefono: '',
+        nit: 'CF', nombre_fiscal: '', direccion_fiscal: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -24,9 +25,15 @@ export default function ClienteFormModal({ isOpen, onClose, cliente, onSaved }) 
                     last_name: cliente.last_name || '',
                     email: cliente.email || '',
                     telefono: cliente.perfil?.telefono || '',
+                    nit: cliente.perfil?.nit || 'CF',
+                    nombre_fiscal: cliente.perfil?.nombre_fiscal || '',
+                    direccion_fiscal: cliente.perfil?.direccion_fiscal || '',
                 });
             } else {
-                setForm({ first_name: '', last_name: '', email: '', telefono: '' });
+                setForm({
+                    first_name: '', last_name: '', email: '', telefono: '',
+                    nit: 'CF', nombre_fiscal: '', direccion_fiscal: ''
+                });
             }
             setError('');
         }
@@ -117,6 +124,43 @@ export default function ClienteFormModal({ isOpen, onClose, cliente, onSaved }) 
                     <div>
                         <label className={labelCls}>Teléfono / Whatsapp</label>
                         <input className={inputCls} value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="+123456789" />
+                    </div>
+
+                    {/* Datos fiscales (SAT Guatemala) */}
+                    <div className={`pt-2 mt-2 border-t ${border}`}>
+                        <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>
+                            Datos fiscales (FEL SAT)
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className={labelCls}>NIT</label>
+                                <input
+                                    className={inputCls}
+                                    value={form.nit}
+                                    onChange={e => setForm(f => ({ ...f, nit: e.target.value.toUpperCase() }))}
+                                    placeholder="CF o 1234567-8"
+                                />
+                                <p className={`mt-1 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Usa <span className="font-mono font-bold">CF</span> para Consumidor Final.</p>
+                            </div>
+                            <div>
+                                <label className={labelCls}>Nombre Fiscal</label>
+                                <input
+                                    className={inputCls}
+                                    value={form.nombre_fiscal}
+                                    onChange={e => setForm(f => ({ ...f, nombre_fiscal: e.target.value }))}
+                                    placeholder="(opcional) Razón social"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            <label className={labelCls}>Dirección Fiscal</label>
+                            <input
+                                className={inputCls}
+                                value={form.direccion_fiscal}
+                                onChange={e => setForm(f => ({ ...f, direccion_fiscal: e.target.value }))}
+                                placeholder="(opcional) Dirección según RTU"
+                            />
+                        </div>
                     </div>
 
                     {/* Botones */}

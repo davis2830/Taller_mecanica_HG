@@ -308,6 +308,15 @@ export default function FacturaPrintPage() {
                   <FileText size={12} />
                   {factura.estado_display || factura.estado}
                 </div>
+                {factura.taller?.ambiente === 'PRUEBAS' && (
+                  <div
+                    className="factura-pill mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                    title="Ambiente de pruebas — no tiene validez fiscal ante SAT."
+                  >
+                    <AlertTriangle size={12} />
+                    Ambiente de pruebas
+                  </div>
+                )}
               </div>
             </div>
 
@@ -346,10 +355,21 @@ export default function FacturaPrintPage() {
                   <User size={12} /> Facturado a
                 </div>
                 <div className={`text-base font-bold factura-text-strong ${p.textStrong}`}>
-                  {factura.cliente?.nombre || '—'}
+                  {factura.cliente?.nombre_fiscal || factura.cliente?.nombre || '—'}
                 </div>
+                {factura.cliente?.nit && (
+                  <div className={`text-sm mt-0.5 factura-text-muted ${p.textMuted}`}>
+                    NIT:{' '}
+                    <span className={`font-mono font-bold factura-text-strong ${p.textStrong}`}>
+                      {factura.cliente.nit}
+                    </span>
+                  </div>
+                )}
+                {factura.cliente?.direccion_fiscal && factura.cliente.direccion_fiscal !== 'Ciudad' && (
+                  <div className={`text-sm factura-text-muted ${p.textMuted}`}>{factura.cliente.direccion_fiscal}</div>
+                )}
                 {factura.cliente?.email && (
-                  <div className={`text-sm mt-0.5 factura-text-muted ${p.textMuted}`}>{factura.cliente.email}</div>
+                  <div className={`text-sm factura-text-muted ${p.textMuted}`}>{factura.cliente.email}</div>
                 )}
                 {factura.cliente?.telefono && (
                   <div className={`text-sm factura-text-muted ${p.textMuted}`}>{factura.cliente.telefono}</div>
