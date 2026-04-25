@@ -245,6 +245,7 @@ export default function FacturasPage() {
                       <td className="px-4 py-3.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         <FlowTrail
                           citaId={f.cita_id}
+                          recepcionId={f.recepcion_id}
                           ordenId={f.orden_id}
                           facturaId={f.id}
                           facturaNum={f.numero_factura}
@@ -252,6 +253,7 @@ export default function FacturasPage() {
                           isDark={isDark}
                           compact
                           onOpenOrden={(id) => { setSelectedOrdenId(id); setSlideOpen(true); }}
+                          onOpenRecepcion={(id) => navigate(`/citas/recepcion/${id}/boleta`)}
                           onNavCalendar={() => navigate('/citas/calendario')}
                           onNavFacturas={null}
                         />

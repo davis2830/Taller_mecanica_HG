@@ -26,10 +26,12 @@ class FacturaListSerializer(serializers.ModelSerializer):
     metodo_pago_display = serializers.SerializerMethodField()
     estado_display = serializers.SerializerMethodField()
 
+    recepcion_id = serializers.SerializerMethodField()
+
     class Meta:
         model = Factura
         fields = [
-            'id', 'numero_factura', 'orden_id', 'cita_id',
+            'id', 'numero_factura', 'orden_id', 'cita_id', 'recepcion_id',
             'cliente_nombre', 'cliente_email',
             'vehiculo_placa', 'vehiculo_desc', 'servicio_nombre',
             'costo_mano_obra', 'costo_repuestos', 'descuento',
@@ -46,6 +48,16 @@ class FacturaListSerializer(serializers.ModelSerializer):
     def get_cita_id(self, obj):
         try:
             return obj.orden.cita_id
+        except Exception:
+            return None
+
+    def get_recepcion_id(self, obj):
+        try:
+            cita = obj.orden.cita
+            if not cita:
+                return None
+            r = cita.recepciones.order_by('-fecha_ingreso').first()
+            return r.id if r else None
         except Exception:
             return None
 
@@ -172,7 +184,12 @@ class FacturaDetailAPIView(APIView):
         orden = factura.orden
         vehiculo = orden.vehiculo
         propietario = getattr(vehiculo, 'propietario', None)
-        servicio = getattr(getattr(orden, 'cita', None), 'servicio', None)
+        cita_obj = getattr(orden, 'cita', None)
+        servicio = getattr(cita_obj, 'servicio', None)
+        recepcion_obj = (
+            cita_obj.recepciones.order_by('-fecha_ingreso').first()
+            if cita_obj else None
+        )
 
         def _nombre_completo(u):
             if not u:
@@ -210,7 +227,13 @@ class FacturaDetailAPIView(APIView):
                 'id': orden.id,
                 'estado': orden.estado,
             },
-            'cita_id': getattr(getattr(orden, 'cita', None), 'id', None),
+            'cita_id': getattr(cita_obj, 'id', None),
+            'recepcion': {
+                'id': recepcion_obj.id,
+                'fecha_ingreso': recepcion_obj.fecha_ingreso.isoformat(),
+                'kilometraje': recepcion_obj.kilometraje,
+                'gasolina_pct': recepcion_obj.gasolina_pct,
+            } if recepcion_obj else None,
             'servicio': {
                 'nombre': servicio.nombre if servicio else '—',
                 'duracion': getattr(servicio, 'duracion', None),

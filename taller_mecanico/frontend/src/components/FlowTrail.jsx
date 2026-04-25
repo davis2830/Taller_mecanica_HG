@@ -1,20 +1,22 @@
 /**
- * FlowTrail — Cadena visual Cita → OT → Factura
- * 
+ * FlowTrail — Cadena visual Cita → Recepción → OT → Factura
+ *
  * Props:
  *   citaId       number | null
+ *   recepcionId  number | null  (recepción del vehículo, si existe)
  *   ordenId      number | null
  *   facturaId    number | null
  *   facturaNum   string | null   (número legible, ej: "F-2026-000001")
  *   facturaEstado string | null  ('BORRADOR' | 'EMITIDA' | 'ANULADA')
  *   isDark       bool
- *   onOpenOrden  fn(ordenId)     → abre el SlideOver de OT
- *   onNavCalendar fn()           → navega al calendario de citas
- *   onNavFacturas fn()           → navega a facturación
- *   compact      bool            → versión pequeña (solo badges, sin labels)
+ *   onOpenOrden  fn(ordenId)         → abre el SlideOver de OT
+ *   onOpenRecepcion fn(recepcionId)  → navega a la boleta de recepción
+ *   onNavCalendar fn()               → navega al calendario de citas
+ *   onNavFacturas fn()               → navega a facturación
+ *   compact      bool                → versión pequeña (solo badges, sin labels)
  */
 import React from 'react';
-import { Calendar, Wrench, Receipt, ChevronRight } from 'lucide-react';
+import { Calendar, Wrench, Receipt, ChevronRight, ClipboardList } from 'lucide-react';
 
 const FACTURA_COLOR = {
     BORRADOR: { dark: 'bg-amber-900/40 text-amber-300 border-amber-700/40',   light: 'bg-amber-50 text-amber-700 border-amber-200'   },
@@ -50,12 +52,14 @@ function TrailBadge({ icon, label, value, onClick, isDark, colorClass, title }) 
 
 export default function FlowTrail({
     citaId,
+    recepcionId,
     ordenId,
     facturaId,
     facturaNum,
     facturaEstado,
     isDark,
     onOpenOrden,
+    onOpenRecepcion,
     onNavCalendar,
     onNavFacturas,
     compact = false,
@@ -70,9 +74,10 @@ export default function FlowTrail({
     const facturaColor = FACTURA_COLOR[facturaEstado] || FACTURA_COLOR.BORRADOR;
 
     // Badge colors
-    const citaColor  = isDark ? 'bg-blue-900/40 text-blue-300 border-blue-700/40'     : 'bg-blue-50 text-blue-700 border-blue-200';
-    const ordenColor = isDark ? 'bg-violet-900/40 text-violet-300 border-violet-700/40' : 'bg-violet-50 text-violet-700 border-violet-200';
-    const fColor     = isDark ? facturaColor.dark : facturaColor.light;
+    const citaColor     = isDark ? 'bg-blue-900/40 text-blue-300 border-blue-700/40'         : 'bg-blue-50 text-blue-700 border-blue-200';
+    const recepcionColor = isDark ? 'bg-teal-900/40 text-teal-300 border-teal-700/40'         : 'bg-teal-50 text-teal-700 border-teal-200';
+    const ordenColor    = isDark ? 'bg-violet-900/40 text-violet-300 border-violet-700/40'   : 'bg-violet-50 text-violet-700 border-violet-200';
+    const fColor        = isDark ? facturaColor.dark : facturaColor.light;
 
     return (
         <div className="flex items-center gap-1 flex-wrap">
@@ -85,6 +90,17 @@ export default function FlowTrail({
                 isDark={isDark}
                 colorClass={citaColor}
                 title={citaId ? `Ver Cita #${citaId} en el Calendario` : null}
+            />
+            {sep}
+            {/* Recepción */}
+            <TrailBadge
+                icon={<ClipboardList size={10} />}
+                label={compact ? '' : 'Recep.'}
+                value={recepcionId ? `#${String(recepcionId).padStart(5, '0')}` : null}
+                onClick={recepcionId && onOpenRecepcion ? () => onOpenRecepcion(recepcionId) : null}
+                isDark={isDark}
+                colorClass={recepcionColor}
+                title={recepcionId ? `Ver boleta de recepción #${recepcionId}` : 'Este vehículo no tiene recepción registrada'}
             />
             {sep}
             {/* OT */}

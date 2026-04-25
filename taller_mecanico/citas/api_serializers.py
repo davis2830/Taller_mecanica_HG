@@ -10,6 +10,8 @@ class ConfiguracionTallerSerializer(serializers.ModelSerializer):
             'capacidad_mecanico', 'capacidad_carwash',
             'hora_apertura', 'hora_cierre',
             'granularidad_slot', 'dias_laborales',
+            'requerir_recepcion_antes_trabajo',
+            'permitir_re_recepcion',
             'actualizado_el',
         ]
         read_only_fields = ['actualizado_el']
@@ -135,14 +137,17 @@ class CitaSerializer(serializers.ModelSerializer):
     orden_trabajo_id = serializers.SerializerMethodField()
     atendida_por_nombre = serializers.SerializerMethodField()
     tiene_recepcion = serializers.SerializerMethodField()
-    
+    recepcion_id = serializers.SerializerMethodField()
+    recepciones_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Cita
         fields = [
-            'id', 'cliente', 'vehiculo', 'servicio', 
-            'fecha', 'hora_inicio', 'hora_fin', 'estado', 
+            'id', 'cliente', 'vehiculo', 'servicio',
+            'fecha', 'hora_inicio', 'hora_fin', 'estado',
             'notas', 'creada_el', 'tiene_orden', 'orden_trabajo_id',
             'atendida_por_nombre', 'tiene_recepcion',
+            'recepcion_id', 'recepciones_count',
         ]
 
     def get_tiene_orden(self, obj):
@@ -159,7 +164,16 @@ class CitaSerializer(serializers.ModelSerializer):
         return None
 
     def get_tiene_recepcion(self, obj):
-        return hasattr(obj, 'recepcion') and obj.recepcion is not None
+        # Con el cambio a ForeignKey, `recepciones` es una queryset; consultamos si existe alguna.
+        return obj.recepciones.exists() if hasattr(obj, 'recepciones') else False
+
+    def get_recepcion_id(self, obj):
+        # Devuelve el id de la recepción más reciente (o None).
+        r = obj.recepciones.order_by('-fecha_ingreso').first() if hasattr(obj, 'recepciones') else None
+        return r.id if r else None
+
+    def get_recepciones_count(self, obj):
+        return obj.recepciones.count() if hasattr(obj, 'recepciones') else 0
 
 class CitaCreacionSerializer(serializers.ModelSerializer):
     class Meta:

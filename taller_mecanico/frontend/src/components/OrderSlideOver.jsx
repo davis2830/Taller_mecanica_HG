@@ -4,7 +4,8 @@ import {
   X, Save, Search, PlusCircle, Package, Car, User, Wrench,
   Clock, CheckCircle, Truck, Loader2, MessageCircle, Phone,
   Mail, AlertTriangle, Minus, Plus, Trash2, Receipt,
-  CreditCard, Banknote, ArrowRightLeft, BadgeCheck, ChevronDown
+  CreditCard, Banknote, ArrowRightLeft, BadgeCheck, ChevronDown,
+  ClipboardList,
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -544,19 +545,31 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
                             )}
                           </div>
 
-                          {/* Flow Trail: Cita → OT → Factura */}
+                          {/* Flow Trail: Cita → Recepción → OT → Factura */}
                           <div className={`mt-3 pt-3 border-t ${borderC}`}>
                             <FlowTrail
                               citaId={orderData?.cita?.id}
+                              recepcionId={orderData?.recepcion_id}
                               ordenId={orderData?.id}
                               facturaId={orderData?.factura_id}
                               facturaNum={orderData?.factura_numero}
                               facturaEstado={orderData?.factura_estado}
                               isDark={isDark}
                               onOpenOrden={null}
+                              onOpenRecepcion={(id) => { onClose(); navigate(`/citas/recepcion/${id}/boleta`); }}
                               onNavCalendar={() => { onClose(); navigate('/citas/calendario'); }}
                               onNavFacturas={() => { onClose(); navigate('/facturacion'); }}
                             />
+                            {!orderData?.recepcion_id && orderData?.cita?.id && (
+                              <button
+                                onClick={() => { onClose(); navigate(`/citas/recepcion/nueva?cita_id=${orderData.cita.id}`); }}
+                                className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${isDark ? 'border-teal-700/50 bg-teal-900/20 text-teal-300 hover:bg-teal-900/40' : 'border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
+                                title="Realizar la recepción del vehículo para esta OT"
+                              >
+                                <ClipboardList size={12} />
+                                Registrar recepción
+                              </button>
+                            )}
                           </div>
                         </div>
 

@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
+import { useNavigate } from 'react-router-dom';
 import KanbanColumn from '../components/KanbanColumn';
 import OrderSlideOver from '../components/OrderSlideOver';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
-import { RefreshCw, Hammer, Loader2, Minimize2, Maximize2 } from 'lucide-react';
+import { RefreshCw, Hammer, Loader2, Minimize2, Maximize2, ClipboardList, AlertTriangle, X } from 'lucide-react';
 
 const COLLAPSED_STORAGE_KEY = 'kanban:collapsedColumns';
 
 function KanbanBoard() {
   const { authTokens, logoutUser } = useContext(AuthContext);
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [data, setData] = useState({ tasks: {}, columns: {}, columnOrder: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -19,6 +21,11 @@ function KanbanBoard() {
 
   const [isSlideOpen, setIsSlideOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  // Configuración del taller (para el soft-gate de recepción).
+  const [config, setConfig] = useState({ requerir_recepcion_antes_trabajo: true });
+  // Diálogo de recepción faltante: { task, sourceColId, destColId, pendingResult }
+  const [recepcionGate, setRecepcionGate] = useState(null);
 
   // Columnas colapsadas — persistido en localStorage. El usuario elige qué columnas
   // mantener angostas; también se auto-colapsan las vacías en el primer render.
@@ -49,6 +56,13 @@ function KanbanBoard() {
 
   useEffect(() => {
     fetchBoard();
+    // Config del taller (toggles de recepción). No bloquea si falla.
+    axios
+      .get('http://localhost:8000/api/v1/sistema/configuracion-taller/', {
+        headers: { 'Authorization': `Bearer ${authTokens.access}` },
+      })
+      .then((r) => setConfig(r.data || {}))
+      .catch(() => { /* usa default: requerir_recepcion_antes_trabajo=true */ });
   }, []);
 
   useEffect(() => {
@@ -100,6 +114,25 @@ function KanbanBoard() {
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
+    // Soft-gate: si pasa de EN_ESPERA → EN_REVISION sin recepción registrada,
+    // mostrar diálogo antes de completar el movimiento.
+    const task = data.tasks[draggableId];
+    if (
+      config.requerir_recepcion_antes_trabajo !== false &&
+      source.droppableId === 'EN_ESPERA' &&
+      destination.droppableId === 'EN_REVISION' &&
+      task && !task.recepcion_id
+    ) {
+      setRecepcionGate({ task, source, destination, draggableId });
+      return; // Esperar respuesta del usuario; la tarjeta no se mueve todavía.
+    }
+
+    await commitMove({ source, destination, draggableId });
+  };
+
+  // Aplica el movimiento (optimistic + PATCH). Se separa para poder invocarlo
+  // tanto desde onDragEnd directo como desde el diálogo de recepción.
+  const commitMove = async ({ source, destination, draggableId }) => {
     const startColumn = data.columns[source.droppableId];
     const finishColumn = data.columns[destination.droppableId];
 
@@ -415,6 +448,68 @@ function KanbanBoard() {
         onClose={() => setIsSlideOpen(false)}
         onUpdate={() => fetchBoard(true)}
       />
+
+      {/* Soft-gate: recepción faltante al pasar EN_ESPERA → EN_REVISION */}
+      {recepcionGate && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setRecepcionGate(null)}
+        >
+          <div
+            className={`w-full max-w-md rounded-2xl shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-2">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'bg-amber-500/15 text-amber-300' : 'bg-amber-100 text-amber-600'}`}>
+                  <AlertTriangle size={18} />
+                </div>
+                <h3 className="font-bold text-base">Recepción pendiente</h3>
+              </div>
+              <button
+                onClick={() => setRecepcionGate(null)}
+                className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+                aria-label="Cerrar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-5 py-5 text-sm">
+              Antes de empezar el trabajo conviene registrar la recepción del vehículo{' '}
+              <span className="font-bold">{recepcionGate.task?.vehiculo?.placa?.toUpperCase()}</span>
+              {' '}(kilometraje, combustible, daños previos y firma del cliente).
+              <div className={`mt-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Puedes desactivar este aviso en{' '}
+                <span className="font-semibold">Sistema → Configuración del Taller</span>.
+              </div>
+            </div>
+            <div className={`px-5 py-4 flex flex-col sm:flex-row gap-2 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <button
+                onClick={() => {
+                  const citaId = recepcionGate.task?.cita?.id;
+                  const url = citaId ? `/citas/recepcion/nueva?cita_id=${citaId}` : '/citas/recepcion/nueva';
+                  setRecepcionGate(null);
+                  navigate(url);
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm shadow-sm"
+              >
+                <ClipboardList size={15} />
+                Registrar recepción
+              </button>
+              <button
+                onClick={async () => {
+                  const g = recepcionGate;
+                  setRecepcionGate(null);
+                  await commitMove({ source: g.source, destination: g.destination, draggableId: g.draggableId });
+                }}
+                className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm border ${isDark ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'}`}
+              >
+                Continuar sin recepción
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

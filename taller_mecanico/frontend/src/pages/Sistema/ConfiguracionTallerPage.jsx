@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
-import { SlidersHorizontal, Save, Loader2, AlertTriangle, Users, Sun, Clock, CalendarDays } from 'lucide-react';
+import { SlidersHorizontal, Save, Loader2, AlertTriangle, Users, Sun, Clock, CalendarDays, ClipboardList } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -234,6 +234,47 @@ export default function ConfiguracionTallerPage() {
                             </button>
                         );
                     })}
+                </div>
+            </div>
+
+            {/* Card: Recepción del vehículo */}
+            <div className={`rounded-xl border ${cardBg} ${cardBorder} p-5 mb-5`}>
+                <div className="flex items-center gap-2 mb-1">
+                    <ClipboardList size={18} className="text-blue-500" />
+                    <h2 className="font-bold">Recepción del vehículo</h2>
+                </div>
+                <p className={`text-xs mb-4 ${sub}`}>
+                    Controla cómo se integra la recepción del vehículo al flujo de trabajo.
+                </p>
+                <div className="space-y-3">
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-900/50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                        <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 accent-blue-600 cursor-pointer"
+                            checked={!!form.requerir_recepcion_antes_trabajo}
+                            onChange={e => setForm({ ...form, requerir_recepcion_antes_trabajo: e.target.checked })}
+                        />
+                        <div>
+                            <div className="font-semibold text-sm">Pedir recepción antes de iniciar el trabajo</div>
+                            <div className={`text-xs mt-0.5 ${sub}`}>
+                                Al mover una OT de <strong>En Espera</strong> a <strong>En Revisión</strong> sin recepción registrada, se muestra un aviso con opción de continuar.
+                            </div>
+                        </div>
+                    </label>
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-900/50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                        <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 accent-blue-600 cursor-pointer"
+                            checked={!!form.permitir_re_recepcion}
+                            onChange={e => setForm({ ...form, permitir_re_recepcion: e.target.checked })}
+                        />
+                        <div>
+                            <div className="font-semibold text-sm">Permitir re-recepción en la misma cita</div>
+                            <div className={`text-xs mt-0.5 ${sub}`}>
+                                Si el vehículo vuelve a ingresar por la misma cita (p. ej. trabajo adicional), permite registrar una nueva recepción. Déjalo desactivado para evitar duplicados accidentales.
+                            </div>
+                        </div>
+                    </label>
                 </div>
             </div>
 

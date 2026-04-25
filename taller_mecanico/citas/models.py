@@ -46,6 +46,16 @@ class ConfiguracionTaller(models.Model):
         help_text="Lista de días laborales (0=Lunes, 6=Domingo). Por defecto: Lun–Sáb."
     )
 
+    # Flujo Recepción del Vehículo
+    requerir_recepcion_antes_trabajo = models.BooleanField(
+        default=True,
+        help_text="Si está activo, se pide confirmación al mover una OT de 'En Espera' a 'En Revisión' sin recepción registrada."
+    )
+    permitir_re_recepcion = models.BooleanField(
+        default=False,
+        help_text="Si está activo, una misma cita puede tener más de una recepción (por ejemplo, si el vehículo volvió a ingresar)."
+    )
+
     actualizado_el = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -265,7 +275,9 @@ class RecepcionVehiculo(models.Model):
     )
 
     vehiculo = models.ForeignKey(Vehiculo, on_delete=models.CASCADE, related_name='recepciones')
-    cita = models.OneToOneField(Cita, on_delete=models.SET_NULL, null=True, blank=True, related_name='recepcion')
+    # Permite más de una recepción por cita si ConfiguracionTaller.permitir_re_recepcion == True.
+    # La recepción "vigente" para efectos de UI/cards es la más reciente (ordering por -fecha_ingreso).
+    cita = models.ForeignKey(Cita, on_delete=models.SET_NULL, null=True, blank=True, related_name='recepciones')
     
     # 1. Datos del Ingreso
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
