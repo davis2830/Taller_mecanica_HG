@@ -38,6 +38,14 @@ function KanbanBoard() {
   // Sombras de scroll horizontal — indican que hay más columnas fuera de la vista.
   const scrollRef = useRef(null);
   const [scrollShadow, setScrollShadow] = useState({ left: false, right: false });
+  // Índice de la columna "activa" visible en viewports angostos (mobile/tablet portrait),
+  // para pintar los dots indicadores al pie del tablero.
+  const [activeColumnIndex, setActiveColumnIndex] = useState(0);
+  // Viewport actual — usamos matchMedia para decidir si mostramos el indicador de dots
+  // y para el auto-colapso móvil. Sincronizado en el primer render para evitar flicker.
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
+  );
 
   useEffect(() => {
     fetchBoard();
@@ -178,6 +186,22 @@ function KanbanBoard() {
       left: el.scrollLeft > 4,
       right: maxScroll > 4 && el.scrollLeft < maxScroll - 4,
     });
+    // Calcular columna activa — tomamos el primer ancestro con data-kanban-column cuyo
+    // left dentro del scroller cruza el centro del viewport del scroller.
+    const cols = el.querySelectorAll('[data-kanban-column]');
+    if (cols.length > 0) {
+      const scrollerRect = el.getBoundingClientRect();
+      const mid = scrollerRect.left + scrollerRect.width / 2;
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      cols.forEach((col, idx) => {
+        const r = col.getBoundingClientRect();
+        const center = r.left + r.width / 2;
+        const dist = Math.abs(center - mid);
+        if (dist < bestDist) { bestDist = dist; bestIdx = idx; }
+      });
+      setActiveColumnIndex(bestIdx);
+    }
   };
 
   useEffect(() => {
@@ -191,6 +215,29 @@ function KanbanBoard() {
       window.removeEventListener('resize', updateScrollShadow);
     };
   }, [data.columnOrder.length]);
+
+  // Observar viewport para togglear el indicador de dots y la navegación compacta.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e) => setIsNarrow(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Scroll suave a una columna por índice — usado por los dots / teclas flecha.
+  const scrollToColumn = (idx) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cols = el.querySelectorAll('[data-kanban-column]');
+    const target = cols[idx];
+    if (!target) return;
+    const scrollerRect = el.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    // Posicionar la columna al inicio del scroller (respeta el padding interno de 20px).
+    const delta = targetRect.left - scrollerRect.left - 20;
+    el.scrollBy({ left: delta, behavior: 'smooth' });
+  };
 
   // Recalcula sombras cuando cambia el set de colapsadas (cambia el scrollWidth).
   useEffect(() => {
@@ -231,32 +278,34 @@ function KanbanBoard() {
       )}
 
       {/* Header — no backdrop-filter: it creates a stacking context that traps position:fixed DnD elements */}
-      <div className={`shrink-0 px-6 py-5 flex items-center justify-between gap-4 border-b ${isDark ? 'border-white/10 bg-slate-900' : 'border-slate-200 bg-white'}`}>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2.5 rounded-xl ${isDark ? 'bg-blue-500/15' : 'bg-blue-100'}`}>
-            <Hammer size={22} className="text-blue-500" />
+      <div className={`shrink-0 px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2 sm:gap-4 border-b ${isDark ? 'border-white/10 bg-slate-900' : 'border-slate-200 bg-white'}`}>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className={`p-2 sm:p-2.5 rounded-xl shrink-0 ${isDark ? 'bg-blue-500/15' : 'bg-blue-100'}`}>
+            <Hammer size={20} className="text-blue-500" />
           </div>
           <div className="min-w-0">
-            <h1 className={`text-2xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h1 className={`text-lg sm:text-2xl font-extrabold tracking-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Tablero de Órdenes
             </h1>
-            <p className={`text-sm mt-0.5 truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {totalOrdenes} orden{totalOrdenes !== 1 ? 'es' : ''} activa{totalOrdenes !== 1 ? 's' : ''} · Arrastra para cambiar estado
+            <p className={`text-xs sm:text-sm mt-0.5 truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className="sm:hidden">{totalOrdenes} activa{totalOrdenes !== 1 ? 's' : ''}</span>
+              <span className="hidden sm:inline">{totalOrdenes} orden{totalOrdenes !== 1 ? 'es' : ''} activa{totalOrdenes !== 1 ? 's' : ''} · Arrastra para cambiar estado</span>
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {hasEmptyExpanded && (
             <button
               onClick={collapseAllEmpty}
               title="Colapsar columnas vacías"
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${
+              aria-label="Colapsar columnas vacías"
+              className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all active:scale-95 ${
                 isDark
                   ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
                   : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
               }`}
             >
-              <Minimize2 size={14} />
+              <Minimize2 size={16} />
               <span className="hidden md:inline">Colapsar vacías</span>
             </button>
           )}
@@ -264,27 +313,30 @@ function KanbanBoard() {
             <button
               onClick={expandAll}
               title="Expandir todas las columnas"
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${
+              aria-label="Expandir todas las columnas"
+              className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all active:scale-95 ${
                 isDark
                   ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
                   : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
               }`}
             >
-              <Maximize2 size={14} />
+              <Maximize2 size={16} />
               <span className="hidden md:inline">Expandir todo</span>
             </button>
           )}
           <button
             onClick={() => fetchBoard(true)}
             disabled={refreshing}
-            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+            title="Refrescar tablero"
+            aria-label="Refrescar tablero"
+            className={`grid place-items-center sm:flex sm:items-center sm:gap-2 text-sm font-semibold w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl transition-all active:scale-95 ${
               isDark
                 ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
                 : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 shadow-sm'
             } disabled:opacity-50`}
           >
-            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Actualizando...' : 'Refrescar'}
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">{refreshing ? 'Actualizando...' : 'Refrescar'}</span>
           </button>
         </div>
       </div>
@@ -311,9 +363,13 @@ function KanbanBoard() {
           }}
         />
 
-        <div ref={scrollRef} style={{ height: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+        <div
+          ref={scrollRef}
+          className="snap-x snap-mandatory sm:snap-none"
+          style={{ height: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}
+        >
           <DragDropContext onDragEnd={onDragEnd}>
-            <div style={{ display: 'flex', gap: 12, padding: 20, minWidth: 'max-content', alignItems: 'flex-start', minHeight: '100%' }}>
+            <div style={{ display: 'flex', gap: 12, padding: 16, minWidth: 'max-content', alignItems: 'flex-start', minHeight: '100%' }}>
               {data.columnOrder.map(columnId => {
                 const column = data.columns[columnId];
                 if (!column) return null;
@@ -332,6 +388,25 @@ function KanbanBoard() {
             </div>
           </DragDropContext>
         </div>
+
+        {/* Indicador de columna activa — solo en viewports angostos donde 1 columna ≈ todo el ancho */}
+        {isNarrow && data.columnOrder.length > 1 && (
+          <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center gap-1.5 pointer-events-none">
+            {data.columnOrder.map((colId, idx) => (
+              <button
+                key={colId}
+                type="button"
+                onClick={() => scrollToColumn(idx)}
+                aria-label={`Ir a columna ${data.columns[colId]?.title || idx + 1}`}
+                className={`pointer-events-auto rounded-full transition-all ${
+                  idx === activeColumnIndex
+                    ? `w-6 h-2 ${isDark ? 'bg-blue-400' : 'bg-blue-500'}`
+                    : `w-2 h-2 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <OrderSlideOver
