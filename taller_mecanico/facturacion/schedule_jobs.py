@@ -1,13 +1,11 @@
 """
 APScheduler jobs para el módulo de facturación.
 
-Wiring que se carga desde `FacturacionConfig.ready()` cuando corre `runserver`.
-Para producción real con varios workers, mover esto a Celery beat.
+Se registra en el scheduler compartido (`usuarios.scheduler`) para que la
+hora y el on/off sean editables desde *Sistema → Tareas Programadas* en
+caliente, sin reiniciar Django.
 """
 import logging
-
-from apscheduler.schedulers.background import BackgroundScheduler
-from django_apscheduler.jobstores import DjangoJobStore, register_events
 
 logger = logging.getLogger(__name__)
 
@@ -43,20 +41,15 @@ def recordatorios_cobro_job():
 
 
 def iniciar():
-    scheduler = BackgroundScheduler(timezone="America/Guatemala")
-    scheduler.add_jobstore(DjangoJobStore(), "default")
+    """
+    Registra el callback en el scheduler compartido para que la fila
+    `cxc_recordatorios_diario` de la tabla `TareaProgramada` la pueda
+    programar / reprogramar / ejecutar manualmente desde la UI.
+    """
+    from usuarios.scheduler import register_callback, schedule_when_ready
+    from usuarios.models import TareaProgramada
 
-    # Diario a las 08:00 — temprano para dar tiempo a respuesta el mismo día.
-    scheduler.add_job(
-        recordatorios_cobro_job,
-        trigger="cron",
-        hour="08",
-        minute="00",
-        id="cxc_recordatorios_diario",
-        max_instances=1,
-        replace_existing=True,
+    register_callback(
+        TareaProgramada.TAREA_CXC_RECORDATORIOS, recordatorios_cobro_job,
     )
-
-    register_events(scheduler)
-    scheduler.start()
-    logger.info("Scheduler de facturación iniciado: recordatorios CxC diarios a las 08:00 GT.")
+    schedule_when_ready(TareaProgramada.TAREA_CXC_RECORDATORIOS)
