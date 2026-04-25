@@ -29,6 +29,9 @@ import SistemaUsuariosPage from '../pages/Sistema/SistemaUsuariosPage';
 import SistemaRolesPage from '../pages/Sistema/SistemaRolesPage';
 import ConfiguracionTallerPage from '../pages/Sistema/ConfiguracionTallerPage';
 import ConfiguracionFacturacionPage from '../pages/Sistema/ConfiguracionFacturacionPage';
+import EmpresasPage from '../pages/Finanzas/EmpresasPage';
+import EmpresaEstadoCuentaPage from '../pages/Finanzas/EmpresaEstadoCuentaPage';
+import CuentasPorCobrarPage from '../pages/Finanzas/CuentasPorCobrarPage';
 
 export const routes = [
     {
@@ -167,6 +170,27 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Compras y Proveedores'
+    },
+    {
+        path: '/finanzas/empresas',
+        element: EmpresasPage,
+        private: true,
+        layout: true,
+        title: 'Empresas (CxC)'
+    },
+    {
+        path: '/finanzas/empresas/:id/estado-cuenta',
+        element: EmpresaEstadoCuentaPage,
+        private: true,
+        layout: true,
+        title: 'Estado de Cuenta'
+    },
+    {
+        path: '/finanzas/cuentas-por-cobrar',
+        element: CuentasPorCobrarPage,
+        private: true,
+        layout: true,
+        title: 'Cuentas por Cobrar'
     },
     {
         path: '/sistema/usuarios',

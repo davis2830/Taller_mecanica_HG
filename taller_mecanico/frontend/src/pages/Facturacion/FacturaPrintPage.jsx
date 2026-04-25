@@ -5,10 +5,13 @@ import {
   Printer, Mail, ArrowLeft, Loader2, Receipt, Car, User,
   Wrench, AlertTriangle, CheckCircle2, Banknote, CreditCard,
   ArrowRightLeft, FileText, ShieldCheck, ShieldOff, Ban, Download,
+  Building2, DollarSign, Calendar, Trash2,
 } from 'lucide-react';
 
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import AsignarCreditoModal from '../../components/AsignarCreditoModal';
+import RegistrarPagoModal from '../../components/RegistrarPagoModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const GTQ = (v) => {
@@ -40,8 +43,9 @@ const API_BASE = 'http://localhost:8000/api/v1/facturacion';
 export default function FacturaPrintPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { authTokens } = useContext(AuthContext);
+  const { authTokens, user } = useContext(AuthContext);
   const { isDark } = useTheme();
+  const isSuperAdmin = !!user?.is_superuser;
 
   const [factura, setFactura] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +54,9 @@ export default function FacturaPrintPage() {
   const [certifying, setCertifying] = useState(false);
   const [annulling, setAnnulling] = useState(false);
   const [toast, setToast] = useState(null);
+  const [pagos, setPagos] = useState([]);
+  const [modalCredito, setModalCredito] = useState(false);
+  const [modalPago, setModalPago] = useState(false);
 
   const headers = useMemo(
     () => (authTokens?.access ? { Authorization: `Bearer ${authTokens.access}` } : {}),
@@ -74,9 +81,39 @@ export default function FacturaPrintPage() {
     }
   }, [id, headers]);
 
+  const fetchPagos = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/${id}/pagos/`, { headers });
+      setPagos(res.data?.pagos || []);
+    } catch (err) {
+      // Silencioso: si no es CREDITO no hay pagos.
+      setPagos([]);
+    }
+  }, [id, headers]);
+
   useEffect(() => {
     fetchFactura();
   }, [fetchFactura]);
+
+  useEffect(() => {
+    if (factura?.condicion_pago === 'CREDITO') {
+      fetchPagos();
+    }
+  }, [factura?.condicion_pago, fetchPagos]);
+
+  const handleEliminarPago = async (pagoId) => {
+    if (!isSuperAdmin) return;
+    if (!window.confirm('¿Eliminar este pago? Esta acción no se puede deshacer y recalculará el estado de la factura.')) return;
+    try {
+      await axios.delete(`${API_BASE}/pagos/${pagoId}/`, { headers });
+      setToast({ tipo: 'ok', msg: 'Pago eliminado correctamente.' });
+      await fetchFactura();
+      await fetchPagos();
+    } catch (err) {
+      setToast({ tipo: 'err', msg: err.response?.data?.error || err.message || 'Error eliminando pago.' });
+    }
+    setTimeout(() => setToast(null), 6000);
+  };
 
   const handlePrint = () => window.print();
 
@@ -294,6 +331,34 @@ export default function FacturaPrintPage() {
           >
             {annulling ? <Loader2 size={15} className="animate-spin" /> : <Ban size={15} />}
             Anular DTE
+          </button>
+        )}
+
+        {/* CxC: Asignar a Crédito (cuando es CONTADO + no anulada) */}
+        {factura?.condicion_pago === 'CONTADO' && factura?.estado !== 'ANULADA' && (
+          <button
+            type="button"
+            onClick={() => setModalCredito(true)}
+            disabled={!factura}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
+            title="Convertir esta factura a crédito B2B con plazo de pago."
+          >
+            <CreditCard size={15} />
+            Asignar a Crédito
+          </button>
+        )}
+
+        {/* CxC: Registrar Pago (cuando es CREDITO + saldo > 0) */}
+        {factura?.condicion_pago === 'CREDITO' && Number(factura?.saldo_pendiente ?? 0) > 0 && factura?.estado !== 'ANULADA' && (
+          <button
+            type="button"
+            onClick={() => setModalPago(true)}
+            disabled={!factura}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
+            title="Registrar pago parcial o total."
+          >
+            <DollarSign size={15} />
+            Registrar Pago
           </button>
         )}
 
@@ -547,12 +612,44 @@ export default function FacturaPrintPage() {
               </div>
             )}
 
+            {/* Panel CxC: condición de pago, vencimiento, saldo, pagos */}
+            {factura.condicion_pago === 'CREDITO' && (
+              <CxcPanel
+                factura={factura}
+                pagos={pagos}
+                isDark={isDark}
+                p={p}
+                isSuperAdmin={isSuperAdmin}
+                onEliminarPago={handleEliminarPago}
+              />
+            )}
+
             {/* Info cliente/vehículo */}
             <div className={`factura-subsurface grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 rounded-lg p-5 border ${p.surfaceAlt} ${p.surfaceAltBrd}`}>
               <div>
                 <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide mb-1 factura-text-subtle ${p.textSubtle}`}>
-                  <User size={12} /> Facturado a
+                  {factura.empresa ? <Building2 size={12} /> : <User size={12} />} Facturado a
                 </div>
+                {factura.empresa ? (
+                  <>
+                    <div className={`text-base font-bold factura-text-strong ${p.textStrong}`}>
+                      {factura.empresa.razon_social}
+                    </div>
+                    <div className={`text-sm mt-0.5 factura-text-muted ${p.textMuted}`}>
+                      NIT: <span className={`font-mono font-bold factura-text-strong ${p.textStrong}`}>{factura.empresa.nit}</span>
+                    </div>
+                    {factura.empresa.direccion_fiscal && (
+                      <div className={`text-sm factura-text-muted ${p.textMuted}`}>{factura.empresa.direccion_fiscal}</div>
+                    )}
+                    {factura.empresa.email_cobro && (
+                      <div className={`text-sm factura-text-muted ${p.textMuted}`}>{factura.empresa.email_cobro}</div>
+                    )}
+                    <div className={`text-xs mt-1 factura-text-faint ${p.textFaint}`}>
+                      A nombre de: {factura.cliente?.nombre || '—'}
+                    </div>
+                  </>
+                ) : (
+                  <>
                 <div className={`text-base font-bold factura-text-strong ${p.textStrong}`}>
                   {factura.cliente?.nombre_fiscal || factura.cliente?.nombre || '—'}
                 </div>
@@ -572,6 +669,8 @@ export default function FacturaPrintPage() {
                 )}
                 {factura.cliente?.telefono && (
                   <div className={`text-sm factura-text-muted ${p.textMuted}`}>{factura.cliente.telefono}</div>
+                )}
+                  </>
                 )}
               </div>
               <div>
@@ -697,6 +796,163 @@ export default function FacturaPrintPage() {
               Gracias por confiar en {factura.taller?.nombre || 'AutoServi Pro'}.{' '}
               Esta es una representación impresa de la factura electrónica.
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modales CxC */}
+      <AsignarCreditoModal
+        isOpen={modalCredito}
+        onClose={() => setModalCredito(false)}
+        factura={factura}
+        onSaved={(data) => {
+          setToast({
+            tipo: 'ok',
+            msg: data.override_aplicado
+              ? `Override aprobado. Factura asignada a crédito (${data.dias_credito}d).`
+              : `Factura asignada a crédito (${data.dias_credito}d). Vence ${data.fecha_vencimiento || '—'}.`,
+          });
+          setTimeout(() => setToast(null), 6000);
+          fetchFactura();
+        }}
+      />
+      <RegistrarPagoModal
+        isOpen={modalPago}
+        onClose={() => setModalPago(false)}
+        factura={factura}
+        onSaved={(res) => {
+          setToast({
+            tipo: 'ok',
+            msg: `Pago de ${GTQ(res?.pago?.monto)} registrado. Saldo ${GTQ(res?.factura?.saldo_pendiente)}.`,
+          });
+          setTimeout(() => setToast(null), 6000);
+          fetchFactura();
+          fetchPagos();
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── CxC Panel Component ──────────────────────────────────────────────────────
+function CxcPanel({ factura, pagos, isDark, p, isSuperAdmin, onEliminarPago }) {
+  const saldo = Number(factura.saldo_pendiente ?? 0);
+  const totalPagado = Number(factura.total_pagado ?? 0);
+  const total = Number(factura.total_general ?? 0);
+  const pct = total > 0 ? Math.min(100, (totalPagado / total) * 100) : 0;
+
+  const pagoEstado = factura.pago_estado || 'PENDIENTE';
+  const isVencida = pagoEstado === 'VENCIDA';
+  const isPagada = pagoEstado === 'PAGADA';
+  const isParcial = pagoEstado === 'PARCIAL';
+
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  let badgeCls = 'bg-amber-500/15 text-amber-600 border-amber-500/30';
+  let badgeTxt = 'Pendiente';
+  if (isPagada) { badgeCls = 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'; badgeTxt = 'Pagada'; }
+  else if (isParcial) { badgeCls = 'bg-blue-500/15 text-blue-600 border-blue-500/30'; badgeTxt = 'Parcial'; }
+  else if (isVencida) { badgeCls = 'bg-red-500/15 text-red-600 border-red-500/30'; badgeTxt = `Vencida +${factura.dias_atraso || 0}d`; }
+
+  return (
+    <div className={`no-print-dim mb-6 rounded-lg p-4 border text-sm ${p.surfaceAlt} ${p.surfaceAltBrd}`}>
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wide factura-text-subtle ${p.textSubtle}`}>
+          <CreditCard size={14} className="text-amber-500" />
+          Cuenta por Cobrar (CxC) · {factura.condicion_pago_display || 'Crédito'}
+        </div>
+        <span className={`factura-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${badgeCls}`}>
+          {badgeTxt}
+        </span>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        <div>
+          <p className={`text-[10px] uppercase font-bold factura-text-faint ${p.textFaint}`}>Plazo</p>
+          <p className={`text-sm font-bold factura-text-strong ${p.textStrong}`}>{factura.dias_credito ?? 0} días</p>
+        </div>
+        <div>
+          <p className={`text-[10px] uppercase font-bold factura-text-faint ${p.textFaint}`}>Vence</p>
+          <p className={`text-sm font-bold ${isVencida ? 'text-red-500' : `factura-text-strong ${p.textStrong}`}`}>
+            <Calendar size={11} className="inline -mt-0.5 mr-1" />
+            {fmtDate(factura.fecha_vencimiento)}
+          </p>
+        </div>
+        <div>
+          <p className={`text-[10px] uppercase font-bold factura-text-faint ${p.textFaint}`}>Pagado</p>
+          <p className={`text-sm font-extrabold tabular-nums text-emerald-500`}>{GTQ(totalPagado)}</p>
+        </div>
+        <div>
+          <p className={`text-[10px] uppercase font-bold factura-text-faint ${p.textFaint}`}>Saldo Pendiente</p>
+          <p className={`text-sm font-extrabold tabular-nums ${saldo > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>{GTQ(saldo)}</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className={`h-2 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'} mb-3`}>
+        <div
+          className={`h-full transition-all ${isPagada ? 'bg-emerald-500' : isParcial ? 'bg-blue-500' : isVencida ? 'bg-red-500' : 'bg-amber-500'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Override info */}
+      {factura.override_motivo && (
+        <div className={`mb-3 p-3 rounded-md border text-xs ${isDark ? 'bg-amber-500/10 border-amber-500/40 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+          <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <ShieldCheck size={12} /> Override aprobado
+          </div>
+          <p>{factura.override_motivo}</p>
+          {(factura.override_por || factura.override_at) && (
+            <p className="mt-1 opacity-75">
+              Por: {factura.override_por || '—'} · {factura.override_at ? new Date(factura.override_at).toLocaleString('es-GT') : ''}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Historial de pagos */}
+      {pagos.length > 0 && (
+        <div>
+          <div className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 factura-text-faint ${p.textFaint}`}>
+            Historial de pagos ({pagos.length})
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className={isDark ? 'bg-slate-800/50' : 'bg-slate-100/60'}>
+                <tr className={`text-[10px] uppercase font-bold factura-text-faint ${p.textFaint}`}>
+                  <th className="text-left px-2 py-1.5">Fecha</th>
+                  <th className="text-left px-2 py-1.5">Método</th>
+                  <th className="text-left px-2 py-1.5">Referencia</th>
+                  <th className="text-right px-2 py-1.5">Monto</th>
+                  <th className="text-left px-2 py-1.5 hidden md:table-cell">Registró</th>
+                  {isSuperAdmin && <th className="px-2 py-1.5"></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {pagos.map(pago => (
+                  <tr key={pago.id} className={`border-t ${p.surfaceAltBrd}`}>
+                    <td className={`px-2 py-1.5 factura-text-muted ${p.textMuted}`}>{fmtDate(pago.fecha_pago)}</td>
+                    <td className={`px-2 py-1.5 factura-text-strong ${p.textStrong}`}>{pago.metodo_display}</td>
+                    <td className={`px-2 py-1.5 font-mono factura-text-muted ${p.textMuted}`}>{pago.referencia || '—'}</td>
+                    <td className={`px-2 py-1.5 text-right tabular-nums font-bold text-emerald-500`}>{GTQ(pago.monto)}</td>
+                    <td className={`px-2 py-1.5 hidden md:table-cell factura-text-faint ${p.textFaint}`}>{pago.registrado_por || '—'}</td>
+                    {isSuperAdmin && (
+                      <td className="px-2 py-1.5 text-right">
+                        <button
+                          onClick={() => onEliminarPago(pago.id)}
+                          title="Eliminar pago (solo superadmin)"
+                          className="p-1 rounded text-red-500 hover:bg-red-500/10"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
