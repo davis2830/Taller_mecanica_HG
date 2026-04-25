@@ -108,8 +108,8 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
       <Droppable droppableId={column.id}>
         {(provided, snapshot) => (
           <div
-            className={`flex flex-col shrink-0 rounded-xl border ${border} ${colBg} shadow-lg transition-all duration-200 ${
-              snapshot.isDraggingOver ? 'w-56' : 'w-12'
+            className={`flex flex-col shrink-0 rounded-xl border ${border} ${colBg} shadow-lg transition-all duration-200 snap-start ${
+              snapshot.isDraggingOver ? 'w-56' : 'w-14'
             }`}
             ref={provided.innerRef}
             {...provided.droppableProps}
@@ -118,10 +118,10 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
               type="button"
               onClick={() => onToggleCollapse?.(column.id)}
               title={`Expandir ${column.title}`}
-              className={`${header} rounded-t-xl flex flex-col items-center justify-start gap-2 py-3 hover:brightness-110 transition ${label}`}
-              style={{ minHeight: 180 }}
+              className={`${header} rounded-t-xl flex flex-col items-center justify-start gap-2 py-3 hover:brightness-110 active:brightness-95 transition ${label}`}
+              style={{ minHeight: 180, minWidth: 44 }}
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={16} />
               <span className={`text-xs font-black px-2 py-0.5 rounded-full ${count}`}>
                 {tasks.length}
               </span>
@@ -148,9 +148,10 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
     <Droppable droppableId={column.id}>
       {(provided, snapshot) => (
         <div
-          className={`flex flex-col w-72 shrink-0 rounded-xl border ${border} ${colBg} shadow-lg transition-all duration-200 ${
-            snapshot.isDraggingOver ? 'scale-[1.01]' : ''
-          }`}
+          data-kanban-column
+          className={`flex flex-col shrink-0 rounded-xl border ${border} ${colBg} shadow-lg transition-all duration-200 snap-start
+            w-[85vw] max-w-[340px] sm:w-72 sm:max-w-none
+            ${snapshot.isDraggingOver ? 'scale-[1.01]' : ''}`}
           style={{
             boxShadow: snapshot.isDraggingOver
               ? `0 10px 30px -8px ${isDark ? 'rgba(0,0,0,0.7)' : 'rgba(15,23,42,0.18)'}, 0 0 0 2px rgba(59,130,246,0.35)`
@@ -158,12 +159,12 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
           }}
         >
           {/* Header */}
-          <div className={`${header} rounded-t-xl px-4 py-3 flex items-center justify-between gap-2`}>
+          <div className={`${header} rounded-t-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2`}>
             <div className="flex items-center gap-2.5 min-w-0">
               <span className={`w-2.5 h-2.5 rounded-full ${dot} shrink-0`} />
               <h3 className={`font-bold text-sm tracking-wide truncate ${label}`}>{column.title}</h3>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${count}`}>
                 {tasks.length}
               </span>
@@ -172,9 +173,10 @@ function KanbanColumn({ column, tasks, onOpen, collapsed = false, onToggleCollap
                   type="button"
                   onClick={() => onToggleCollapse(column.id)}
                   title={`Colapsar ${column.title}`}
-                  className={`p-1 rounded-md hover:bg-black/10 transition ${label}`}
+                  aria-label={`Colapsar ${column.title}`}
+                  className={`grid place-items-center w-9 h-9 sm:w-7 sm:h-7 rounded-md hover:bg-black/10 active:bg-black/20 transition ${label}`}
                 >
-                  <ChevronLeft size={14} />
+                  <ChevronLeft size={16} />
                 </button>
               )}
             </div>
