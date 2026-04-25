@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -22,6 +24,8 @@ class FacturaListSerializer(serializers.ModelSerializer):
     vehiculo_desc  = serializers.SerializerMethodField()
     servicio_nombre = serializers.SerializerMethodField()
     subtotal       = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_sin_iva  = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    monto_iva      = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total_general  = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     metodo_pago_display = serializers.SerializerMethodField()
     estado_display = serializers.SerializerMethodField()
@@ -35,7 +39,8 @@ class FacturaListSerializer(serializers.ModelSerializer):
             'cliente_nombre', 'cliente_email',
             'vehiculo_placa', 'vehiculo_desc', 'servicio_nombre',
             'costo_mano_obra', 'costo_repuestos', 'descuento',
-            'subtotal', 'total_general',
+            'iva_incluido', 'tasa_iva',
+            'subtotal', 'total_sin_iva', 'monto_iva', 'total_general',
             'metodo_pago', 'metodo_pago_display',
             'estado', 'estado_display',
             'fecha_emision', 'fecha_pagada',
@@ -220,6 +225,11 @@ class FacturaDetailAPIView(APIView):
             'costo_mano_obra': str(factura.costo_mano_obra),
             'costo_repuestos': str(factura.costo_repuestos),
             'descuento': str(factura.descuento),
+            'iva_incluido': factura.iva_incluido,
+            'tasa_iva': str(factura.tasa_iva),
+            'tasa_iva_pct': str((factura.tasa_iva * 100).quantize(Decimal('0.01'))),
+            'total_sin_iva': str(factura.total_sin_iva),
+            'monto_iva': str(factura.monto_iva),
             'subtotal': str(factura.subtotal),
             'total_general': str(factura.total_general),
             'notas_internas': factura.notas_internas or '',
