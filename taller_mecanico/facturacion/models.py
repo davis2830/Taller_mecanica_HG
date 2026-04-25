@@ -108,6 +108,16 @@ class ConfiguracionFacturacion(models.Model):
         help_text="Token / API key del certificador. Se usará al integrar Fase 4.",
     )
 
+    # ── Automatizaciones ──────────────────────────────────────────────
+    envio_automatico_factura = models.BooleanField(
+        default=True,
+        help_text="Si está activo, al certificar una factura se envía por correo automáticamente al cliente o empresa.",
+    )
+    recordatorios_cobro_auto = models.BooleanField(
+        default=True,
+        help_text="Si está activo, el sistema envía recordatorios de cobro automáticos a empresas con facturas a crédito (3 días antes / día / cada 7 días post-vencimiento).",
+    )
+
     # ── Metadatos ─────────────────────────────────────────────────────
     actualizado_el = models.DateTimeField(auto_now=True)
 

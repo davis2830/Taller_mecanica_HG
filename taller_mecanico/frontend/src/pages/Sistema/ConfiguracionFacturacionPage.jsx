@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import {
   FileText, Save, Loader2, AlertTriangle, Building2, Receipt, ServerCog, Lock,
+  Mail, BellRing,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
@@ -307,6 +308,56 @@ export default function ConfiguracionFacturacionPage() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Card: Automatizaciones */}
+      <div className={`rounded-xl border ${cardBg} ${cardBrdr} p-5 mb-5`}>
+        <div className="flex items-center gap-2 mb-1">
+          <BellRing size={18} className="text-amber-500" />
+          <h2 className="font-bold">Automatizaciones</h2>
+        </div>
+        <p className={`text-xs mb-4 ${sub}`}>
+          Estas opciones controlan los correos que se envían sin intervención manual.
+        </p>
+
+        <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${cardBrdr} hover:bg-blue-500/5 mb-3`}>
+          <input
+            type="checkbox"
+            className="mt-1 w-4 h-4 accent-blue-500"
+            checked={form.envio_automatico_factura ?? true}
+            onChange={e => setForm({ ...form, envio_automatico_factura: e.target.checked })}
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <Mail size={14} className="text-blue-500" />
+              Enviar la factura por correo al certificarla
+            </div>
+            <p className={`text-xs mt-0.5 ${sub}`}>
+              Se envía al correo de la empresa (si la factura es a crédito) o al correo del cliente individual.
+              Si no hay correo registrado, no se envía ni bloquea la certificación.
+            </p>
+          </div>
+        </label>
+
+        <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${cardBrdr} hover:bg-amber-500/5`}>
+          <input
+            type="checkbox"
+            className="mt-1 w-4 h-4 accent-amber-500"
+            checked={form.recordatorios_cobro_auto ?? true}
+            onChange={e => setForm({ ...form, recordatorios_cobro_auto: e.target.checked })}
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <BellRing size={14} className="text-amber-500" />
+              Enviar recordatorios automáticos de cobro a empresas
+            </div>
+            <p className={`text-xs mt-0.5 ${sub}`}>
+              Diariamente a las 08:00 (hora Guatemala) se revisan facturas a crédito con saldo y se envía:
+              3 días antes del vencimiento, el día del vencimiento, y cada 7 días después.
+              Solo a empresas con <code>recordatorios_activos=true</code>.
+            </p>
+          </div>
+        </label>
       </div>
 
       {/* Toast */}
