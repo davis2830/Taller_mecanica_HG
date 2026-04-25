@@ -31,8 +31,10 @@ export default function NuevaRecepcionPage() {
     const firmaMecanicoRef = useRef(null);
     const diagramRef = useRef(null);
 
+    // Aceptamos `vehiculo` y `cita`/`cita_id` (los entrypoints del kanban y la
+    // OT usan `cita_id`; conservamos `cita` por compatibilidad).
     const preVehiculoId = searchParams.get('vehiculo') || '';
-    const preCitaId     = searchParams.get('cita') || '';
+    const preCitaId     = searchParams.get('cita_id') || searchParams.get('cita') || '';
 
     const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(null);
     const [vehiculoOpciones, setVehiculoOpciones] = useState([]);
@@ -67,8 +69,60 @@ export default function NuevaRecepcionPage() {
     const headers = { Authorization: `Bearer ${authTokens?.access}` };
 
     useEffect(() => {
-        buscarVehiculos('');
-    }, []);
+        // Si entramos desde una cita, traemos sus datos para precargar el
+        // vehículo y el motivo de ingreso por defecto. Si no, simplemente
+        // listamos vehículos para que el usuario escoja.
+        if (preCitaId) {
+            cargarDesdeCita(preCitaId);
+        } else {
+            buscarVehiculos('');
+        }
+    }, [preCitaId]);
+
+    const cargarDesdeCita = async (citaId) => {
+        setLoadingVehiculos(true);
+        try {
+            const [resCita, resVehs] = await Promise.all([
+                axios.get(`http://localhost:8000/api/v1/citas/${citaId}/`, { headers }),
+                axios.get(`http://localhost:8000/api/v1/vehiculos/?q=`, { headers }),
+            ]);
+
+            const opciones = resVehs.data.map(v => ({
+                value: v.id,
+                label: `${v.placa} — ${v.marca} ${v.modelo} (${v.propietario?.full_name || v.propietario?.username})`,
+                vehiculo: v,
+            }));
+            setVehiculoOpciones(opciones);
+
+            const cita = resCita.data;
+            const vehId = cita?.vehiculo?.id;
+            if (vehId) {
+                const pre = opciones.find(o => String(o.value) === String(vehId));
+                if (pre) {
+                    setVehiculoSeleccionado(pre);
+                } else {
+                    // Si la lista no incluye el vehículo (filtros/paginación),
+                    // construimos la opción a mano con los datos que vienen
+                    // dentro de la cita.
+                    const v = cita.vehiculo;
+                    setVehiculoSeleccionado({
+                        value: v.id,
+                        label: `${v.placa} — ${v.marca} ${v.modelo}${v.propietario ? ` (${v.propietario.full_name || v.propietario.username})` : ''}`,
+                        vehiculo: v,
+                    });
+                }
+            }
+
+            if (cita?.notas && !form.motivo_ingreso) {
+                setForm(f => ({ ...f, motivo_ingreso: cita.notas }));
+            }
+        } catch (e) {
+            console.error('Error cargando cita:', e);
+            // Caemos al flujo normal si la cita no se pudo leer.
+            buscarVehiculos('');
+        }
+        setLoadingVehiculos(false);
+    };
 
     const buscarVehiculos = async (q = '') => {
         setLoadingVehiculos(true);
