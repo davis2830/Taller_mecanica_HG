@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   Printer, Mail, ArrowLeft, Loader2, Receipt, Car, User,
   Wrench, AlertTriangle, CheckCircle2, Banknote, CreditCard,
-  ArrowRightLeft, FileText,
+  ArrowRightLeft, FileText, ShieldCheck, ShieldOff, Ban, Download,
 } from 'lucide-react';
 
 import { AuthContext } from '../../context/AuthContext';
@@ -47,6 +47,8 @@ export default function FacturaPrintPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resending, setResending] = useState(false);
+  const [certifying, setCertifying] = useState(false);
+  const [annulling, setAnnulling] = useState(false);
   const [toast, setToast] = useState(null);
 
   const headers = useMemo(
@@ -77,6 +79,74 @@ export default function FacturaPrintPage() {
   }, [fetchFactura]);
 
   const handlePrint = () => window.print();
+
+  const handleCertificar = async () => {
+    if (!factura) return;
+    if (!window.confirm(
+      '¿Certificar este documento ante SAT?\n\n' +
+      'Se generará el XML DTE y se enviará al certificador configurado.'
+    )) return;
+    setCertifying(true);
+    setToast(null);
+    try {
+      const res = await axios.post(`${API_BASE}/${factura.id}/certificar/`, { tipo_dte: 'FACT' }, { headers });
+      const dte = res.data?.dte;
+      setToast({
+        tipo: 'ok',
+        msg: `DTE certificado. ${dte?.serie_numero ? `Serie-Número: ${dte.serie_numero}.` : ''} UUID: ${dte?.uuid_sat || '—'}`,
+      });
+      await fetchFactura();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Error certificando el DTE.';
+      setToast({ tipo: 'err', msg });
+    } finally {
+      setCertifying(false);
+      setTimeout(() => setToast(null), 8000);
+    }
+  };
+
+  const handleAnular = async () => {
+    if (!factura) return;
+    const motivo = window.prompt('Motivo de la anulación (obligatorio para SAT):');
+    if (!motivo || !motivo.trim()) return;
+    setAnnulling(true);
+    setToast(null);
+    try {
+      await axios.post(`${API_BASE}/${factura.id}/anular/`, { motivo: motivo.trim() }, { headers });
+      setToast({ tipo: 'ok', msg: 'DTE anulado correctamente ante SAT.' });
+      await fetchFactura();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Error anulando el DTE.';
+      setToast({ tipo: 'err', msg });
+    } finally {
+      setAnnulling(false);
+      setTimeout(() => setToast(null), 8000);
+    }
+  };
+
+  const handleDescargarXML = (docId, tipo = 'certificado') => {
+    if (!docId) return;
+    const url = `${API_BASE}/documentos/${docId}/xml/?tipo=${tipo}`;
+    // Abre el endpoint (requiere token; si no, la sesión no lo descargará).
+    // Como axios con blob sería más limpio, lo implementamos así para simple:
+    fetch(url, { headers })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob().then((blob) => ({ blob, filename: r.headers.get('Content-Disposition') }));
+      })
+      .then(({ blob, filename }) => {
+        const href = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = href;
+        const match = /filename="([^"]+)"/.exec(filename || '');
+        a.download = match ? match[1] : `dte-${docId}-${tipo}.xml`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(href);
+      })
+      .catch((err) => setToast({ tipo: 'err', msg: `No se pudo descargar el XML: ${err.message}` }));
+  };
 
   const handleReenviar = async () => {
     if (!factura) return;
@@ -202,6 +272,31 @@ export default function FacturaPrintPage() {
 
         <div className="flex-1" />
 
+        {factura?.dte?.estado !== 'CERTIFICADO' && factura?.estado !== 'ANULADA' && (
+          <button
+            type="button"
+            onClick={handleCertificar}
+            disabled={certifying || !factura}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
+            title="Genera el XML DTE y lo envía al certificador configurado."
+          >
+            {certifying ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
+            Certificar con SAT
+          </button>
+        )}
+
+        {factura?.dte?.estado === 'CERTIFICADO' && (
+          <button
+            type="button"
+            onClick={handleAnular}
+            disabled={annulling || !factura}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
+          >
+            {annulling ? <Loader2 size={15} className="animate-spin" /> : <Ban size={15} />}
+            Anular DTE
+          </button>
+        )}
+
         <button
           type="button"
           onClick={handleReenviar}
@@ -317,6 +412,21 @@ export default function FacturaPrintPage() {
                     Ambiente de pruebas
                   </div>
                 )}
+                {factura.dte?.estado === 'CERTIFICADO' && (
+                  <div
+                    className="factura-pill mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                    title={`UUID SAT: ${factura.dte.uuid_sat}`}
+                  >
+                    <ShieldCheck size={12} />
+                    DTE Certificado
+                  </div>
+                )}
+                {factura.dte?.estado === 'ANULADO' && (
+                  <div className="factura-pill mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-500/15 text-red-600 border border-red-500/30">
+                    <ShieldOff size={12} />
+                    DTE Anulado
+                  </div>
+                )}
               </div>
             </div>
 
@@ -346,7 +456,96 @@ export default function FacturaPrintPage() {
               <span className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${p.statePill}`}>
                 {factura.numero_factura || 'Borrador'}
               </span>
+              {factura.dte?.serie_numero && (
+                <>
+                  <span className={`factura-text-faint ${p.textFaint}`}>›</span>
+                  <span
+                    className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${
+                      factura.dte.estado === 'ANULADO'
+                        ? 'bg-red-500/15 text-red-600 border-red-500/30'
+                        : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
+                    }`}
+                    title={`UUID SAT: ${factura.dte.uuid_sat}`}
+                  >
+                    DTE {factura.dte.serie_numero}
+                  </span>
+                </>
+              )}
             </div>
+
+            {/* Panel DTE: UUID, XML, estado */}
+            {factura.dte && (
+              <div
+                className={`no-print-dim mb-6 rounded-lg p-4 border text-sm ${p.surfaceAlt} ${p.surfaceAltBrd}`}
+              >
+                <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wide mb-2 factura-text-subtle ${p.textSubtle}`}>
+                  {factura.dte.estado === 'CERTIFICADO' ? (
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                  ) : factura.dte.estado === 'ANULADO' ? (
+                    <ShieldOff size={14} className="text-red-500" />
+                  ) : (
+                    <AlertTriangle size={14} className="text-amber-500" />
+                  )}
+                  Documento Tributario Electrónico ({factura.dte.tipo_dte_display})
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                  <div>
+                    <span className={`factura-text-faint ${p.textFaint}`}>Estado: </span>
+                    <span className={`font-bold factura-text-strong ${p.textStrong}`}>{factura.dte.estado_display}</span>
+                  </div>
+                  {factura.dte.serie_numero && (
+                    <div>
+                      <span className={`factura-text-faint ${p.textFaint}`}>Serie-Número: </span>
+                      <span className={`font-mono factura-text-strong ${p.textStrong}`}>{factura.dte.serie_numero}</span>
+                    </div>
+                  )}
+                  {factura.dte.uuid_sat && (
+                    <div className="sm:col-span-2 truncate">
+                      <span className={`factura-text-faint ${p.textFaint}`}>UUID SAT: </span>
+                      <span className={`font-mono text-xs factura-text-strong ${p.textStrong}`}>{factura.dte.uuid_sat}</span>
+                    </div>
+                  )}
+                  {factura.dte.certificador_usado && (
+                    <div>
+                      <span className={`factura-text-faint ${p.textFaint}`}>Certificador: </span>
+                      <span className={`factura-text-strong ${p.textStrong}`}>{factura.dte.certificador_usado}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className={`factura-text-faint ${p.textFaint}`}>Ambiente: </span>
+                    <span className={`factura-text-strong ${p.textStrong}`}>{factura.dte.ambiente}</span>
+                  </div>
+                  {factura.dte.errores && (
+                    <div className="sm:col-span-2 text-red-500">
+                      <span className="font-bold">Errores: </span>
+                      {factura.dte.errores}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 no-print">
+                  {factura.dte.tiene_xml_certificado && (
+                    <button
+                      type="button"
+                      onClick={() => handleDescargarXML(factura.dte.id, 'certificado')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
+                    >
+                      <Download size={12} />
+                      XML Certificado
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDescargarXML(factura.dte.id, 'generado')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border ${
+                      isDark ? 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Download size={12} />
+                    XML Generado
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Info cliente/vehículo */}
             <div className={`factura-subsurface grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 rounded-lg p-5 border ${p.surfaceAlt} ${p.surfaceAltBrd}`}>
