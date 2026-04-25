@@ -432,6 +432,21 @@ class RecepcionCreateView(APIView):
                 except Exception:
                     parsed_data[json_field] = {}
 
+        # Validar que no se dupliquen recepciones para la misma cita si el taller no permite re-recepción.
+        cita_id = parsed_data.get('cita') or parsed_data.get('cita_id')
+        if cita_id:
+            try:
+                cita_id_int = int(cita_id)
+            except (TypeError, ValueError):
+                cita_id_int = None
+            if cita_id_int:
+                config = ConfiguracionTaller.get()
+                if not config.permitir_re_recepcion and RecepcionVehiculo.objects.filter(cita_id=cita_id_int).exists():
+                    return Response(
+                        {'error': 'Esta cita ya tiene una recepción registrada. Activa "Permitir re-recepción" en Configuración del Taller si necesitas registrar otra.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
         serializer = RecepcionSerializer(data=parsed_data)
         if serializer.is_valid():
             recepcion = serializer.save(recibido_por=request.user)
@@ -443,10 +458,10 @@ class RecepcionCreateView(APIView):
                 for foto in fotos:
                     RecepcionFoto.objects.create(recepcion=recepcion, imagen=foto)
 
-            # Crear Orden de Trabajo automáticamente si hay cita vinculada
+            # Crear Orden de Trabajo automáticamente si hay cita vinculada y aún no existe.
             if recepcion.cita:
                 from taller.models import OrdenTrabajo
-                if not hasattr(recepcion.cita, 'orden_trabajo'):
+                if not OrdenTrabajo.objects.filter(cita=recepcion.cita).exists():
                     diagnostico = (
                         f"Ingreso #{recepcion.id} | Km: {recepcion.kilometraje} | "
                         f"Gasolina: {recepcion.gasolina_pct}%\n"

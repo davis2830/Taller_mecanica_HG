@@ -224,6 +224,7 @@ export default function HistorialOrdenesPage() {
                         <td className="px-4 py-3.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                           <FlowTrail
                             citaId={orden.cita?.id}
+                            recepcionId={orden.recepcion_id}
                             ordenId={orden.id}
                             facturaId={orden.factura_id}
                             facturaNum={orden.factura_numero}
@@ -231,6 +232,7 @@ export default function HistorialOrdenesPage() {
                             isDark={isDark}
                             compact
                             onOpenOrden={(id) => { setSelectedId(id); setSlideOpen(true); }}
+                            onOpenRecepcion={(id) => navigate(`/citas/recepcion/${id}/boleta`)}
                             onNavCalendar={() => navigate('/citas/calendario')}
                             onNavFacturas={() => navigate('/facturacion')}
                           />

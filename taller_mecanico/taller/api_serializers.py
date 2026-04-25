@@ -47,13 +47,17 @@ class OrdenTrabajoKanbanSerializer(serializers.ModelSerializer):
     factura_id = serializers.SerializerMethodField()
     factura_numero = serializers.SerializerMethodField()
     factura_estado = serializers.SerializerMethodField()
-    
+    recepcion_id = serializers.SerializerMethodField()
+    recepcion_fecha = serializers.SerializerMethodField()
+    tiene_recepcion = serializers.SerializerMethodField()
+
     class Meta:
         model = OrdenTrabajo
         fields = [
             'id', 'estado', 'diagnostico', 'fecha_creacion', 'fecha_actualizacion',
             'vehiculo', 'cita', 'mecanico_asignado', 'costo_total',
             'cita_id', 'factura_id', 'factura_numero', 'factura_estado',
+            'recepcion_id', 'recepcion_fecha', 'tiene_recepcion',
         ]
 
     def get_cita_id(self, obj):
@@ -73,6 +77,24 @@ class OrdenTrabajoKanbanSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'factura') and obj.factura:
             return obj.factura.estado
         return None
+
+    def _recepcion_vigente(self, obj):
+        """Recepción más reciente asociada a la cita de la OT (si existe)."""
+        cita = getattr(obj, 'cita', None)
+        if not cita:
+            return None
+        return cita.recepciones.order_by('-fecha_ingreso').first()
+
+    def get_recepcion_id(self, obj):
+        r = self._recepcion_vigente(obj)
+        return r.id if r else None
+
+    def get_recepcion_fecha(self, obj):
+        r = self._recepcion_vigente(obj)
+        return r.fecha_ingreso.isoformat() if r else None
+
+    def get_tiene_recepcion(self, obj):
+        return self._recepcion_vigente(obj) is not None
 
 class ProductoMiniSerializer(serializers.ModelSerializer):
     class Meta:

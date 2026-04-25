@@ -311,6 +311,34 @@ export default function FacturaPrintPage() {
               </div>
             </div>
 
+            {/* Flujo del trabajo: Cita → Recepción → OT → Factura */}
+            <div className="mb-6 flex flex-wrap items-center gap-2 no-print-dim">
+              <span className={`text-xs font-bold uppercase tracking-wide mr-1 factura-text-subtle ${p.textSubtle}`}>
+                Flujo
+              </span>
+              <span className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${p.statePill}`}>
+                Cita #{factura.cita_id ?? '—'}
+              </span>
+              <span className={`factura-text-faint ${p.textFaint}`}>›</span>
+              {factura.recepcion ? (
+                <span className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${p.methodPill}`}>
+                  Recepción #{String(factura.recepcion.id).padStart(5, '0')}
+                </span>
+              ) : (
+                <span className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${p.statePill}`} title="Esta OT no tuvo recepción registrada">
+                  Sin recepción
+                </span>
+              )}
+              <span className={`factura-text-faint ${p.textFaint}`}>›</span>
+              <span className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${p.statePill}`}>
+                OT #{String(factura.orden?.id ?? 0).padStart(5, '0')}
+              </span>
+              <span className={`factura-text-faint ${p.textFaint}`}>›</span>
+              <span className={`factura-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border ${p.statePill}`}>
+                {factura.numero_factura || 'Borrador'}
+              </span>
+            </div>
+
             {/* Info cliente/vehículo */}
             <div className={`factura-subsurface grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 rounded-lg p-5 border ${p.surfaceAlt} ${p.surfaceAltBrd}`}>
               <div>

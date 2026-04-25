@@ -145,6 +145,7 @@ function KanbanTask({ task, index, onOpen }) {
                 >
                   <FlowTrail
                     citaId={task.cita?.id}
+                    recepcionId={task.recepcion_id}
                     ordenId={task.id}
                     facturaId={task.factura_id}
                     facturaNum={task.factura_numero}
@@ -152,6 +153,7 @@ function KanbanTask({ task, index, onOpen }) {
                     isDark={isDark}
                     compact
                     onOpenOrden={null}
+                    onOpenRecepcion={(id) => navigate(`/citas/recepcion/${id}/boleta`)}
                     onNavCalendar={() => navigate('/citas/calendario')}
                     onNavFacturas={() => navigate('/facturacion')}
                   />
