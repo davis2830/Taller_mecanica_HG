@@ -486,8 +486,15 @@ function KanbanBoard() {
             <div className={`px-5 py-4 flex flex-col sm:flex-row gap-2 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               <button
                 onClick={() => {
-                  const citaId = recepcionGate.task?.cita?.id;
-                  const url = citaId ? `/citas/recepcion/nueva?cita_id=${citaId}` : '/citas/recepcion/nueva';
+                  const citaId = recepcionGate.task?.cita?.id || recepcionGate.task?.cita_id;
+                  const vehId  = recepcionGate.task?.vehiculo?.id;
+                  // Pasamos cita_id (para linkear) y vehiculo (fallback, por si
+                  // la cita no se pudo leer y queremos al menos el dropdown
+                  // ya seleccionado).
+                  const params = new URLSearchParams();
+                  if (citaId) params.set('cita_id', citaId);
+                  if (vehId)  params.set('vehiculo', vehId);
+                  const url = params.toString() ? `/citas/recepcion/nueva?${params}` : '/citas/recepcion/nueva';
                   setRecepcionGate(null);
                   navigate(url);
                 }}

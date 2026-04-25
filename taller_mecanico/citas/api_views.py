@@ -233,6 +233,22 @@ class CalendarioCitasView(APIView):
         ).all()
         return Response(CitaSerializer(citas, many=True).data)
 
+
+class CitaDetailView(APIView):
+    """Detalle de una cita por id (lectura). Lo usa la página *Nueva
+    Recepción* para precargar el vehículo cuando entramos con `?cita_id=`."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            cita = Cita.objects.select_related(
+                'cliente', 'vehiculo', 'vehiculo__propietario', 'servicio',
+            ).get(pk=pk)
+        except Cita.DoesNotExist:
+            return Response({'error': 'No encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(CitaSerializer(cita).data)
+
+
 class NuevaCitaView(APIView):
     permission_classes = [IsAuthenticated]
     

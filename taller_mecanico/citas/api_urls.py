@@ -7,6 +7,7 @@ urlpatterns = [
 
     # Citas
     path('citas/calendario/', api_views.CalendarioCitasView.as_view(), name='api_citas_calendario'),
+    path('citas/<int:pk>/', api_views.CitaDetailView.as_view(), name='api_cita_detail'),
     path('citas/mis/', api_views.MisCitasView.as_view(), name='api_citas_mis'),
     path('citas/nueva/', api_views.NuevaCitaView.as_view(), name='api_citas_nueva'),
     path('citas/slots-disponibles/', api_views.SlotsDisponiblesView.as_view(), name='api_citas_slots'),
