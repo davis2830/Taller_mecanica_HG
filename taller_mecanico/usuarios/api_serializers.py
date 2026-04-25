@@ -1,7 +1,30 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from usuarios.models import Perfil, Rol, Empresa
+from usuarios.models import Perfil, Rol, Empresa, TareaProgramada
 from citas.models import Vehiculo
+
+
+class TareaProgramadaSerializer(serializers.ModelSerializer):
+    proxima_ejecucion = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = TareaProgramada
+        fields = [
+            'id', 'tarea_id', 'nombre', 'descripcion',
+            'hora', 'habilitada',
+            'ultima_ejecucion', 'ultima_ejecucion_status',
+            'ultima_ejecucion_mensaje', 'proxima_ejecucion',
+        ]
+        read_only_fields = [
+            'id', 'tarea_id', 'nombre', 'descripcion',
+            'ultima_ejecucion', 'ultima_ejecucion_status',
+            'ultima_ejecucion_mensaje', 'proxima_ejecucion',
+        ]
+
+    def get_proxima_ejecucion(self, obj):
+        from usuarios.scheduler import get_next_run_time
+        nrt = get_next_run_time(obj.tarea_id)
+        return nrt.isoformat() if nrt else None
 
 
 class EmpresaSerializer(serializers.ModelSerializer):

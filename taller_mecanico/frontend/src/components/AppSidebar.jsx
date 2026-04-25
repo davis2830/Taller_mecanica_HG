@@ -4,7 +4,7 @@ import {
     BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight,
     List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt,
     Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart, Shield, LogOut,
-    SlidersHorizontal, FileText, Building2, DollarSign
+    SlidersHorizontal, FileText, Building2, DollarSign, Clock
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -31,6 +31,7 @@ const ROUTE_SECTION_MAP = {
     '/sistema/roles':           'Sistema',
     '/sistema/configuracion':   'Sistema',
     '/sistema/configuracion-fiscal': 'Sistema',
+    '/sistema/tareas-programadas': 'Sistema',
 };
 
 const STORAGE_KEY = 'sidebar_expanded';
@@ -299,6 +300,7 @@ export default function AppSidebar() {
                         { icon: <Shield size={15} />, label: 'Roles',    path: '/sistema/roles' },
                         { icon: <SlidersHorizontal size={15} />, label: 'Configuración del Taller', path: '/sistema/configuracion' },
                         { icon: <FileText size={15} />, label: 'Configuración Fiscal (FEL)', path: '/sistema/configuracion-fiscal' },
+                        { icon: <Clock size={15} />, label: 'Tareas Programadas', path: '/sistema/tareas-programadas' },
                     ]
                 },
             ]

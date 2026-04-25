@@ -5,9 +5,12 @@ from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
 from django.db import transaction
-from .api_serializers import UserSerializer, ClienteSerializer, RolSerializer, EmpresaSerializer
+from .api_serializers import (
+    UserSerializer, ClienteSerializer, RolSerializer,
+    EmpresaSerializer, TareaProgramadaSerializer,
+)
 from .permisos import es_admin_o_secretaria
-from .models import Rol, Perfil, Empresa
+from .models import Rol, Perfil, Empresa, TareaProgramada
 
 
 class IsAdminOrSecretariaPermission(BasePermission):
@@ -287,3 +290,67 @@ class EmpresaViewSet(viewsets.ModelViewSet):
         nombre = empresa.razon_social
         empresa.delete()
         return Response({'message': f'Empresa "{nombre}" eliminada.'}, status=status.HTTP_200_OK)
+
+
+# ─── Tareas Programadas ───────────────────────────────────────────────────────
+
+class IsAdministradorPermission(BasePermission):
+    """Acceso restringido a superusuario o usuario con rol 'Administrador'."""
+    message = "Solo los administradores pueden gestionar las tareas programadas."
+
+    def has_permission(self, request, view):
+        u = request.user
+        if not (u and u.is_authenticated):
+            return False
+        if u.is_superuser:
+            return True
+        rol = getattr(getattr(u, 'perfil', None), 'rol', None)
+        return bool(rol and rol.nombre.lower() == 'administrador')
+
+
+class TareaProgramadaViewSet(viewsets.ModelViewSet):
+    """
+    GET    /api/v1/usuarios/tareas-programadas/
+    PATCH  /api/v1/usuarios/tareas-programadas/<id>/
+    POST   /api/v1/usuarios/tareas-programadas/<id>/run-now/
+
+    Solo PATCH y la action run-now están habilitados; create/destroy quedan
+    bloqueados — las filas se siembran vía data-migration.
+    """
+    serializer_class = TareaProgramadaSerializer
+    permission_classes = [IsAdministradorPermission]
+    queryset = TareaProgramada.objects.all().order_by('nombre')
+    http_method_names = ['get', 'patch', 'post', 'head', 'options']
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {'error': 'Las tareas se siembran vía migraciones.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'error': 'Las tareas no se eliminan; se deshabilitan.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def perform_update(self, serializer):
+        tarea = serializer.save()
+        # Reprograma el job en caliente con la nueva config.
+        from .scheduler import apply_db_config
+        apply_db_config(tarea.tarea_id)
+
+    @action(detail=True, methods=['post'], url_path='run-now')
+    def run_now(self, request, pk=None):
+        tarea = self.get_object()
+        from .scheduler import run_now
+        try:
+            run_now(tarea.tarea_id)
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Refrescar para devolver ultima_ejecucion actualizada.
+        tarea.refresh_from_db()
+        return Response(self.get_serializer(tarea).data)
