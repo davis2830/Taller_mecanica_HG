@@ -240,8 +240,8 @@ export default function ProductosPage() {
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-col">
                                                     <span className={`font-bold ${txt}`}>{p.nombre}</span>
-                                                    <span className={`text-[11px] font-semibold mt-0.5 ${p.categoria_nombre ? sub : 'text-orange-400/70 italic'}`}>
-                                                        {p.categoria_nombre || 'Sin categoría'} • {p.tipo}
+                                                    <span className={`text-[11px] font-semibold mt-0.5 ${sub}`}>
+                                                        {p.categoria_nombre ? `${p.categoria_nombre} • ${p.tipo}` : p.tipo}
                                                     </span>
                                                 </div>
                                             </td>
