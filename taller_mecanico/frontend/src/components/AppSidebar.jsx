@@ -4,7 +4,7 @@ import {
     BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight,
     List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt,
     Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart, Shield, LogOut,
-    SlidersHorizontal, FileText
+    SlidersHorizontal, FileText, Building2, DollarSign
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -24,6 +24,8 @@ const ROUTE_SECTION_MAP = {
     '/inventario/movimientos':  'Inventario',
     '/inventario/compras':      'Inventario',
     '/facturacion':             'Facturación',
+    '/finanzas/empresas':       'Facturación',
+    '/finanzas/cuentas-por-cobrar': 'Facturación',
     '/reportes/utilidades':     'Reportes',
     '/sistema/usuarios':        'Sistema',
     '/sistema/roles':           'Sistema',
@@ -265,7 +267,9 @@ export default function AppSidebar() {
                 {
                     icon: <Receipt size={18} />, label: 'Facturación', path: '#facturacion',
                     subItems: [
-                        { icon: <Receipt size={15} />, label: 'Lista de Facturas', path: '/facturacion' },
+                        { icon: <Receipt size={15} />,    label: 'Lista de Facturas',   path: '/facturacion' },
+                        { icon: <Building2 size={15} />,  label: 'Empresas (CxC)',      path: '/finanzas/empresas' },
+                        { icon: <DollarSign size={15} />, label: 'Cuentas por Cobrar',  path: '/finanzas/cuentas-por-cobrar' },
                     ]
                 },
                 {
