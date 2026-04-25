@@ -1,9 +1,16 @@
 # usuarios/admin.py
 from django.contrib import admin
-from .models import Rol, Perfil, Empresa
+from .models import Rol, Perfil, Empresa, TareaProgramada
 
 admin.site.register(Rol)
 admin.site.register(Perfil)
+
+
+@admin.register(TareaProgramada)
+class TareaProgramadaAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'tarea_id', 'hora', 'habilitada', 'ultima_ejecucion', 'ultima_ejecucion_status')
+    list_filter = ('habilitada', 'ultima_ejecucion_status')
+    readonly_fields = ('tarea_id', 'nombre', 'descripcion', 'ultima_ejecucion', 'ultima_ejecucion_status', 'ultima_ejecucion_mensaje')
 
 
 @admin.register(Empresa)
