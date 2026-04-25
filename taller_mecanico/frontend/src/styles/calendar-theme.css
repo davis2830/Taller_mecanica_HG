@@ -73,13 +73,26 @@
   border-color: rgb(226 232 240);
 }
 .rbc-autoservi .rbc-today {
-  background-color: rgba(59, 130, 246, 0.06);
+  background-color: rgba(59, 130, 246, 0.10);
+  box-shadow: inset 3px 0 0 0 rgba(59, 130, 246, 0.55);
 }
 .rbc-autoservi .rbc-off-range-bg {
-  background-color: rgb(248 250 252);
+  /* ligero gris perla para diferenciar mes anterior/siguiente del blanco puro */
+  background-color: rgb(241 245 249);
+  background-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 48%,
+    rgba(148, 163, 184, 0.12) 48%,
+    rgba(148, 163, 184, 0.12) 52%,
+    transparent 52%,
+    transparent 100%
+  );
 }
 .rbc-autoservi .rbc-off-range {
   color: rgb(148 163 184);
+  font-weight: 600;
+  opacity: 0.75;
 }
 
 /* Slot horario */
@@ -172,13 +185,26 @@ html.dark-theme .rbc-autoservi .rbc-date-cell {
   border-color: rgb(51 65 85);
 }
 html.dark-theme .rbc-autoservi .rbc-today {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(96, 165, 250, 0.14);
+  box-shadow: inset 3px 0 0 0 rgba(96, 165, 250, 0.70);
 }
 html.dark-theme .rbc-autoservi .rbc-off-range-bg {
-  background-color: rgb(15 23 42 / 0.6);
+  /* slate-950 + leve patrón para diferenciar del slate-900 del mes actual */
+  background-color: rgb(2 6 23);
+  background-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 48%,
+    rgba(148, 163, 184, 0.10) 48%,
+    rgba(148, 163, 184, 0.10) 52%,
+    transparent 52%,
+    transparent 100%
+  );
 }
 html.dark-theme .rbc-autoservi .rbc-off-range {
   color: rgb(71 85 105);
+  font-weight: 600;
+  opacity: 0.85;
 }
 html.dark-theme .rbc-autoservi .rbc-time-gutter,
 html.dark-theme .rbc-autoservi .rbc-time-content {
