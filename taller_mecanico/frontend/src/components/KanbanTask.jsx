@@ -63,19 +63,21 @@ function KanbanTask({ task, index, onOpen }) {
             {...provided.dragHandleProps}
             onClick={() => !snapshot.isDragging && onOpen(task.id)}
             style={{
-              // DnD styles FIRST — override solo transform y transition de forma controlada
-              ...dndStyle,
-              transform,
-              transition: mergedTransition,
-              backgroundColor: snapshot.isDragging
-                ? (isDark ? '#0f172a' : '#e2e8f0')
-                : (isDark ? '#1e293b' : '#ffffff'),
+              // Estilos base PRIMERO — así los dndStyle de la librería los sobreescriben
+              // durante el drag. ⚠️ Crítico: NO forzar `position: 'relative'` después del
+              // spread de dndStyle; durante el drag la librería emite `position: 'fixed'`
+              // con coords de viewport, y si lo pisamos con 'relative' el clone portalizado
+              // queda posicionado relativo a su nodo en el flow del body (fuera del viewport,
+              // "al fondo de la página").
+              position: 'relative', // para la accent bar cuando NO está arrastrando
               borderRadius: 10,
               marginBottom: 8,
               overflow: 'hidden',
-              position: 'relative',
               userSelect: 'none',
               cursor: snapshot.isDragging ? 'grabbing' : 'grab',
+              backgroundColor: snapshot.isDragging
+                ? (isDark ? '#0f172a' : '#e2e8f0')
+                : (isDark ? '#1e293b' : '#ffffff'),
               border: snapshot.isDragging
                 ? `1.5px solid ${isDark ? 'rgba(99,179,237,0.7)' : 'rgba(59,130,246,0.6)'}`
                 : `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.09)'}`,
@@ -83,6 +85,13 @@ function KanbanTask({ task, index, onOpen }) {
                 ? `0 24px 50px -10px ${isDark ? 'rgba(0,0,0,0.85)' : 'rgba(15,23,42,0.28)'},
                    0 0 0 3px ${isDark ? 'rgba(99,179,237,0.35)' : 'rgba(59,130,246,0.28)'}`
                 : `0 1px 3px ${isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.07)'}`,
+              // dnd styles DESPUÉS: sobreescriben position/top/left/width/transform/etc.
+              // durante el drag (position: 'fixed' gana sobre 'relative' de arriba).
+              ...dndStyle,
+              // Nuestras customizaciones de transform/transition ENCIMA del dnd transform
+              // (ya incluyen el translate del dndStyle concatenado con rotate/scale).
+              transform,
+              transition: mergedTransition,
             }}
           >
             {/* Accent bar */}
