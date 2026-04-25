@@ -50,6 +50,24 @@ function EstadoBadge({ estado, isDark }) {
   );
 }
 
+const PAGO_BADGE_CLS = {
+  PENDIENTE: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
+  PARCIAL:   'bg-blue-500/15 text-blue-600 border-blue-500/30',
+  PAGADA:    'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
+  VENCIDA:   'bg-red-500/15 text-red-600 border-red-500/30',
+};
+
+function PagoEstadoBadge({ pagoEstado, display, saldo }) {
+  const cls = PAGO_BADGE_CLS[pagoEstado] || PAGO_BADGE_CLS.PENDIENTE;
+  const label = display || pagoEstado;
+  const showSaldo = pagoEstado !== 'PAGADA' && Number(saldo) > 0;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${cls}`}>
+      {label}{showSaldo && ` · ${GTQ(saldo)}`}
+    </span>
+  );
+}
+
 // ─── Stats Card ───────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon, accent, isDark }) {
   return (
@@ -263,7 +281,15 @@ export default function FacturasPage() {
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <User size={13} className={sub} />
-                          <span className={`text-sm ${txt}`}>{f.cliente_nombre || '—'}</span>
+                          <div>
+                            <span className={`text-sm ${txt}`}>{f.cliente_nombre || '—'}</span>
+                            {f.empresa_nombre && (
+                              <div className={`text-[10px] uppercase font-bold tracking-wider mt-0.5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'} flex items-center gap-1`}>
+                                <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                {f.empresa_nombre}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -321,7 +347,12 @@ export default function FacturasPage() {
 
                       {/* Estado */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <EstadoBadge estado={f.estado} isDark={isDark} />
+                        <div className="flex flex-col gap-1">
+                          <EstadoBadge estado={f.estado} isDark={isDark} />
+                          {f.condicion_pago === 'CREDITO' && f.pago_estado && f.pago_estado !== 'NO_APLICA' && (
+                            <PagoEstadoBadge pagoEstado={f.pago_estado} display={f.pago_estado_display} saldo={f.saldo_pendiente} />
+                          )}
+                        </div>
                       </td>
 
                       {/* Fecha */}
