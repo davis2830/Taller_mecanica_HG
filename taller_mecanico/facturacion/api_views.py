@@ -399,6 +399,7 @@ class ConfiguracionFacturacionSerializer(serializers.ModelSerializer):
             'ambiente', 'ambiente_display',
             'certificador', 'certificador_display',
             'certificador_api_url', 'certificador_usuario', 'certificador_api_key',
+            'envio_automatico_factura', 'recordatorios_cobro_auto',
             'tasa_iva_sugerida',
             'actualizado_el',
         ]
@@ -528,6 +529,17 @@ class FacturaCertificarAPIView(APIView):
             doc.fecha_certificacion = resultado.fecha_sat
             doc.errores = ''
             doc.save()
+
+            # Auto-envío de la factura por correo (si está habilitado y solo
+            # para FACT — no para NCRE).
+            if config.envio_automatico_factura and tipo_dte == 'FACT':
+                destino = _resolver_email_factura(factura)
+                if destino:
+                    try:
+                        enviar_factura_task.delay(factura.id, destino)
+                    except Exception:
+                        # No bloqueamos la certificación si falla el envío.
+                        pass
         else:
             doc.estado = 'RECHAZADO'
             doc.errores = resultado.error
@@ -614,10 +626,25 @@ class DocumentoXMLAPIView(APIView):
         return response
 
 
+def _resolver_email_factura(factura):
+    """
+    Devuelve el correo destino apropiado para una factura:
+    - Si tiene empresa con email_cobro → ese (B2B).
+    - Sino el correo del cliente individual de la cita.
+    - None si no hay correo disponible.
+    """
+    empresa = getattr(factura, 'empresa', None)
+    if empresa and getattr(empresa, 'email_cobro', ''):
+        return empresa.email_cobro
+    cliente = getattr(getattr(getattr(factura, 'orden', None), 'cita', None), 'cliente', None)
+    return getattr(cliente, 'email', None) or None
+
+
 class FacturaReenviarCorreoAPIView(APIView):
     """
     POST /api/v1/facturacion/<id>/reenviar-correo/
-    Reencola el envío de la factura al correo del cliente asociado.
+    Body opcional: { "email": "destino@..." } para sobrescribir el destino.
+    Reencola el envío de la factura al correo del cliente o empresa asociada.
     """
     permission_classes = [IsAuthenticated]
 
@@ -626,13 +653,11 @@ class FacturaReenviarCorreoAPIView(APIView):
             return Response({'error': 'Acceso restringido al personal administrativo.'}, status=403)
 
         factura = get_object_or_404(Factura, id=factura_id)
-        orden = factura.orden
-        cliente = getattr(getattr(orden, 'cita', None), 'cliente', None)
-        email = getattr(cliente, 'email', None)
+        email = (request.data.get('email') or '').strip() or _resolver_email_factura(factura)
 
         if not email:
             return Response(
-                {'error': 'El cliente no tiene correo registrado.'},
+                {'error': 'No hay correo registrado para esta factura (ni del cliente ni de la empresa).'},
                 status=400,
             )
 
