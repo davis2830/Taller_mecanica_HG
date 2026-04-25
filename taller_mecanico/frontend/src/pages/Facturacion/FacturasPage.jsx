@@ -330,9 +330,14 @@ export default function FacturasPage() {
                         </div>
                       </td>
 
-                      {/* Eye */}
-                      <td className="px-4 py-3.5">
-                        <button className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-slate-600 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}>
+                      {/* Eye → ver/imprimir factura */}
+                      <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          title="Ver factura imprimible"
+                          onClick={() => navigate(`/facturacion/${f.id}/imprimir`)}
+                          className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-slate-600 text-slate-300' : 'hover:bg-slate-100 text-slate-500'}`}
+                        >
                           <Eye size={14} />
                         </button>
                       </td>

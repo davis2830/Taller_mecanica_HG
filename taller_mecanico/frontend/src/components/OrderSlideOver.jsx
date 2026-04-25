@@ -299,10 +299,10 @@ function BillingSuccess({ data, onClose, isDark }) {
         </p>
       </div>
       <div className="mt-4 flex gap-2">
-        <a 
-          href={`http://localhost:8000/facturacion/imprimir/${data.id}/`} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href={`/facturacion/${data.id}/imprimir`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors"
         >
           <Receipt size={15} /> Ver y Descargar Factura

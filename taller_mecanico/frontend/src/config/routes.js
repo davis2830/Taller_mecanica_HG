@@ -20,6 +20,7 @@ import BoletaRecepcionPage from '../pages/Citas/BoletaRecepcionPage';
 import ReporteUtilidades from '../pages/Reportes/ReporteUtilidades';
 import HistorialOrdenesPage from '../pages/Taller/HistorialOrdenesPage';
 import FacturasPage from '../pages/Facturacion/FacturasPage';
+import FacturaPrintPage from '../pages/Facturacion/FacturaPrintPage';
 import ProductosPage from '../pages/Inventario/ProductosPage';
 import CategoriasPage from '../pages/Inventario/CategoriasPage';
 import MovimientosPage from '../pages/Inventario/MovimientosPage';
@@ -130,6 +131,13 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Facturación'
+    },
+    {
+        path: '/facturacion/:id/imprimir',
+        element: FacturaPrintPage,
+        private: true,
+        layout: true,
+        title: 'Factura'
     },
     {
         path: '/inventario/productos',
