@@ -59,10 +59,24 @@ const estadoColor = (estado, isDark) => {
  * categorías). Cuando PR #5 (ConfiguracionTaller) esté en main, se pueden
  * reemplazar por un cálculo contra `capacidad * horas laborables`.
  */
+// Dark-mode opacities subidas (y con borde superior acentuado) para que sean
+// legibles sobre slate-900 — antes eran ~0.14-0.16 y casi no se distinguían.
 const HEATMAP_TIERS = [
-  { min: 7, light: 'rgba(239,68,68,0.10)', dark: 'rgba(239,68,68,0.16)' },   // rojo
-  { min: 4, light: 'rgba(245,158,11,0.10)', dark: 'rgba(245,158,11,0.16)' }, // amarillo
-  { min: 1, light: 'rgba(16,185,129,0.08)', dark: 'rgba(16,185,129,0.14)' }, // verde
+  {
+    min: 7,
+    light: { bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.55)' },
+    dark:  { bg: 'rgba(239,68,68,0.30)', border: 'rgba(248,113,113,0.75)' },
+  }, // rojo — Alta
+  {
+    min: 4,
+    light: { bg: 'rgba(245,158,11,0.14)', border: 'rgba(245,158,11,0.55)' },
+    dark:  { bg: 'rgba(245,158,11,0.30)', border: 'rgba(251,191,36,0.75)' },
+  }, // amarillo — Media
+  {
+    min: 1,
+    light: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.50)' },
+    dark:  { bg: 'rgba(16,185,129,0.28)', border: 'rgba(52,211,153,0.70)' },
+  }, // verde — Baja
 ];
 
 export default function CitasCalendarView({
@@ -124,7 +138,13 @@ export default function CitasCalendarView({
 
     for (const tier of HEATMAP_TIERS) {
       if (count >= tier.min) {
-        return { style: { backgroundColor: isDark ? tier.dark : tier.light } };
+        const palette = isDark ? tier.dark : tier.light;
+        return {
+          style: {
+            backgroundColor: palette.bg,
+            boxShadow: `inset 0 3px 0 0 ${palette.border}`,
+          },
+        };
       }
     }
     return {};

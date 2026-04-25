@@ -259,15 +259,33 @@ export default function CitasCalendar() {
           <div className={`${cardBg} border ${cardBorder} rounded-xl shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-center text-xs`}>
             <span className={`font-semibold uppercase tracking-wide ${labelText}`}>Leyenda ocupación:</span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.30)' : 'rgba(16,185,129,0.18)' }} />
+              <span
+                className="inline-block w-3.5 h-3.5 rounded"
+                style={{
+                  backgroundColor: isDark ? 'rgba(16,185,129,0.28)' : 'rgba(16,185,129,0.12)',
+                  boxShadow: `inset 0 2px 0 0 ${isDark ? 'rgba(52,211,153,0.70)' : 'rgba(16,185,129,0.50)'}`,
+                }}
+              />
               <span className={cellText}>Baja (1–3)</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: isDark ? 'rgba(245,158,11,0.30)' : 'rgba(245,158,11,0.20)' }} />
+              <span
+                className="inline-block w-3.5 h-3.5 rounded"
+                style={{
+                  backgroundColor: isDark ? 'rgba(245,158,11,0.30)' : 'rgba(245,158,11,0.14)',
+                  boxShadow: `inset 0 2px 0 0 ${isDark ? 'rgba(251,191,36,0.75)' : 'rgba(245,158,11,0.55)'}`,
+                }}
+              />
               <span className={cellText}>Media (4–6)</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.30)' : 'rgba(239,68,68,0.20)' }} />
+              <span
+                className="inline-block w-3.5 h-3.5 rounded"
+                style={{
+                  backgroundColor: isDark ? 'rgba(239,68,68,0.30)' : 'rgba(239,68,68,0.14)',
+                  boxShadow: `inset 0 2px 0 0 ${isDark ? 'rgba(248,113,113,0.75)' : 'rgba(239,68,68,0.55)'}`,
+                }}
+              />
               <span className={cellText}>Alta (7+)</span>
             </span>
             <span className={`ml-auto ${subText}`}>Toca un día u hora libre para agendar · toca una cita para ver detalles</span>
