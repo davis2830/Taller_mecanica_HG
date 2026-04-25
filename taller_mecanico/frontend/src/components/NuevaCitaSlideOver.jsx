@@ -21,12 +21,12 @@ export default function NuevaCitaSlideOver({ isOpen, onClose, onCitaCreada, defa
   const [horaInicio, setHoraInicio] = useState('');
   const [notas, setNotas] = useState('');
 
-  const timeSlots = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", 
-    "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
-    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
-    "17:00", "17:30"
-  ];
+  // Slots dinámicos que vienen del backend según fecha + servicio (capacidad real)
+  const [slotsMeta, setSlotsMeta] = useState(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Fecha mínima = hoy (local) para evitar seleccionar días pasados
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   // Estilos de react-select adaptados al tema
   const selectStyles = {
@@ -129,6 +129,34 @@ export default function NuevaCitaSlideOver({ isOpen, onClose, onCitaCreada, defa
       console.error(e);
     }
   };
+
+  // Pedir slots disponibles al backend cuando ya hay fecha + servicio
+  useEffect(() => {
+    if (!isOpen || !fecha || !servicioSeleccionado) {
+      setSlotsMeta(null);
+      return;
+    }
+    let cancelled = false;
+    setSlotsLoading(true);
+    axios.get('http://localhost:8000/api/v1/citas/slots-disponibles/', {
+      params: { fecha, servicio_id: servicioSeleccionado.value },
+      headers: { Authorization: `Bearer ${authTokens.access}` },
+    }).then(res => {
+      if (cancelled) return;
+      setSlotsMeta(res.data);
+      // Si el slot seleccionado previamente ya no existe o está lleno, resetearlo
+      const still = res.data?.slots?.find(s => s.hora_inicio === horaInicio && s.disponibles > 0);
+      if (!still) setHoraInicio('');
+    }).catch(err => {
+      if (cancelled) return;
+      if (err.response?.status === 401) logoutUser();
+      console.error('Error cargando slots:', err);
+      setSlotsMeta(null);
+    }).finally(() => {
+      if (!cancelled) setSlotsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, fecha, servicioSeleccionado]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -265,44 +293,101 @@ export default function NuevaCitaSlideOver({ isOpen, onClose, onCitaCreada, defa
                         />
                       </div>
 
-                      {/* Fecha — input nativo limpio */}
+                      {/* Fecha — input nativo con mínimo hoy */}
                       <div>
                         <label className={labelClass}>Fecha</label>
                         <input
                           type="date"
                           required
+                          min={todayISO}
                           className={inputClass}
                           value={fecha}
                           onChange={(e) => setFecha(e.target.value)}
                           style={{ colorScheme: isDark ? 'dark' : 'light' }}
                         />
+                        {fecha && fecha < todayISO && (
+                          <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                            <AlertCircle size={12} /> No puedes agendar en fechas pasadas.
+                          </p>
+                        )}
                       </div>
 
-                      {/* Botonera de Horas */}
+                      {/* Botonera de Horas — slots dinámicos con capacidad real */}
                       <div>
-                        <label className={labelClass}>Hora Inicio</label>
-                        <div className="grid grid-cols-4 gap-2">
-                          {timeSlots.map(slot => (
-                            <button
-                              key={slot}
-                              type="button"
-                              onClick={() => setHoraInicio(slot)}
-                              className={`py-2 text-sm font-semibold rounded-lg transition-all border ${
-                                horaInicio === slot
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
-                                  : isDark
-                                  ? 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700 hover:border-blue-500'
-                                  : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-blue-400'
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          ))}
-                        </div>
-                        {!horaInicio && (
-                          <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
-                            <AlertCircle size={12} /> Selecciona una franja horaria
+                        <label className={labelClass}>
+                          Hora Inicio
+                          {servicioSeleccionado && (
+                            <span className={`ml-2 font-normal normal-case tracking-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                              (bloque de {slotsMeta?.servicio?.duracion ?? '...'} min)
+                            </span>
+                          )}
+                        </label>
+                        {!servicioSeleccionado || !fecha ? (
+                          <p className={`text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            Selecciona primero un servicio y una fecha para ver los horarios disponibles.
                           </p>
+                        ) : slotsLoading ? (
+                          <p className={`text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Cargando disponibilidad...</p>
+                        ) : !slotsMeta?.es_laboral ? (
+                          <p className="text-xs text-amber-500 flex items-center gap-1">
+                            <AlertCircle size={12} /> El taller no atiende este día. Elige otra fecha.
+                          </p>
+                        ) : slotsMeta?.es_pasado ? (
+                          <p className="text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle size={12} /> Fecha pasada.
+                          </p>
+                        ) : !slotsMeta?.slots?.length ? (
+                          <p className={`text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            Sin horarios disponibles para esta fecha.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-3 gap-2">
+                              {slotsMeta.slots.map(s => {
+                                const selected = horaInicio === s.hora_inicio;
+                                const disabled = s.disponibles === 0;
+                                return (
+                                  <button
+                                    key={s.hora_inicio}
+                                    type="button"
+                                    disabled={disabled}
+                                    onClick={() => !disabled && setHoraInicio(s.hora_inicio)}
+                                    title={
+                                      s.motivo === 'lleno' ? 'Capacidad llena en este horario' :
+                                      s.motivo === 'pasado' ? 'La hora ya pasó' :
+                                      `Disponibles: ${s.disponibles} de ${s.capacidad}`
+                                    }
+                                    className={`relative py-2 text-sm font-semibold rounded-lg transition-all border flex flex-col items-center justify-center leading-tight ${
+                                      selected
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
+                                        : disabled
+                                          ? (isDark
+                                              ? 'bg-slate-800/40 text-slate-600 border-slate-700 cursor-not-allowed line-through'
+                                              : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed line-through')
+                                          : isDark
+                                            ? 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700 hover:border-blue-500'
+                                            : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-blue-400'
+                                    }`}
+                                  >
+                                    <span>{s.hora_inicio} – {s.hora_fin}</span>
+                                    {!selected && !disabled && (
+                                      <span className={`text-[10px] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                        {s.disponibles}/{s.capacidad} libres
+                                      </span>
+                                    )}
+                                    {disabled && s.motivo === 'lleno' && (
+                                      <span className="text-[10px]">Lleno</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {!horaInicio && (
+                              <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
+                                <AlertCircle size={12} /> Selecciona una franja horaria disponible
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
 

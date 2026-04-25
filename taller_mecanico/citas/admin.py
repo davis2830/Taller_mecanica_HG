@@ -1,6 +1,6 @@
 # citas/admin.py
 from django.contrib import admin
-from .models import Vehiculo, Cita, TipoServicio, Notificacion
+from .models import Vehiculo, Cita, TipoServicio, Notificacion, ConfiguracionTaller
 
 class VehiculoAdmin(admin.ModelAdmin):
     list_display = ('marca', 'modelo', 'año', 'placa', 'propietario')
@@ -22,7 +22,19 @@ class NotificacionAdmin(admin.ModelAdmin):
     list_display = ('cita', 'tipo', 'fecha_envio', 'enviado')
     list_filter = ('tipo', 'enviado')
 
+class ConfiguracionTallerAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'capacidad_mecanico', 'capacidad_carwash', 'hora_apertura', 'hora_cierre', 'actualizado_el')
+
+    def has_add_permission(self, request):
+        # Singleton: no permitir crear más instancias manualmente.
+        return not ConfiguracionTaller.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 admin.site.register(Vehiculo, VehiculoAdmin)
 admin.site.register(Cita, CitaAdmin)
 admin.site.register(TipoServicio, TipoServicioAdmin)
 admin.site.register(Notificacion, NotificacionAdmin)
+admin.site.register(ConfiguracionTaller, ConfiguracionTallerAdmin)

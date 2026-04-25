@@ -2,10 +2,14 @@ from django.urls import path
 from . import api_views
 
 urlpatterns = [
+    # Configuración del Taller (singleton)
+    path('sistema/configuracion-taller/', api_views.ConfiguracionTallerView.as_view(), name='api_config_taller'),
+
     # Citas
     path('citas/calendario/', api_views.CalendarioCitasView.as_view(), name='api_citas_calendario'),
     path('citas/mis/', api_views.MisCitasView.as_view(), name='api_citas_mis'),
     path('citas/nueva/', api_views.NuevaCitaView.as_view(), name='api_citas_nueva'),
+    path('citas/slots-disponibles/', api_views.SlotsDisponiblesView.as_view(), name='api_citas_slots'),
     path('citas/<int:pk>/cancelar/', api_views.CancelarCitaView.as_view(), name='api_citas_cancelar'),
     path('citas/vehiculos/', api_views.MisVehiculosView.as_view(), name='api_citas_vehiculos'),
     path('citas/servicios/', api_views.ServiciosView.as_view(), name='api_servicios_list'),

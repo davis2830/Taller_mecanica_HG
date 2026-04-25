@@ -26,6 +26,7 @@ import MovimientosPage from '../pages/Inventario/MovimientosPage';
 import DashboardComprasPage from '../pages/Inventario/DashboardComprasPage';
 import SistemaUsuariosPage from '../pages/Sistema/SistemaUsuariosPage';
 import SistemaRolesPage from '../pages/Sistema/SistemaRolesPage';
+import ConfiguracionTallerPage from '../pages/Sistema/ConfiguracionTallerPage';
 
 export const routes = [
     {
@@ -171,6 +172,13 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Gestión de Roles'
+    },
+    {
+        path: '/sistema/configuracion',
+        element: ConfiguracionTallerPage,
+        private: true,
+        layout: true,
+        title: 'Configuración del Taller'
     },
 ];
 

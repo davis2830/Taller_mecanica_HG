@@ -1,17 +1,153 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
+from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, ConfiguracionTaller
 from .api_serializers import (
     CitaSerializer, CitaCreacionSerializer,
     VehiculoSerializer, VehiculoWriteSerializer,
     TipoServicioSerializer, RecepcionSerializer,
+    ConfiguracionTallerSerializer,
 )
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from .tasks import enviar_correo_cita_task
+import datetime
+
+
+class EsAdministradorPermission(BasePermission):
+    """Permite acceso solo a administradores (superuser/staff o Rol=Administrador)."""
+    message = "Solo los administradores pueden modificar la configuración del taller."
+
+    def has_permission(self, request, view):
+        u = request.user
+        if not (u and u.is_authenticated):
+            return False
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return True
+        if u.is_superuser or u.is_staff:
+            return True
+        rol = getattr(getattr(u, 'perfil', None), 'rol', None)
+        return bool(rol and rol.nombre.lower() == 'administrador')
+
+
+class ConfiguracionTallerView(APIView):
+    """GET/PATCH de la config del taller (singleton)."""
+    permission_classes = [EsAdministradorPermission]
+
+    def get(self, request):
+        config = ConfiguracionTaller.get()
+        return Response(ConfiguracionTallerSerializer(config).data)
+
+    def patch(self, request):
+        config = ConfiguracionTaller.get()
+        serializer = ConfiguracionTallerSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SlotsDisponiblesView(APIView):
+    """
+    GET /api/v1/citas/slots-disponibles/?fecha=YYYY-MM-DD&servicio_id=N
+    Retorna los slots de horario del día solicitado con la capacidad disponible
+    en cada uno, considerando la duración del servicio.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        fecha_str = request.query_params.get('fecha')
+        servicio_id = request.query_params.get('servicio_id')
+        if not fecha_str or not servicio_id:
+            return Response(
+                {'error': 'Parámetros requeridos: fecha (YYYY-MM-DD) y servicio_id.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            fecha = datetime.date.fromisoformat(fecha_str)
+        except ValueError:
+            return Response({'error': 'Formato de fecha inválido. Usa YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            servicio = TipoServicio.objects.get(pk=servicio_id)
+        except TipoServicio.DoesNotExist:
+            return Response({'error': 'Servicio no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        config = ConfiguracionTaller.get()
+        capacidad = config.capacidad_para(servicio.categoria)
+        granularidad = int(config.granularidad_slot or 30)
+        hoy = datetime.date.today()
+        ahora = datetime.datetime.now().time()
+
+        es_pasado = fecha < hoy
+        es_hoy = fecha == hoy
+        dia_semana = fecha.weekday()
+        es_laboral = dia_semana in (config.dias_laborales or [0, 1, 2, 3, 4, 5])
+
+        # Pre-cargar citas del día que puedan contar para ocupación.
+        citas_dia = list(Cita.objects.filter(
+            fecha=fecha,
+            estado__in=['PENDIENTE', 'CONFIRMADA'],
+            servicio__categoria=servicio.categoria,
+        ).values('hora_inicio', 'hora_fin'))
+
+        # Generar slots entre hora_apertura y hora_cierre (la cita debe INICIAR antes del cierre).
+        duracion = servicio.duracion
+        apertura = config.hora_apertura
+        cierre = config.hora_cierre
+
+        slots = []
+        cursor = datetime.datetime.combine(fecha, apertura)
+        limite_inicio = datetime.datetime.combine(fecha, cierre) - datetime.timedelta(minutes=duracion)
+
+        if not es_pasado and es_laboral:
+            while cursor <= limite_inicio:
+                hora_inicio = cursor.time()
+                fin_dt = cursor + datetime.timedelta(minutes=duracion)
+                hora_fin = fin_dt.time()
+
+                # Contar solapamiento
+                ocupadas = 0
+                for c in citas_dia:
+                    if hora_inicio < c['hora_fin'] and hora_fin > c['hora_inicio']:
+                        ocupadas += 1
+                disponibles = max(capacidad - ocupadas, 0)
+                # Si es hoy y la hora ya pasó, marcar como no disponible.
+                if es_hoy and hora_inicio <= ahora:
+                    disponibles = 0
+                    motivo = 'pasado'
+                elif disponibles == 0:
+                    motivo = 'lleno'
+                else:
+                    motivo = None
+
+                slots.append({
+                    'hora_inicio': hora_inicio.strftime('%H:%M'),
+                    'hora_fin': hora_fin.strftime('%H:%M'),
+                    'disponibles': disponibles,
+                    'capacidad': capacidad,
+                    'motivo': motivo,
+                })
+                cursor += datetime.timedelta(minutes=granularidad)
+
+        return Response({
+            'fecha': fecha.isoformat(),
+            'servicio': {
+                'id': servicio.id,
+                'nombre': servicio.nombre,
+                'duracion': servicio.duracion,
+                'categoria': servicio.categoria,
+            },
+            'capacidad': capacidad,
+            'es_laboral': es_laboral,
+            'es_pasado': es_pasado,
+            'hora_apertura': apertura.strftime('%H:%M'),
+            'hora_cierre': cierre.strftime('%H:%M'),
+            'granularidad_slot': granularidad,
+            'dias_laborales': config.dias_laborales or [0, 1, 2, 3, 4, 5],
+            'slots': slots,
+        })
 
 # ===========================================================================
 # SERVICIOS

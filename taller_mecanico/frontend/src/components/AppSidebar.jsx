@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight,
     List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt,
-    Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart, Shield, LogOut
+    Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart, Shield, LogOut,
+    SlidersHorizontal
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -290,6 +291,7 @@ export default function AppSidebar() {
                     subItems: [
                         { icon: <Users size={15} />,  label: 'Usuarios', path: '/sistema/usuarios' },
                         { icon: <Shield size={15} />, label: 'Roles',    path: '/sistema/roles' },
+                        { icon: <SlidersHorizontal size={15} />, label: 'Configuración del Taller', path: '/sistema/configuracion' },
                     ]
                 },
             ]
