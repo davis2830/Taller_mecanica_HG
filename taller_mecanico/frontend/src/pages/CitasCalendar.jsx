@@ -3,9 +3,12 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Calendar, Hourglass, CheckCircle2, Key, Flag, Ban, Eye, ClipboardCheck, Loader2, Hash } from 'lucide-react';
+import { Calendar, Hourglass, CheckCircle2, Key, Flag, Ban, Eye, ClipboardCheck, Loader2, Hash, LayoutList, CalendarDays } from 'lucide-react';
 import NuevaCitaSlideOver from '../components/NuevaCitaSlideOver';
 import DetalleCitaSlideOver from '../components/DetalleCitaSlideOver';
+import CitasCalendarView from '../components/CitasCalendarView';
+
+const VIEW_STORAGE_KEY = 'citas:viewMode';
 
 export default function CitasCalendar() {
   const { authTokens, logoutUser } = useContext(AuthContext);
@@ -27,6 +30,20 @@ export default function CitasCalendar() {
   const [fechaFiltro, setFechaFiltro] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('');
+
+  // Modo de vista — 'tabla' | 'calendario'. Persistido en localStorage.
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+      return saved === 'calendario' ? 'calendario' : 'tabla';
+    } catch {
+      return 'tabla';
+    }
+  });
+  const changeView = (mode) => {
+    setViewMode(mode);
+    try { localStorage.setItem(VIEW_STORAGE_KEY, mode); } catch { /* noop */ }
+  };
 
   useEffect(() => {
     fetchCitas();
@@ -78,6 +95,12 @@ export default function CitasCalendar() {
 
   const handleOpenNuevo = () => {
       setSelectedDate(new Date());
+      setIsNuevoOpen(true);
+  };
+
+  // Click en slot vacío del calendario → abrir "Nueva Cita" con esa fecha/hora.
+  const handleSelectSlot = ({ start }) => {
+      setSelectedDate(start);
       setIsNuevoOpen(true);
   };
   
@@ -140,8 +163,35 @@ export default function CitasCalendar() {
               </h2>
               <p className={`text-sm mt-1 ${subText}`}>Revisa y gestiona todas las citas programadas en el taller.</p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-4">
+                {/* Toggle de vista Tabla / Calendario */}
+                <div className={`inline-flex p-1 rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`} role="tablist" aria-label="Modo de visualización">
+                    <button
+                        role="tab"
+                        aria-selected={viewMode === 'tabla'}
+                        onClick={() => changeView('tabla')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                          viewMode === 'tabla'
+                            ? (isDark ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm')
+                            : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')
+                        }`}
+                    >
+                        <LayoutList size={14} /> Tabla
+                    </button>
+                    <button
+                        role="tab"
+                        aria-selected={viewMode === 'calendario'}
+                        onClick={() => changeView('calendario')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                          viewMode === 'calendario'
+                            ? (isDark ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm')
+                            : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')
+                        }`}
+                    >
+                        <CalendarDays size={14} /> Calendario
+                    </button>
+                </div>
                 <div className={`border-2 rounded-xl px-5 py-2 text-center shadow-sm ${isDark ? 'bg-orange-900/30 border-orange-700' : 'bg-orange-50 border-orange-200'}`}>
                     <div className="text-2xl font-black text-orange-500 leading-tight">{citasFiltradas.length}</div>
                     <div className={`text-[0.65rem] uppercase font-bold tracking-wider ${subText}`}>Citas</div>
@@ -205,7 +255,40 @@ export default function CitasCalendar() {
             </button>
         </div>
         
-        {/* Tabla */}
+        {viewMode === 'calendario' && (
+          <div className={`${cardBg} border ${cardBorder} rounded-xl shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-center text-xs`}>
+            <span className={`font-semibold uppercase tracking-wide ${labelText}`}>Leyenda ocupación:</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.30)' : 'rgba(16,185,129,0.18)' }} />
+              <span className={cellText}>Baja (1–3)</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: isDark ? 'rgba(245,158,11,0.30)' : 'rgba(245,158,11,0.20)' }} />
+              <span className={cellText}>Media (4–6)</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.30)' : 'rgba(239,68,68,0.20)' }} />
+              <span className={cellText}>Alta (7+)</span>
+            </span>
+            <span className={`ml-auto ${subText}`}>Toca un día u hora libre para agendar · toca una cita para ver detalles</span>
+          </div>
+        )}
+
+        {viewMode === 'calendario' ? (
+          <div className={`${cardBg} border ${cardBorder} rounded-xl shadow-sm p-3 sm:p-5 flex-1 flex flex-col overflow-auto`}>
+            {loading ? (
+              <div className={`py-16 text-center ${subText}`}>Cargando agenda...</div>
+            ) : (
+              <CitasCalendarView
+                citas={citasFiltradas}
+                isDark={isDark}
+                onSelectSlot={handleSelectSlot}
+                onSelectEvent={handleOpenDetalle}
+              />
+            )}
+          </div>
+        ) : (
+        /* Tabla */
         <div className={`${cardBg} border ${cardBorder} rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col`}>
             <div className="overflow-x-auto">
                 <table className={`min-w-full divide-y ${divider}`}>
@@ -336,6 +419,7 @@ export default function CitasCalendar() {
                 </table>
             </div>
         </div>
+        )}
         
         <NuevaCitaSlideOver 
            isOpen={isNuevoOpen}
