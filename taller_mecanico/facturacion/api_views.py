@@ -4,8 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.shortcuts import get_object_or_404
 
 from facturacion.models import Factura
+from facturacion.tasks import enviar_factura_task
 from taller.models import OrdenTrabajo
 
 
@@ -141,4 +143,127 @@ class ListaFacturasAPIView(APIView):
             'page':           page.number,
             'total_ingresos': total_ingresos,
             'results':        FacturaListSerializer(page.object_list, many=True).data,
+        })
+
+
+# ── Detalle de factura para vista imprimible en React ────────────────────────
+
+class FacturaDetailAPIView(APIView):
+    """
+    GET /api/v1/facturacion/<id>/
+    Devuelve datos completos de la factura para renderizar la vista imprimible
+    en React (reemplazo del template Django `factura_print.html`).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, factura_id):
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'error': 'Acceso restringido al personal administrativo.'}, status=403)
+
+        factura = get_object_or_404(
+            Factura.objects.select_related(
+                'orden', 'orden__cita', 'orden__cita__cliente',
+                'orden__cita__servicio', 'orden__vehiculo',
+                'orden__vehiculo__propietario',
+            ).prefetch_related('orden__repuestos__producto'),
+            id=factura_id,
+        )
+
+        orden = factura.orden
+        vehiculo = orden.vehiculo
+        propietario = getattr(vehiculo, 'propietario', None)
+        servicio = getattr(getattr(orden, 'cita', None), 'servicio', None)
+
+        def _nombre_completo(u):
+            if not u:
+                return ''
+            full = f"{u.first_name} {u.last_name}".strip()
+            return full or u.username
+
+        repuestos = [
+            {
+                'id': r.id,
+                'cantidad': r.cantidad,
+                'producto_nombre': r.producto.nombre if r.producto else '—',
+                'precio_unitario': str(r.precio_unitario),
+                'subtotal': str(r.subtotal),
+            }
+            for r in orden.repuestos.all()
+        ]
+
+        payload = {
+            'id': factura.id,
+            'numero_factura': factura.numero_factura,
+            'estado': factura.estado,
+            'estado_display': factura.get_estado_display(),
+            'metodo_pago': factura.metodo_pago,
+            'metodo_pago_display': factura.get_metodo_pago_display() if factura.metodo_pago else None,
+            'fecha_emision': factura.fecha_emision.isoformat() if factura.fecha_emision else None,
+            'fecha_pagada': factura.fecha_pagada.isoformat() if factura.fecha_pagada else None,
+            'costo_mano_obra': str(factura.costo_mano_obra),
+            'costo_repuestos': str(factura.costo_repuestos),
+            'descuento': str(factura.descuento),
+            'subtotal': str(factura.subtotal),
+            'total_general': str(factura.total_general),
+            'notas_internas': factura.notas_internas or '',
+            'orden': {
+                'id': orden.id,
+                'estado': orden.estado,
+            },
+            'cita_id': getattr(getattr(orden, 'cita', None), 'id', None),
+            'servicio': {
+                'nombre': servicio.nombre if servicio else '—',
+                'duracion': getattr(servicio, 'duracion', None),
+            },
+            'cliente': {
+                'id': getattr(propietario, 'id', None),
+                'nombre': _nombre_completo(propietario),
+                'email': getattr(propietario, 'email', '') or '',
+                'telefono': getattr(propietario, 'telefono', '') or '',
+            },
+            'vehiculo': {
+                'id': vehiculo.id,
+                'marca': vehiculo.marca,
+                'modelo': vehiculo.modelo,
+                'anio': getattr(vehiculo, 'año', None),
+                'placa': vehiculo.placa,
+            },
+            'repuestos': repuestos,
+            'taller': {
+                'nombre': 'AutoServi Pro',
+                'direccion': '123 Calle Taller, Ciudad de Guatemala',
+                'telefono': '+502 1234 5678',
+                'nit': '1234567-8',
+            },
+        }
+        return Response(payload)
+
+
+class FacturaReenviarCorreoAPIView(APIView):
+    """
+    POST /api/v1/facturacion/<id>/reenviar-correo/
+    Reencola el envío de la factura al correo del cliente asociado.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, factura_id):
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'error': 'Acceso restringido al personal administrativo.'}, status=403)
+
+        factura = get_object_or_404(Factura, id=factura_id)
+        orden = factura.orden
+        cliente = getattr(getattr(orden, 'cita', None), 'cliente', None)
+        email = getattr(cliente, 'email', None)
+
+        if not email:
+            return Response(
+                {'error': 'El cliente no tiene correo registrado.'},
+                status=400,
+            )
+
+        enviar_factura_task.delay(factura.id, email)
+        return Response({
+            'ok': True,
+            'email': email,
+            'mensaje': f'Factura {factura.numero_factura or factura.id} encolada para reenvío a {email}.',
         })
