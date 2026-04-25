@@ -194,6 +194,80 @@ class Perfil(models.Model):
     def direccion_fiscal_o_direccion(self):
         return self.direccion_fiscal or self.direccion or 'Ciudad'
 
+class TareaProgramada(models.Model):
+    """
+    Configuración runtime de las tareas programadas (APScheduler) del sistema.
+
+    Existe una fila por cada job registrado en código. La hora y el toggle
+    `habilitada` se editan desde la UI Sistema → Tareas Programadas y se
+    aplican al scheduler en caliente sin reiniciar Django.
+
+    Las filas se siembran vía data-migration con valores por defecto.
+    """
+
+    TAREA_CITAS_RECORDATORIOS = 'citas_recordatorios_diario'
+    TAREA_CXC_RECORDATORIOS = 'cxc_recordatorios_diario'
+    TAREA_INVENTARIO_RESUMEN_AM = 'inventario_resumen_am'
+    TAREA_INVENTARIO_RESUMEN_PM = 'inventario_resumen_pm'
+
+    TAREAS_CHOICES = [
+        (TAREA_CITAS_RECORDATORIOS, 'Recordatorios de citas'),
+        (TAREA_CXC_RECORDATORIOS, 'Recordatorios de cobro CxC'),
+        (TAREA_INVENTARIO_RESUMEN_AM, 'Resumen de inventario (AM)'),
+        (TAREA_INVENTARIO_RESUMEN_PM, 'Resumen de inventario (PM)'),
+    ]
+
+    STATUS_OK = 'OK'
+    STATUS_ERROR = 'ERROR'
+    STATUS_CHOICES = [
+        (STATUS_OK, 'Éxito'),
+        (STATUS_ERROR, 'Error'),
+    ]
+
+    tarea_id = models.CharField(
+        max_length=64,
+        unique=True,
+        choices=TAREAS_CHOICES,
+        help_text="Identificador interno del job (estable).",
+    )
+    nombre = models.CharField(
+        max_length=128,
+        help_text="Nombre legible para mostrar en la UI.",
+    )
+    descripcion = models.TextField(
+        blank=True,
+        default='',
+        help_text="Descripción de qué hace la tarea cuando se ejecuta.",
+    )
+    hora = models.TimeField(
+        help_text="Hora local (America/Guatemala) en que la tarea corre cada día.",
+    )
+    habilitada = models.BooleanField(
+        default=True,
+        help_text="Si está deshabilitada, el job se remueve del scheduler.",
+    )
+    ultima_ejecucion = models.DateTimeField(null=True, blank=True)
+    ultima_ejecucion_status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        blank=True,
+        default='',
+    )
+    ultima_ejecucion_mensaje = models.TextField(
+        blank=True,
+        default='',
+        help_text="Mensaje breve del último intento (error o resumen).",
+    )
+
+    class Meta:
+        verbose_name = "Tarea Programada"
+        verbose_name_plural = "Tareas Programadas"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f"{self.nombre} ({self.hora.strftime('%H:%M')})"
+
+
 class Notificacion(models.Model):
     TIPOS = (
         ('INFO', 'Información'),
