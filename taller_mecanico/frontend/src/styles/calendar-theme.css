@@ -1,0 +1,223 @@
+/* react-big-calendar overrides para tema claro/oscuro del taller.
+   Base CSS viene de 'react-big-calendar/lib/css/react-big-calendar.css';
+   aquí solo ajustamos colores, bordes y radios para integrarse con Tailwind. */
+
+.rbc-autoservi .rbc-calendar {
+  font-family: inherit;
+  background: transparent;
+  border: 0;
+}
+
+/* Toolbar */
+.rbc-autoservi .rbc-toolbar {
+  margin-bottom: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rbc-autoservi .rbc-toolbar button {
+  border-radius: 8px;
+  border: 1px solid rgb(226 232 240);
+  color: rgb(71 85 105);
+  font-weight: 600;
+  padding: 6px 12px;
+  transition: all 0.15s ease;
+  background: white;
+}
+.rbc-autoservi .rbc-toolbar button:hover {
+  background: rgb(248 250 252);
+  border-color: rgb(203 213 225);
+}
+.rbc-autoservi .rbc-toolbar button.rbc-active,
+.rbc-autoservi .rbc-toolbar button.rbc-active:hover {
+  background: rgb(59 130 246);
+  color: white;
+  border-color: rgb(59 130 246);
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.25);
+}
+.rbc-autoservi .rbc-toolbar-label {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: rgb(15 23 42);
+}
+
+/* Headers de días / horas */
+.rbc-autoservi .rbc-header {
+  border: 0;
+  border-bottom: 1px solid rgb(226 232 240);
+  padding: 10px 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: rgb(100 116 139);
+  background: rgb(248 250 252);
+}
+.rbc-autoservi .rbc-time-header-content {
+  border-left: 1px solid rgb(226 232 240);
+}
+.rbc-autoservi .rbc-time-view,
+.rbc-autoservi .rbc-month-view {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+.rbc-autoservi .rbc-month-row,
+.rbc-autoservi .rbc-day-slot,
+.rbc-autoservi .rbc-timeslot-group {
+  border-color: rgb(226 232 240);
+}
+.rbc-autoservi .rbc-day-bg + .rbc-day-bg,
+.rbc-autoservi .rbc-date-cell {
+  border-color: rgb(226 232 240);
+}
+.rbc-autoservi .rbc-today {
+  background-color: rgba(59, 130, 246, 0.06);
+}
+.rbc-autoservi .rbc-off-range-bg {
+  background-color: rgb(248 250 252);
+}
+.rbc-autoservi .rbc-off-range {
+  color: rgb(148 163 184);
+}
+
+/* Slot horario */
+.rbc-autoservi .rbc-time-gutter,
+.rbc-autoservi .rbc-time-content {
+  background: white;
+}
+.rbc-autoservi .rbc-time-gutter .rbc-label {
+  color: rgb(100 116 139);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Evento */
+.rbc-autoservi .rbc-event {
+  border: 0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+.rbc-autoservi .rbc-event:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+.rbc-autoservi .rbc-event-label {
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+/* Show more link */
+.rbc-autoservi .rbc-show-more {
+  color: rgb(59 130 246);
+  font-weight: 600;
+  background: transparent;
+}
+
+/* Popover (popup) */
+.rbc-autoservi .rbc-overlay {
+  border-radius: 10px;
+  border: 1px solid rgb(226 232 240);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+/* Hoy (current time indicator en Day/Week) */
+.rbc-autoservi .rbc-current-time-indicator {
+  background-color: rgb(239 68 68);
+  height: 2px;
+}
+
+/* =======================================================
+   DARK MODE — activado por .dark-theme en <html> (ver ThemeContext)
+   ======================================================= */
+html.dark-theme .rbc-autoservi .rbc-calendar {
+  color: rgb(226 232 240);
+}
+html.dark-theme .rbc-autoservi .rbc-toolbar button {
+  background: rgb(30 41 59);
+  border-color: rgb(51 65 85);
+  color: rgb(203 213 225);
+}
+html.dark-theme .rbc-autoservi .rbc-toolbar button:hover {
+  background: rgb(51 65 85);
+  border-color: rgb(71 85 105);
+}
+html.dark-theme .rbc-autoservi .rbc-toolbar button.rbc-active,
+html.dark-theme .rbc-autoservi .rbc-toolbar button.rbc-active:hover {
+  background: rgb(37 99 235);
+  color: white;
+  border-color: rgb(37 99 235);
+}
+html.dark-theme .rbc-autoservi .rbc-toolbar-label {
+  color: rgb(241 245 249);
+}
+html.dark-theme .rbc-autoservi .rbc-header {
+  background: rgb(30 41 59);
+  border-color: rgb(51 65 85);
+  color: rgb(148 163 184);
+}
+html.dark-theme .rbc-autoservi .rbc-time-view,
+html.dark-theme .rbc-autoservi .rbc-month-view {
+  background: rgb(15 23 42);
+  border-color: rgb(51 65 85);
+}
+html.dark-theme .rbc-autoservi .rbc-month-row,
+html.dark-theme .rbc-autoservi .rbc-day-slot,
+html.dark-theme .rbc-autoservi .rbc-timeslot-group,
+html.dark-theme .rbc-autoservi .rbc-time-header-content,
+html.dark-theme .rbc-autoservi .rbc-day-bg + .rbc-day-bg,
+html.dark-theme .rbc-autoservi .rbc-date-cell {
+  border-color: rgb(51 65 85);
+}
+html.dark-theme .rbc-autoservi .rbc-today {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+html.dark-theme .rbc-autoservi .rbc-off-range-bg {
+  background-color: rgb(15 23 42 / 0.6);
+}
+html.dark-theme .rbc-autoservi .rbc-off-range {
+  color: rgb(71 85 105);
+}
+html.dark-theme .rbc-autoservi .rbc-time-gutter,
+html.dark-theme .rbc-autoservi .rbc-time-content {
+  background: rgb(15 23 42);
+}
+html.dark-theme .rbc-autoservi .rbc-time-gutter .rbc-label,
+html.dark-theme .rbc-autoservi .rbc-date-cell {
+  color: rgb(148 163 184);
+}
+html.dark-theme .rbc-autoservi .rbc-overlay {
+  background: rgb(30 41 59);
+  border-color: rgb(51 65 85);
+  color: rgb(226 232 240);
+}
+html.dark-theme .rbc-autoservi .rbc-show-more {
+  color: rgb(96 165 250);
+}
+
+/* Past days — disabled cursor + leve opacidad (se aplica por dayPropGetter) */
+.rbc-autoservi .rbc-past-day .rbc-day-bg,
+.rbc-autoservi .rbc-past-day {
+  background-color: rgb(241 245 249);
+}
+html.dark-theme .rbc-autoservi .rbc-past-day .rbc-day-bg,
+html.dark-theme .rbc-autoservi .rbc-past-day {
+  background-color: rgb(15 23 42 / 0.4);
+}
+
+/* Responsive tweak — en viewports estrechos damos más aire al toolbar */
+@media (max-width: 640px) {
+  .rbc-autoservi .rbc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rbc-autoservi .rbc-toolbar-label {
+    text-align: center;
+  }
+  .rbc-autoservi .rbc-btn-group {
+    display: flex;
+    justify-content: center;
+  }
+}
