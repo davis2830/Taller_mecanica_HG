@@ -11,6 +11,126 @@ from taller.models import OrdenTrabajo
 TASA_IVA_DEFAULT = Decimal('0.12')
 
 
+class ConfiguracionFacturacion(models.Model):
+    """
+    Datos fiscales del emisor (tu taller) y configuración del certificador FEL.
+    Singleton: siempre pk=1. Editable solo por administradores.
+
+    En Fase 2 solo se almacenan los datos; en Fase 3+ se usarán para generar
+    los XML DTE y llamar al certificador.
+    """
+    AFILIACION_CHOICES = [
+        ('GEN', 'Contribuyente General (IVA 12%)'),
+        ('PEQ', 'Pequeño Contribuyente (IVA 5%)'),
+    ]
+    AMBIENTE_CHOICES = [
+        ('PRUEBAS', 'Pruebas (sandbox del certificador)'),
+        ('PRODUCCION', 'Producción (factura real ante SAT)'),
+    ]
+    CERTIFICADOR_CHOICES = [
+        ('', 'Sin definir'),
+        ('INFILE', 'INFILE'),
+        ('DIGIFACT', 'Digifact'),
+        ('GUATEFACT', 'Guatefact'),
+        ('MEGAPRINT', 'Megaprint'),
+        ('OTRO', 'Otro'),
+    ]
+
+    # ── Datos del emisor ──────────────────────────────────────────────
+    nit_emisor = models.CharField(
+        max_length=20,
+        default='1234567-8',
+        help_text="NIT del taller ante SAT (sin espacios, con guion si lo tiene). Ej: 1234567-8.",
+    )
+    nombre_fiscal = models.CharField(
+        max_length=255,
+        default='AutoServi Pro',
+        help_text="Razón social exacta como aparece en tu RTU de SAT.",
+    )
+    nombre_comercial = models.CharField(
+        max_length=255,
+        default='AutoServi Pro',
+        blank=True,
+        help_text="Nombre comercial (si es diferente de la razón social).",
+    )
+    direccion_fiscal = models.CharField(
+        max_length=500,
+        default='123 Calle Taller, Ciudad de Guatemala',
+    )
+    telefono = models.CharField(max_length=30, default='+502 1234 5678', blank=True)
+    correo = models.EmailField(blank=True, default='')
+
+    # ── Afiliación SAT ────────────────────────────────────────────────
+    afiliacion_iva = models.CharField(
+        max_length=3,
+        choices=AFILIACION_CHOICES,
+        default='GEN',
+        help_text="Tipo de contribuyente. General usa IVA 12%, Pequeño usa 5%.",
+    )
+    establecimiento_codigo = models.PositiveIntegerField(
+        default=1,
+        help_text="Código del establecimiento dentro del NIT (normalmente 1 si solo tienes un local).",
+    )
+
+    # ── FEL ──────────────────────────────────────────────────────────
+    serie_fel = models.CharField(
+        max_length=20,
+        default='A',
+        help_text="Serie que asigna el certificador a tu emisor (la devuelve el proveedor al enrolarte).",
+    )
+    ambiente = models.CharField(
+        max_length=10,
+        choices=AMBIENTE_CHOICES,
+        default='PRUEBAS',
+        help_text="Mientras estés integrando, mantén PRUEBAS. Solo cambia a PRODUCCION con el certificador listo.",
+    )
+
+    # ── Certificador (placeholders — se usan en Fase 4) ───────────────
+    certificador = models.CharField(
+        max_length=15,
+        choices=CERTIFICADOR_CHOICES,
+        default='',
+        blank=True,
+        help_text="Proveedor que firma y envía tus DTE a SAT.",
+    )
+    certificador_api_url = models.URLField(
+        blank=True,
+        default='',
+        help_text="URL base del API del certificador (te la da el proveedor).",
+    )
+    certificador_usuario = models.CharField(max_length=120, blank=True, default='')
+    certificador_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="Token / API key del certificador. Se usará al integrar Fase 4.",
+    )
+
+    # ── Metadatos ─────────────────────────────────────────────────────
+    actualizado_el = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuración de Facturación"
+        verbose_name_plural = "Configuración de Facturación"
+
+    def __str__(self):
+        return f"Configuración Facturación ({self.nombre_fiscal} — {self.ambiente})"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # singleton
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def tasa_iva_default(self):
+        """Devuelve la tasa que corresponde según afiliación."""
+        return Decimal('0.05') if self.afiliacion_iva == 'PEQ' else Decimal('0.12')
+
+
 def _q(value):
     """Redondea a 2 decimales usando banca redondeo HALF_UP (estándar SAT)."""
     return Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)

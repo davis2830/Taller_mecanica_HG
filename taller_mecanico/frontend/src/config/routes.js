@@ -28,6 +28,7 @@ import DashboardComprasPage from '../pages/Inventario/DashboardComprasPage';
 import SistemaUsuariosPage from '../pages/Sistema/SistemaUsuariosPage';
 import SistemaRolesPage from '../pages/Sistema/SistemaRolesPage';
 import ConfiguracionTallerPage from '../pages/Sistema/ConfiguracionTallerPage';
+import ConfiguracionFacturacionPage from '../pages/Sistema/ConfiguracionFacturacionPage';
 
 export const routes = [
     {
@@ -187,6 +188,13 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Configuración del Taller'
+    },
+    {
+        path: '/sistema/configuracion-fiscal',
+        element: ConfiguracionFacturacionPage,
+        private: true,
+        layout: true,
+        title: 'Configuración Fiscal (FEL)'
     },
 ];
 

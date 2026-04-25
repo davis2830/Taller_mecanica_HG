@@ -4,11 +4,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import get_object_or_404
 
-from facturacion.models import Factura
+from facturacion.models import Factura, ConfiguracionFacturacion
 from facturacion.tasks import enviar_factura_task
 from taller.models import OrdenTrabajo
 
@@ -202,6 +203,9 @@ class FacturaDetailAPIView(APIView):
             full = f"{u.first_name} {u.last_name}".strip()
             return full or u.username
 
+        perfil_cliente = getattr(propietario, 'perfil', None) if propietario else None
+        config_fact = ConfiguracionFacturacion.get()
+
         repuestos = [
             {
                 'id': r.id,
@@ -252,7 +256,15 @@ class FacturaDetailAPIView(APIView):
                 'id': getattr(propietario, 'id', None),
                 'nombre': _nombre_completo(propietario),
                 'email': getattr(propietario, 'email', '') or '',
-                'telefono': getattr(propietario, 'telefono', '') or '',
+                'telefono': (getattr(perfil_cliente, 'telefono', None) or '') if perfil_cliente else '',
+                'nit': perfil_cliente.nit_normalizado if perfil_cliente else 'CF',
+                'nombre_fiscal': (
+                    perfil_cliente.nombre_fiscal_o_nombre if perfil_cliente
+                    else _nombre_completo(propietario)
+                ),
+                'direccion_fiscal': (
+                    perfil_cliente.direccion_fiscal_o_direccion if perfil_cliente else 'Ciudad'
+                ),
             },
             'vehiculo': {
                 'id': vehiculo.id,
@@ -263,13 +275,76 @@ class FacturaDetailAPIView(APIView):
             },
             'repuestos': repuestos,
             'taller': {
-                'nombre': 'AutoServi Pro',
-                'direccion': '123 Calle Taller, Ciudad de Guatemala',
-                'telefono': '+502 1234 5678',
-                'nit': '1234567-8',
+                'nombre': config_fact.nombre_comercial or config_fact.nombre_fiscal,
+                'nombre_fiscal': config_fact.nombre_fiscal,
+                'direccion': config_fact.direccion_fiscal,
+                'telefono': config_fact.telefono,
+                'correo': config_fact.correo,
+                'nit': config_fact.nit_emisor,
+                'afiliacion_iva': config_fact.afiliacion_iva,
+                'afiliacion_iva_display': config_fact.get_afiliacion_iva_display(),
+                'serie_fel': config_fact.serie_fel,
+                'ambiente': config_fact.ambiente,
+                'establecimiento_codigo': config_fact.establecimiento_codigo,
             },
         }
         return Response(payload)
+
+
+class _EsAdministrador(BasePermission):
+    """Permite acceso solo a administradores (superuser/staff o Rol=Administrador)."""
+    message = "Solo los administradores pueden ver o modificar la configuración fiscal."
+
+    def has_permission(self, request, view):
+        u = request.user
+        if not (u and u.is_authenticated):
+            return False
+        if u.is_superuser or u.is_staff:
+            return True
+        rol = getattr(getattr(u, 'perfil', None), 'rol', None)
+        return bool(rol and rol.nombre.lower() == 'administrador')
+
+
+class ConfiguracionFacturacionSerializer(serializers.ModelSerializer):
+    afiliacion_iva_display = serializers.CharField(source='get_afiliacion_iva_display', read_only=True)
+    ambiente_display = serializers.CharField(source='get_ambiente_display', read_only=True)
+    certificador_display = serializers.CharField(source='get_certificador_display', read_only=True)
+    tasa_iva_sugerida = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConfiguracionFacturacion
+        fields = [
+            'nit_emisor', 'nombre_fiscal', 'nombre_comercial',
+            'direccion_fiscal', 'telefono', 'correo',
+            'afiliacion_iva', 'afiliacion_iva_display',
+            'establecimiento_codigo', 'serie_fel',
+            'ambiente', 'ambiente_display',
+            'certificador', 'certificador_display',
+            'certificador_api_url', 'certificador_usuario', 'certificador_api_key',
+            'tasa_iva_sugerida',
+            'actualizado_el',
+        ]
+        read_only_fields = ['actualizado_el']
+
+    def get_tasa_iva_sugerida(self, obj):
+        return str(obj.tasa_iva_default)
+
+
+class ConfiguracionFacturacionView(APIView):
+    """GET / PATCH singleton de configuración fiscal del emisor."""
+    permission_classes = [_EsAdministrador]
+
+    def get(self, request):
+        config = ConfiguracionFacturacion.get()
+        return Response(ConfiguracionFacturacionSerializer(config).data)
+
+    def patch(self, request):
+        config = ConfiguracionFacturacion.get()
+        serializer = ConfiguracionFacturacionSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
 class FacturaReenviarCorreoAPIView(APIView):

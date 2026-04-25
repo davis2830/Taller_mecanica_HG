@@ -4,7 +4,7 @@ import {
     BarChart3, Calendar, Clipboard, Settings, ChevronDown, ChevronRight,
     List, Car, Users, Wrench, Truck, TrendingUp, Hammer, Receipt,
     Package, Archive, ArrowRightLeft, LayoutList, ShoppingCart, Shield, LogOut,
-    SlidersHorizontal
+    SlidersHorizontal, FileText
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/app-sidebar.css';
@@ -27,6 +27,8 @@ const ROUTE_SECTION_MAP = {
     '/reportes/utilidades':     'Reportes',
     '/sistema/usuarios':        'Sistema',
     '/sistema/roles':           'Sistema',
+    '/sistema/configuracion':   'Sistema',
+    '/sistema/configuracion-fiscal': 'Sistema',
 };
 
 const STORAGE_KEY = 'sidebar_expanded';
@@ -292,6 +294,7 @@ export default function AppSidebar() {
                         { icon: <Users size={15} />,  label: 'Usuarios', path: '/sistema/usuarios' },
                         { icon: <Shield size={15} />, label: 'Roles',    path: '/sistema/roles' },
                         { icon: <SlidersHorizontal size={15} />, label: 'Configuración del Taller', path: '/sistema/configuracion' },
+                        { icon: <FileText size={15} />, label: 'Configuración Fiscal (FEL)', path: '/sistema/configuracion-fiscal' },
                     ]
                 },
             ]
