@@ -196,3 +196,100 @@ Este es un comprobante digital generado automáticamente.
     except Exception as e:
         print(f"[facturacion/utils.py] Error enviando factura HTML: {e}")
         return False
+
+
+def enviar_email_recordatorio_cobro(factura, dias_diferencia=0):
+    """
+    Envía un recordatorio de cobro al email de la empresa para una factura
+    a crédito. `dias_diferencia` es el número de días respecto al vencimiento:
+      - negativo: aún faltan días (ej. -3 = recordatorio 3 días antes)
+      - 0       : vence hoy
+      - positivo: ya está vencida (ej. 7 = vencida hace 7 días)
+    """
+    if not factura.empresa or not factura.empresa.email_cobro:
+        return False
+    if factura.condicion_pago != 'CREDITO':
+        return False
+    if factura.pago_estado in ('PAGADA', 'NO_APLICA'):
+        return False
+
+    empresa = factura.empresa
+    saldo = factura.saldo_pendiente
+    venc = factura.fecha_vencimiento
+
+    if dias_diferencia < 0:
+        asunto = f'Recordatorio de pago: factura {factura.numero_factura} vence en {abs(dias_diferencia)} día(s)'
+        encabezado = f'Recordatorio: vence en {abs(dias_diferencia)} día(s)'
+        color = '#3b82f6'
+    elif dias_diferencia == 0:
+        asunto = f'Su factura {factura.numero_factura} vence hoy'
+        encabezado = 'Vence hoy'
+        color = '#f59e0b'
+    else:
+        asunto = f'Factura {factura.numero_factura} vencida hace {dias_diferencia} día(s)'
+        encabezado = f'Vencida hace {dias_diferencia} día(s)'
+        color = '#dc2626'
+
+    mensaje_html = f"""
+    <html>
+    <body style="font-family: Segoe UI, sans-serif; background:#f4f6f9; padding:24px;">
+      <div style="max-width:600px; margin:0 auto; background:#fff; border-radius:12px; padding:32px; box-shadow:0 4px 12px rgba(0,0,0,0.06);">
+        <h2 style="margin:0 0 4px 0; color:{color};">{encabezado}</h2>
+        <p style="margin:0 0 20px 0; color:#64748b;">Estado de cuenta {empresa.razon_social}</p>
+
+        <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+          <tr>
+            <td style="padding:8px 0; color:#64748b;">Factura</td>
+            <td style="padding:8px 0; text-align:right; color:#0f172a;"><strong>{factura.numero_factura or factura.id}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#64748b;">Total</td>
+            <td style="padding:8px 0; text-align:right; color:#0f172a;">Q{factura.total_general}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#64748b;">Pagado</td>
+            <td style="padding:8px 0; text-align:right; color:#0f172a;">Q{factura.total_pagado}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#64748b;">Saldo pendiente</td>
+            <td style="padding:8px 0; text-align:right; color:{color}; font-weight:bold;">Q{saldo}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#64748b;">Fecha de vencimiento</td>
+            <td style="padding:8px 0; text-align:right; color:#0f172a;">{venc.isoformat() if venc else '—'}</td>
+          </tr>
+        </table>
+
+        <p style="color:#475569; font-size:14px;">
+          Le recordamos amablemente la cancelación del saldo pendiente.
+          Si ya realizó el pago, ignore este mensaje.
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+
+    mensaje_txt = (
+        f"{encabezado}\n\n"
+        f"Estado de cuenta {empresa.razon_social}\n"
+        f"Factura: {factura.numero_factura or factura.id}\n"
+        f"Total: Q{factura.total_general}\n"
+        f"Pagado: Q{factura.total_pagado}\n"
+        f"Saldo pendiente: Q{saldo}\n"
+        f"Vencimiento: {venc.isoformat() if venc else '—'}\n\n"
+        f"Le recordamos amablemente la cancelación del saldo pendiente.\n"
+        f"Si ya realizó el pago, ignore este mensaje.\n"
+    )
+
+    email = EmailMultiAlternatives(
+        subject=asunto,
+        body=mensaje_txt,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[empresa.email_cobro],
+    )
+    email.attach_alternative(mensaje_html, 'text/html')
+    try:
+        email.send(fail_silently=False)
+        return True
+    except Exception:
+        return False

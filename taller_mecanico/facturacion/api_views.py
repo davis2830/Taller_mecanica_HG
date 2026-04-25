@@ -11,11 +11,12 @@ from django.shortcuts import get_object_or_404
 
 from django.http import HttpResponse
 
-from facturacion.models import Factura, ConfiguracionFacturacion, DocumentoElectronico
+from facturacion.models import Factura, ConfiguracionFacturacion, DocumentoElectronico, PagoFactura
 from facturacion.services.certificador import get_certificador
 from facturacion.services.xml_dte import construir_xml_dte
 from facturacion.tasks import enviar_factura_task
 from taller.models import OrdenTrabajo
+from usuarios.models import Empresa
 
 
 # ── Serializers ──────────────────────────────────────────────────────────────
@@ -37,6 +38,16 @@ class FacturaListSerializer(serializers.ModelSerializer):
 
     recepcion_id = serializers.SerializerMethodField()
 
+    # ── CxC ──
+    empresa_id = serializers.IntegerField(source='empresa.id', read_only=True, allow_null=True)
+    empresa_nombre = serializers.SerializerMethodField()
+    empresa_nit = serializers.SerializerMethodField()
+    condicion_pago_display = serializers.SerializerMethodField()
+    pago_estado_display = serializers.SerializerMethodField()
+    saldo_pendiente = serializers.SerializerMethodField()
+    total_pagado = serializers.SerializerMethodField()
+    dias_atraso = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Factura
         fields = [
@@ -50,6 +61,12 @@ class FacturaListSerializer(serializers.ModelSerializer):
             'estado', 'estado_display',
             'fecha_emision', 'fecha_pagada',
             'notas_internas',
+            # CxC
+            'empresa_id', 'empresa_nombre', 'empresa_nit',
+            'condicion_pago', 'condicion_pago_display',
+            'dias_credito', 'fecha_vencimiento',
+            'pago_estado', 'pago_estado_display',
+            'saldo_pendiente', 'total_pagado', 'dias_atraso',
         ]
 
     def _get_orden(self, obj):
@@ -108,6 +125,24 @@ class FacturaListSerializer(serializers.ModelSerializer):
 
     def get_estado_display(self, obj):
         return obj.get_estado_display()
+
+    def get_empresa_nombre(self, obj):
+        return obj.empresa.razon_social if obj.empresa else None
+
+    def get_empresa_nit(self, obj):
+        return obj.empresa.nit if obj.empresa else None
+
+    def get_condicion_pago_display(self, obj):
+        return obj.get_condicion_pago_display()
+
+    def get_pago_estado_display(self, obj):
+        return obj.get_pago_estado_display()
+
+    def get_saldo_pendiente(self, obj):
+        return str(obj.saldo_pendiente)
+
+    def get_total_pagado(self, obj):
+        return str(obj.total_pagado)
 
 
 # ── Views ─────────────────────────────────────────────────────────────────────
@@ -278,6 +313,44 @@ class FacturaDetailAPIView(APIView):
                 'placa': vehiculo.placa,
             },
             'repuestos': repuestos,
+            # ── CxC ──
+            'empresa': (
+                {
+                    'id': factura.empresa.id,
+                    'nit': factura.empresa.nit,
+                    'razon_social': factura.empresa.razon_social,
+                    'nombre_comercial': factura.empresa.nombre_comercial,
+                    'direccion_fiscal': factura.empresa.direccion_fiscal,
+                    'email_cobro': factura.empresa.email_cobro,
+                }
+                if factura.empresa else None
+            ),
+            'condicion_pago': factura.condicion_pago,
+            'condicion_pago_display': factura.get_condicion_pago_display(),
+            'dias_credito': factura.dias_credito,
+            'fecha_vencimiento': factura.fecha_vencimiento.isoformat() if factura.fecha_vencimiento else None,
+            'pago_estado': factura.pago_estado,
+            'pago_estado_display': factura.get_pago_estado_display(),
+            'saldo_pendiente': str(factura.saldo_pendiente),
+            'total_pagado': str(factura.total_pagado),
+            'dias_atraso': factura.dias_atraso,
+            'override_motivo': factura.override_motivo or '',
+            'override_por_username': factura.override_por.username if factura.override_por else None,
+            'override_at': factura.override_at.isoformat() if factura.override_at else None,
+            'pagos': [
+                {
+                    'id': p.id,
+                    'monto': str(p.monto),
+                    'metodo': p.metodo,
+                    'metodo_display': p.get_metodo_display(),
+                    'referencia': p.referencia,
+                    'fecha_pago': p.fecha_pago.isoformat(),
+                    'nota': p.nota,
+                    'registrado_por': p.registrado_por.username if p.registrado_por else None,
+                    'fecha_creacion': p.fecha_creacion.isoformat(),
+                }
+                for p in factura.pagos.order_by('-fecha_pago', '-id')
+            ],
             'dte': _serializar_dte_activo(factura),
             'taller': {
                 'nombre': config_fact.nombre_comercial or config_fact.nombre_fiscal,
@@ -568,4 +641,465 @@ class FacturaReenviarCorreoAPIView(APIView):
             'ok': True,
             'email': email,
             'mensaje': f'Factura {factura.numero_factura or factura.id} encolada para reenvío a {email}.',
+        })
+
+
+# ─── Cuentas por Cobrar (B2B) ─────────────────────────────────────────────────
+
+class _EsAdminOSecretaria(BasePermission):
+    """Personal del taller: admin, secretaria/recepcionista, mecánico."""
+    message = "Solo el personal del taller puede gestionar cuentas por cobrar."
+
+    def has_permission(self, request, view):
+        u = request.user
+        if not (u and u.is_authenticated):
+            return False
+        if u.is_superuser or u.is_staff:
+            return True
+        rol = getattr(getattr(u, 'perfil', None), 'rol', None)
+        return bool(rol and rol.nombre.lower() in ('administrador', 'recepcionista', 'mecánico', 'mecanico'))
+
+
+class _EsSuperadmin(BasePermission):
+    """Solo superusuario (no basta con rol Administrador). Para overrides de crédito."""
+    message = "Solo un superadministrador puede aprobar este override."
+
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and u.is_superuser)
+
+
+def _es_superadmin(user):
+    return bool(user and user.is_authenticated and user.is_superuser)
+
+
+class FacturaAsignarCreditoAPIView(APIView):
+    """
+    POST /api/v1/facturacion/<id>/asignar-credito/
+    Body: {
+      "empresa_id": 5,
+      "dias_credito": 30,             # opcional, default = empresa.dias_credito
+      "override_motivo": "...",       # requerido si la empresa está bloqueada
+    }
+
+    Convierte una factura BORRADOR/EMITIDA a CREDITO B2B asignándole una empresa.
+    Aplica gating: si la empresa no puede facturar a crédito (vencimientos, límite,
+    inactiva), solo un superadmin puede aprobar el override con motivo.
+    """
+    permission_classes = [_EsAdminOSecretaria]
+
+    def post(self, request, factura_id):
+        factura = get_object_or_404(Factura, id=factura_id)
+
+        if factura.estado == 'ANULADA':
+            return Response({'error': 'La factura está anulada.'}, status=400)
+
+        empresa_id = request.data.get('empresa_id')
+        if not empresa_id:
+            return Response({'error': 'empresa_id es requerido.'}, status=400)
+        empresa = get_object_or_404(Empresa, id=empresa_id)
+
+        puede, motivo = empresa.puede_facturar_a_credito()
+        override_motivo = (request.data.get('override_motivo') or '').strip()
+
+        if not puede:
+            if not _es_superadmin(request.user):
+                return Response(
+                    {
+                        'error': motivo,
+                        'requiere_override_superadmin': True,
+                        'empresa_bloqueada': True,
+                    },
+                    status=403,
+                )
+            if not override_motivo:
+                return Response(
+                    {
+                        'error': (
+                            f"La empresa está bloqueada ({motivo}). "
+                            "Como superadmin debes registrar un motivo de override."
+                        ),
+                        'requiere_override_motivo': True,
+                    },
+                    status=400,
+                )
+
+        # Snapshot de días de crédito (puede sobreescribirse en la petición).
+        dias = request.data.get('dias_credito')
+        if dias is None:
+            dias = empresa.dias_credito
+        try:
+            dias = int(dias)
+            if dias < 0:
+                raise ValueError()
+        except (TypeError, ValueError):
+            return Response({'error': 'dias_credito debe ser un entero >= 0.'}, status=400)
+
+        from django.utils import timezone as _tz
+        factura.empresa = empresa
+        factura.condicion_pago = 'CREDITO'
+        factura.dias_credito = dias
+        factura.calcular_fecha_vencimiento()
+        if not puede:
+            factura.override_motivo = override_motivo
+            factura.override_por = request.user
+            factura.override_at = _tz.now()
+        factura.save(update_fields=[
+            'empresa', 'condicion_pago', 'dias_credito', 'fecha_vencimiento',
+            'override_motivo', 'override_por', 'override_at',
+        ])
+        # Si está EMITIDA, recalcular pago_estado para que pase a PENDIENTE.
+        if factura.estado == 'EMITIDA':
+            factura.recalcular_pago_estado(save=True)
+
+        return Response({
+            'ok': True,
+            'factura_id': factura.id,
+            'empresa_id': empresa.id,
+            'condicion_pago': factura.condicion_pago,
+            'dias_credito': factura.dias_credito,
+            'fecha_vencimiento': factura.fecha_vencimiento.isoformat() if factura.fecha_vencimiento else None,
+            'pago_estado': factura.pago_estado,
+            'override_aplicado': not puede,
+        })
+
+
+class FacturaPagosAPIView(APIView):
+    """
+    GET  /api/v1/facturacion/<id>/pagos/   → lista de pagos de la factura
+    POST /api/v1/facturacion/<id>/pagos/   → registrar nuevo pago
+
+    Body POST: {
+      "monto": "500.00",
+      "metodo": "TRANSFERENCIA" | "EFECTIVO" | "CHEQUE" | "DEPOSITO" | "TARJETA" | "OTRO",
+      "fecha_pago": "2026-04-25",   # opcional, default hoy
+      "referencia": "TRX-12345",    # opcional
+      "nota": "..."                 # opcional
+    }
+    """
+    permission_classes = [_EsAdminOSecretaria]
+
+    def get(self, request, factura_id):
+        factura = get_object_or_404(Factura, id=factura_id)
+        pagos = factura.pagos.order_by('-fecha_pago', '-id')
+        return Response({
+            'factura_id': factura.id,
+            'total_general': str(factura.total_general),
+            'total_pagado': str(factura.total_pagado),
+            'saldo_pendiente': str(factura.saldo_pendiente),
+            'pago_estado': factura.pago_estado,
+            'pagos': [
+                {
+                    'id': p.id,
+                    'monto': str(p.monto),
+                    'metodo': p.metodo,
+                    'metodo_display': p.get_metodo_display(),
+                    'referencia': p.referencia,
+                    'fecha_pago': p.fecha_pago.isoformat(),
+                    'nota': p.nota,
+                    'registrado_por': p.registrado_por.username if p.registrado_por else None,
+                    'fecha_creacion': p.fecha_creacion.isoformat(),
+                }
+                for p in pagos
+            ],
+        })
+
+    def post(self, request, factura_id):
+        factura = get_object_or_404(Factura, id=factura_id)
+        if factura.estado == 'ANULADA':
+            return Response({'error': 'La factura está anulada.'}, status=400)
+        if factura.condicion_pago != 'CREDITO':
+            return Response(
+                {'error': 'Solo se registran pagos parciales en facturas a crédito.'},
+                status=400,
+            )
+
+        try:
+            monto = Decimal(str(request.data.get('monto', '0')))
+        except Exception:
+            return Response({'error': 'Monto inválido.'}, status=400)
+        if monto <= 0:
+            return Response({'error': 'El monto debe ser mayor a 0.'}, status=400)
+
+        # No permitir pagar más del saldo
+        if monto > factura.saldo_pendiente:
+            return Response(
+                {
+                    'error': (
+                        f'El monto Q{monto} excede el saldo pendiente '
+                        f'Q{factura.saldo_pendiente}.'
+                    )
+                },
+                status=400,
+            )
+
+        metodo = request.data.get('metodo', 'TRANSFERENCIA')
+        if metodo not in dict(PagoFactura.METODOS):
+            return Response({'error': f'Método inválido: {metodo}.'}, status=400)
+
+        from django.utils import timezone as _tz
+        from datetime import date
+        fecha_str = request.data.get('fecha_pago')
+        if fecha_str:
+            try:
+                from datetime import datetime
+                fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            except Exception:
+                return Response({'error': 'Formato de fecha_pago inválido. Usa YYYY-MM-DD.'}, status=400)
+        else:
+            fecha = _tz.now().date()
+
+        pago = PagoFactura.objects.create(
+            factura=factura,
+            monto=monto,
+            metodo=metodo,
+            fecha_pago=fecha,
+            referencia=(request.data.get('referencia') or '').strip(),
+            nota=(request.data.get('nota') or '').strip(),
+            registrado_por=request.user if request.user.is_authenticated else None,
+        )
+
+        factura.refresh_from_db()
+        return Response({
+            'ok': True,
+            'pago': {
+                'id': pago.id,
+                'monto': str(pago.monto),
+                'metodo': pago.metodo,
+                'metodo_display': pago.get_metodo_display(),
+                'referencia': pago.referencia,
+                'fecha_pago': pago.fecha_pago.isoformat(),
+                'nota': pago.nota,
+            },
+            'factura': {
+                'id': factura.id,
+                'total_pagado': str(factura.total_pagado),
+                'saldo_pendiente': str(factura.saldo_pendiente),
+                'pago_estado': factura.pago_estado,
+                'pago_estado_display': factura.get_pago_estado_display(),
+            },
+        }, status=201)
+
+
+class PagoFacturaDetailAPIView(APIView):
+    """
+    DELETE /api/v1/facturacion/pagos/<pago_id>/
+    Reversa un pago ya registrado (solo superadmin para evitar manipulación).
+    """
+    permission_classes = [_EsSuperadmin]
+
+    def delete(self, request, pago_id):
+        pago = get_object_or_404(PagoFactura, id=pago_id)
+        factura = pago.factura
+        pago.delete()
+        return Response({
+            'ok': True,
+            'factura': {
+                'id': factura.id,
+                'total_pagado': str(factura.total_pagado),
+                'saldo_pendiente': str(factura.saldo_pendiente),
+                'pago_estado': factura.pago_estado,
+            },
+        })
+
+
+class EmpresaEstadoCuentaAPIView(APIView):
+    """
+    GET /api/v1/facturacion/empresas/<empresa_id>/estado-cuenta/
+
+    Devuelve estado de cuenta agrupado por aging buckets:
+    { vigente, 1-30, 31-60, 61-90, 90+ }
+    """
+    permission_classes = [_EsAdminOSecretaria]
+
+    def get(self, request, empresa_id):
+        empresa = get_object_or_404(Empresa, id=empresa_id)
+        from django.utils import timezone as _tz
+        hoy = _tz.now().date()
+
+        facturas = Factura.objects.filter(
+            empresa=empresa,
+            estado='EMITIDA',
+        ).order_by('fecha_emision')
+
+        buckets = {
+            'vigente': {'count': 0, 'monto': Decimal('0.00'), 'facturas': []},
+            '1-30':    {'count': 0, 'monto': Decimal('0.00'), 'facturas': []},
+            '31-60':   {'count': 0, 'monto': Decimal('0.00'), 'facturas': []},
+            '61-90':   {'count': 0, 'monto': Decimal('0.00'), 'facturas': []},
+            '90+':     {'count': 0, 'monto': Decimal('0.00'), 'facturas': []},
+            'pagadas': {'count': 0, 'monto': Decimal('0.00'), 'facturas': []},
+        }
+
+        total_pendiente = Decimal('0.00')
+        total_pagado_global = Decimal('0.00')
+
+        for f in facturas:
+            saldo = f.saldo_pendiente
+            pagado = f.total_pagado
+            total_pagado_global += pagado
+
+            entry = {
+                'id': f.id,
+                'numero_factura': f.numero_factura,
+                'fecha_emision': f.fecha_emision.date().isoformat() if f.fecha_emision else None,
+                'fecha_vencimiento': f.fecha_vencimiento.isoformat() if f.fecha_vencimiento else None,
+                'total_general': str(f.total_general),
+                'total_pagado': str(pagado),
+                'saldo_pendiente': str(saldo),
+                'pago_estado': f.pago_estado,
+                'pago_estado_display': f.get_pago_estado_display(),
+                'dias_atraso': f.dias_atraso,
+            }
+
+            if f.pago_estado in ('PAGADA', 'NO_APLICA'):
+                buckets['pagadas']['count'] += 1
+                buckets['pagadas']['monto'] += pagado
+                buckets['pagadas']['facturas'].append(entry)
+                continue
+
+            total_pendiente += saldo
+            atraso = f.dias_atraso
+            if atraso == 0:
+                key = 'vigente'
+            elif atraso <= 30:
+                key = '1-30'
+            elif atraso <= 60:
+                key = '31-60'
+            elif atraso <= 90:
+                key = '61-90'
+            else:
+                key = '90+'
+            buckets[key]['count'] += 1
+            buckets[key]['monto'] += saldo
+            buckets[key]['facturas'].append(entry)
+
+        # Convertir Decimals a string para JSON
+        for k, v in buckets.items():
+            v['monto'] = str(v['monto'])
+
+        return Response({
+            'empresa': {
+                'id': empresa.id,
+                'nit': empresa.nit,
+                'razon_social': empresa.razon_social,
+                'nombre_comercial': empresa.nombre_comercial,
+                'direccion_fiscal': empresa.direccion_fiscal,
+                'email_cobro': empresa.email_cobro,
+                'dias_credito': empresa.dias_credito,
+                'limite_credito': str(empresa.limite_credito),
+                'activo': empresa.activo,
+                'tiene_vencimientos': empresa.tiene_vencimientos,
+                'excede_limite': empresa.excede_limite,
+            },
+            'fecha_corte': hoy.isoformat(),
+            'total_pendiente': str(total_pendiente),
+            'total_pagado_historico': str(total_pagado_global),
+            'aging': buckets,
+        })
+
+
+class CuentasPorCobrarReporteAPIView(APIView):
+    """
+    GET /api/v1/facturacion/reportes/cuentas-por-cobrar/
+
+    Resumen global de CxC:
+    - Total pendiente
+    - Aging por bucket (totales)
+    - Top 10 empresas con mayor saldo pendiente
+    - Lista de empresas con vencimientos
+    """
+    permission_classes = [_EsAdminOSecretaria]
+
+    def get(self, request):
+        from django.utils import timezone as _tz
+        hoy = _tz.now().date()
+
+        facturas = Factura.objects.filter(
+            estado='EMITIDA',
+            condicion_pago='CREDITO',
+            pago_estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDA'],
+        ).select_related('empresa')
+
+        bucket_totales = {
+            'vigente': Decimal('0.00'),
+            '1-30':    Decimal('0.00'),
+            '31-60':   Decimal('0.00'),
+            '61-90':   Decimal('0.00'),
+            '90+':     Decimal('0.00'),
+        }
+        bucket_counts = {k: 0 for k in bucket_totales}
+
+        empresa_saldos = {}  # empresa_id -> {empresa, saldo, facturas_pendientes, dias_max_atraso}
+        total_global = Decimal('0.00')
+
+        for f in facturas:
+            saldo = f.saldo_pendiente
+            total_global += saldo
+            atraso = f.dias_atraso
+            if atraso == 0:
+                k = 'vigente'
+            elif atraso <= 30:
+                k = '1-30'
+            elif atraso <= 60:
+                k = '31-60'
+            elif atraso <= 90:
+                k = '61-90'
+            else:
+                k = '90+'
+            bucket_totales[k] += saldo
+            bucket_counts[k] += 1
+
+            if f.empresa:
+                eid = f.empresa.id
+                if eid not in empresa_saldos:
+                    empresa_saldos[eid] = {
+                        'id': f.empresa.id,
+                        'nit': f.empresa.nit,
+                        'razon_social': f.empresa.razon_social,
+                        'saldo': Decimal('0.00'),
+                        'facturas_count': 0,
+                        'dias_max_atraso': 0,
+                        'tiene_vencimientos': False,
+                    }
+                empresa_saldos[eid]['saldo'] += saldo
+                empresa_saldos[eid]['facturas_count'] += 1
+                empresa_saldos[eid]['dias_max_atraso'] = max(
+                    empresa_saldos[eid]['dias_max_atraso'], atraso
+                )
+                if atraso > 0:
+                    empresa_saldos[eid]['tiene_vencimientos'] = True
+
+        # Top 10 empresas con mayor saldo
+        top_empresas = sorted(
+            empresa_saldos.values(),
+            key=lambda e: e['saldo'],
+            reverse=True,
+        )[:10]
+        for e in top_empresas:
+            e['saldo'] = str(e['saldo'])
+
+        # Empresas con vencimientos (todas)
+        con_vencimientos = [
+            {
+                'id': e['id'],
+                'nit': e['nit'],
+                'razon_social': e['razon_social'],
+                'saldo': str(e['saldo']) if isinstance(e['saldo'], Decimal) else e['saldo'],
+                'dias_max_atraso': e['dias_max_atraso'],
+                'facturas_count': e['facturas_count'],
+            }
+            for e in empresa_saldos.values()
+            if e['tiene_vencimientos']
+        ]
+
+        return Response({
+            'fecha_corte': hoy.isoformat(),
+            'total_pendiente': str(total_global),
+            'aging': {
+                k: {'count': bucket_counts[k], 'monto': str(bucket_totales[k])}
+                for k in bucket_totales
+            },
+            'top_empresas_saldo': top_empresas,
+            'empresas_con_vencimientos': con_vencimientos,
         })
