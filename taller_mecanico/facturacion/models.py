@@ -1,5 +1,7 @@
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -139,15 +141,28 @@ def _q(value):
 class Factura(models.Model):
     ESTADOS = (
         ('BORRADOR', 'Borrador (Pre-factura)'),
-        ('EMITIDA', 'Emitida (Pagada/Cerrada)'),
+        ('EMITIDA', 'Emitida'),
         ('ANULADA', 'Anulada'),
     )
-    
+
     METODOS_PAGO = (
         ('EFECTIVO', 'Efectivo'),
         ('TARJETA', 'Tarjeta (Crédito/Débito)'),
         ('TRANSFERENCIA', 'Transferencia Bancaria'),
         ('OTROS', 'Otros (Cheque, Cripto, etc.)'),
+    )
+
+    CONDICION_PAGO_CHOICES = (
+        ('CONTADO', 'Contado'),
+        ('CREDITO', 'Crédito (B2B)'),
+    )
+
+    PAGO_ESTADO_CHOICES = (
+        ('NO_APLICA', 'No aplica (contado)'),
+        ('PENDIENTE', 'Pendiente de pago'),
+        ('PARCIAL', 'Pago parcial recibido'),
+        ('PAGADA', 'Pagada en su totalidad'),
+        ('VENCIDA', 'Vencida (no pagada a tiempo)'),
     )
 
     orden = models.OneToOneField(
@@ -191,7 +206,58 @@ class Factura(models.Model):
     
     estado = models.CharField(max_length=15, choices=ESTADOS, default='BORRADOR')
     metodo_pago = models.CharField(max_length=15, choices=METODOS_PAGO, null=True, blank=True)
-    
+
+    # ── Cuentas por Cobrar (B2B) ──────────────────────────────────────
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.SET_NULL,
+        related_name='facturas',
+        null=True,
+        blank=True,
+        help_text="Empresa cliente cuando la factura es a crédito B2B. Null para clientes individuales (contado).",
+    )
+    condicion_pago = models.CharField(
+        max_length=10,
+        choices=CONDICION_PAGO_CHOICES,
+        default='CONTADO',
+        help_text="CONTADO: pago inmediato. CREDITO: a plazo (solo permitido para Empresas).",
+    )
+    dias_credito = models.PositiveIntegerField(
+        default=0,
+        help_text="Días de plazo desde fecha_emision (snapshot del valor en la empresa al momento de emitir).",
+    )
+    fecha_vencimiento = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fecha calculada al emitir = fecha_emision + dias_credito. Solo aplica si condicion_pago=CREDITO.",
+    )
+    pago_estado = models.CharField(
+        max_length=15,
+        choices=PAGO_ESTADO_CHOICES,
+        default='NO_APLICA',
+        help_text=(
+            "Estado de cobro. NO_APLICA = factura de contado. "
+            "PENDIENTE/PARCIAL/PAGADA/VENCIDA = factura a crédito."
+        ),
+    )
+
+    # ── Override de superadmin (auditoría) ──
+    override_motivo = models.TextField(
+        blank=True,
+        default='',
+        help_text="Motivo registrado por el superadmin que aprobó facturar a crédito a pesar de que la empresa estaba bloqueada.",
+    )
+    override_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='facturas_override',
+        help_text="Superadmin que aprobó el override.",
+    )
+    override_at = models.DateTimeField(null=True, blank=True)
+    # ───────────────────────────────────────────────────────────────────
+
     fecha_emision = models.DateTimeField(auto_now_add=True)
     fecha_pagada = models.DateTimeField(null=True, blank=True)
     notas_internas = models.TextField(blank=True, null=True)
@@ -227,6 +293,77 @@ class Factura(models.Model):
         return self.total_sin_iva
     # ───────────────────────────────────────────────────────────────────
 
+    # ── Cuentas por Cobrar (saldo / aging) ────────────────────────────
+    @property
+    def total_pagado(self):
+        """Suma de pagos registrados para esta factura."""
+        agg = self.pagos.aggregate(s=models.Sum('monto'))
+        return _q(agg['s'] or 0)
+
+    @property
+    def saldo_pendiente(self):
+        """total_general − total_pagado. 0 si está pagada o anulada."""
+        if self.estado == 'ANULADA':
+            return Decimal('0.00')
+        return _q(self.total_general - self.total_pagado)
+
+    @property
+    def dias_atraso(self):
+        """Días desde fecha_vencimiento hasta hoy. 0 si no vence o aún no pasa."""
+        if not self.fecha_vencimiento or self.pago_estado in ('PAGADA', 'NO_APLICA'):
+            return 0
+        delta = (timezone.now().date() - self.fecha_vencimiento).days
+        return max(0, delta)
+
+    @property
+    def esta_vencida(self):
+        return self.dias_atraso > 0 and self.saldo_pendiente > 0
+
+    def recalcular_pago_estado(self, save=True):
+        """
+        Recalcula `pago_estado` y `fecha_pagada` según los pagos registrados.
+        Se llama después de crear/editar/eliminar un PagoFactura.
+
+        - CONTADO → siempre NO_APLICA
+        - CREDITO sin pagos → PENDIENTE (o VENCIDA si pasó la fecha)
+        - CREDITO con pago < total → PARCIAL (o VENCIDA si pasó la fecha)
+        - CREDITO con pago >= total → PAGADA
+        """
+        if self.estado == 'ANULADA':
+            return
+
+        if self.condicion_pago == 'CONTADO':
+            self.pago_estado = 'NO_APLICA'
+            if save:
+                self.save(update_fields=['pago_estado'])
+            return
+
+        pagado = self.total_pagado
+        total = self.total_general
+
+        if pagado >= total and total > 0:
+            self.pago_estado = 'PAGADA'
+            if not self.fecha_pagada:
+                self.fecha_pagada = timezone.now()
+        elif self.fecha_vencimiento and timezone.now().date() > self.fecha_vencimiento:
+            self.pago_estado = 'VENCIDA'
+        elif pagado > 0:
+            self.pago_estado = 'PARCIAL'
+        else:
+            self.pago_estado = 'PENDIENTE'
+
+        if save:
+            self.save(update_fields=['pago_estado', 'fecha_pagada'])
+
+    def calcular_fecha_vencimiento(self):
+        """Calcula y asigna fecha_vencimiento basado en fecha_emision + dias_credito."""
+        if self.condicion_pago != 'CREDITO' or self.dias_credito <= 0:
+            self.fecha_vencimiento = None
+            return
+        base = (self.fecha_emision or timezone.now()).date()
+        self.fecha_vencimiento = base + timedelta(days=self.dias_credito)
+    # ───────────────────────────────────────────────────────────────────
+
     def generar_numero(self):
         if not self.numero_factura:
             auto_id = f"{self.id:06d}"
@@ -243,6 +380,69 @@ class Factura(models.Model):
         verbose_name = "Factura"
         verbose_name_plural = "Facturas"
         ordering = ['-fecha_emision']
+
+
+class PagoFactura(models.Model):
+    """
+    Pago aplicado a una factura a crédito. Permite múltiples pagos parciales.
+    Al guardar/eliminar, recalcula `factura.pago_estado` automáticamente.
+    """
+    METODOS = (
+        ('EFECTIVO', 'Efectivo'),
+        ('TRANSFERENCIA', 'Transferencia Bancaria'),
+        ('CHEQUE', 'Cheque'),
+        ('DEPOSITO', 'Depósito Bancario'),
+        ('TARJETA', 'Tarjeta'),
+        ('OTRO', 'Otro'),
+    )
+
+    factura = models.ForeignKey(
+        Factura,
+        on_delete=models.CASCADE,
+        related_name='pagos',
+    )
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    metodo = models.CharField(max_length=15, choices=METODOS, default='TRANSFERENCIA')
+    referencia = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Número de cheque, ID de transferencia, etc.",
+    )
+    fecha_pago = models.DateField(
+        default=timezone.now,
+        help_text="Fecha en la que el cliente realizó el pago (no la fecha en la que se registra).",
+    )
+    nota = models.TextField(blank=True, default='')
+
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pagos_registrados',
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Pago de Factura"
+        verbose_name_plural = "Pagos de Facturas"
+        ordering = ['-fecha_pago', '-fecha_creacion']
+
+    def __str__(self):
+        ref = f" ({self.referencia})" if self.referencia else ""
+        return f"Q{self.monto} {self.get_metodo_display()}{ref} → {self.factura}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Recalcula el estado de la factura tras el pago.
+        self.factura.recalcular_pago_estado(save=True)
+
+    def delete(self, *args, **kwargs):
+        factura = self.factura
+        super().delete(*args, **kwargs)
+        factura.recalcular_pago_estado(save=True)
 
 
 class DocumentoElectronico(models.Model):

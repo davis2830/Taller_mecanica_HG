@@ -5,9 +5,9 @@ from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
 from django.db import transaction
-from .api_serializers import UserSerializer, ClienteSerializer, RolSerializer
+from .api_serializers import UserSerializer, ClienteSerializer, RolSerializer, EmpresaSerializer
 from .permisos import es_admin_o_secretaria
-from .models import Rol, Perfil
+from .models import Rol, Perfil, Empresa
 
 
 class IsAdminOrSecretariaPermission(BasePermission):
@@ -235,3 +235,55 @@ class RolViewSet(viewsets.ModelViewSet):
             return Response({'error': f'No se puede eliminar: hay usuarios con el rol "{rol.nombre}".'}, status=status.HTTP_400_BAD_REQUEST)
         rol.delete()
         return Response({'message': f'Rol "{rol.nombre}" eliminado.'}, status=status.HTTP_200_OK)
+
+# ─── Empresas (Cuentas por Cobrar B2B) ────────────────────────────────────────
+class EmpresaViewSet(viewsets.ModelViewSet):
+    """
+    CRUD de Empresas (clientes corporativos a crédito).
+
+    GET    /api/v1/usuarios/empresas/
+    POST   /api/v1/usuarios/empresas/
+    GET    /api/v1/usuarios/empresas/{id}/
+    PATCH  /api/v1/usuarios/empresas/{id}/
+    DELETE /api/v1/usuarios/empresas/{id}/
+
+    Permisos: Admin o Secretaria pueden listar/crear/editar.
+    Eliminar: solo si no tiene facturas asociadas (para preservar histórico).
+    """
+    queryset = Empresa.objects.all().order_by('razon_social')
+    serializer_class = EmpresaSerializer
+    permission_classes = [IsAdminOrSecretariaPermission]
+
+    def get_queryset(self):
+        qs = Empresa.objects.all().order_by('razon_social')
+        q = self.request.query_params.get('q', '').strip()
+        activo = self.request.query_params.get('activo', '')
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(razon_social__icontains=q) |
+                Q(nombre_comercial__icontains=q) |
+                Q(nit__icontains=q)
+            )
+        if activo in ('true', '1'):
+            qs = qs.filter(activo=True)
+        elif activo in ('false', '0'):
+            qs = qs.filter(activo=False)
+        return qs
+
+    def destroy(self, request, *args, **kwargs):
+        empresa = self.get_object()
+        if empresa.facturas.exists():
+            return Response(
+                {
+                    'error': (
+                        f'No se puede eliminar "{empresa.razon_social}": tiene '
+                        f'{empresa.facturas.count()} factura(s) asociada(s). '
+                        f'Márcala como inactiva en su lugar.'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        nombre = empresa.razon_social
+        empresa.delete()
+        return Response({'message': f'Empresa "{nombre}" eliminada.'}, status=status.HTTP_200_OK)

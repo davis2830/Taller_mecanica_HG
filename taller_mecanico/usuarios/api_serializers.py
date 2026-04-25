@@ -1,7 +1,53 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from usuarios.models import Perfil, Rol
+from usuarios.models import Perfil, Rol, Empresa
 from citas.models import Vehiculo
+
+
+class EmpresaSerializer(serializers.ModelSerializer):
+    saldo_pendiente_total = serializers.SerializerMethodField(read_only=True)
+    tiene_vencimientos = serializers.SerializerMethodField(read_only=True)
+    excede_limite = serializers.SerializerMethodField(read_only=True)
+    facturas_count = serializers.SerializerMethodField(read_only=True)
+    vehiculos_count = serializers.SerializerMethodField(read_only=True)
+    nombre_mostrar = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Empresa
+        fields = [
+            'id',
+            'nit', 'razon_social', 'nombre_comercial', 'nombre_mostrar',
+            'direccion_fiscal',
+            'email_cobro', 'contacto_principal', 'telefono',
+            'dias_credito', 'limite_credito',
+            'recordatorios_activos', 'activo',
+            'notas',
+            'saldo_pendiente_total', 'tiene_vencimientos', 'excede_limite',
+            'facturas_count', 'vehiculos_count',
+            'fecha_creacion', 'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+    def get_saldo_pendiente_total(self, obj):
+        return str(obj.saldo_pendiente_total)
+
+    def get_tiene_vencimientos(self, obj):
+        return obj.tiene_vencimientos
+
+    def get_excede_limite(self, obj):
+        return obj.excede_limite
+
+    def get_facturas_count(self, obj):
+        return obj.facturas.count()
+
+    def get_vehiculos_count(self, obj):
+        return obj.vehiculos.count()
+
+    def validate_nit(self, value):
+        normalized = (value or '').strip().upper().replace(' ', '')
+        if not normalized:
+            raise serializers.ValidationError("El NIT es obligatorio.")
+        return normalized
 
 class RolSerializer(serializers.ModelSerializer):
     class Meta:

@@ -103,6 +103,17 @@ class TipoServicio(models.Model):
 
 class Vehiculo(models.Model):
     propietario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vehiculos')
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.SET_NULL,
+        related_name='vehiculos',
+        null=True,
+        blank=True,
+        help_text=(
+            "Empresa a la que pertenece este vehículo (flota corporativa). "
+            "Si se establece, las facturas pueden emitirse a la empresa en lugar del propietario."
+        ),
+    )
     marca = models.CharField(max_length=50)
     modelo = models.CharField(max_length=50)
     año = models.PositiveIntegerField()

@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'clientes',  api_views.ClienteViewSet,  basename='cliente')
 router.register(r'usuarios',  api_views.UsuarioViewSet,  basename='usuario')
 router.register(r'roles',     api_views.RolViewSet,      basename='rol')
+router.register(r'empresas',  api_views.EmpresaViewSet,  basename='empresa')
 
 urlpatterns = [
     path('me/',        api_views.CurrentUserView.as_view(),     name='api_current_user'),
