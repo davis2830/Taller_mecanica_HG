@@ -5,6 +5,77 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 import datetime
 
+class ConfiguracionTaller(models.Model):
+    """
+    Configuración global del taller (capacidad, horarios, días laborales).
+    Singleton: siempre se usa la instancia pk=1.
+    """
+    DIAS_CHOICES = [
+        (0, 'Lunes'), (1, 'Martes'), (2, 'Miércoles'), (3, 'Jueves'),
+        (4, 'Viernes'), (5, 'Sábado'), (6, 'Domingo'),
+    ]
+    GRANULARIDAD_CHOICES = [
+        (15, '15 minutos'),
+        (30, '30 minutos'),
+        (60, '60 minutos'),
+    ]
+
+    capacidad_mecanico = models.PositiveIntegerField(
+        default=3,
+        help_text="Número de vehículos de mecánica que se pueden atender en paralelo (un 'slot' por cada mecánico disponible)."
+    )
+    capacidad_carwash = models.PositiveIntegerField(
+        default=1,
+        help_text="Número de vehículos de lavado que se pueden atender en paralelo."
+    )
+    hora_apertura = models.TimeField(
+        default='08:00',
+        help_text="Hora a la que el taller empieza a recibir citas."
+    )
+    hora_cierre = models.TimeField(
+        default='18:00',
+        help_text="Última hora a la que puede iniciar una cita (la cita puede terminar después, según su duración)."
+    )
+    granularidad_slot = models.PositiveIntegerField(
+        default=30, choices=GRANULARIDAD_CHOICES,
+        help_text="Cada cuántos minutos se ofrece un slot en la agenda."
+    )
+    # JSON list con los números de día de la semana (0=Lun, 6=Dom) en que se trabaja.
+    dias_laborales = models.JSONField(
+        default=list,
+        help_text="Lista de días laborales (0=Lunes, 6=Domingo). Por defecto: Lun–Sáb."
+    )
+
+    actualizado_el = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuración del Taller"
+        verbose_name_plural = "Configuración del Taller"
+
+    def __str__(self):
+        return "Configuración del Taller"
+
+    def save(self, *args, **kwargs):
+        # Forzar singleton: siempre pk=1
+        self.pk = 1
+        # Default días laborales: L-S
+        if not self.dias_laborales:
+            self.dias_laborales = [0, 1, 2, 3, 4, 5]
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={'dias_laborales': [0, 1, 2, 3, 4, 5]},
+        )
+        return obj
+
+    def capacidad_para(self, categoria):
+        """Capacidad paralela para una categoría de servicio ('MECANICO' | 'CARWASH')."""
+        return self.capacidad_carwash if categoria == 'CARWASH' else self.capacidad_mecanico
+
+
 class TipoServicio(models.Model):
     CATEGORIAS = (
         ('MECANICO', 'Servicio Mecánico'),
@@ -122,21 +193,31 @@ class Cita(models.Model):
                     pass
 
             if fecha_cambio:
-                citas_en_conflicto = Cita.objects.filter(
+                # Capacidad paralela configurable (ej. N mecánicos atendiendo al mismo tiempo).
+                config = ConfiguracionTaller.get()
+                capacidad = config.capacidad_para(self.servicio.categoria)
+
+                citas_mismo_dia = Cita.objects.filter(
                     fecha=self.fecha,
                     estado__in=['PENDIENTE', 'CONFIRMADA'],
-                    servicio__categoria=self.servicio.categoria,  # Solo misma categoría
+                    servicio__categoria=self.servicio.categoria,
                 ).exclude(id=self.id)
-                
-                for cita in citas_en_conflicto:
-                    # Conflicto real solo si los bloques de tiempo se superponen
-                    if (self.hora_inicio < cita.hora_fin and self.hora_fin > cita.hora_inicio):
-                        fecha_str = self.fecha.strftime('%d/%m/%Y') if hasattr(self.fecha, 'strftime') else str(self.fecha)
-                        raise ValidationError(
-                            f"Ya existe una cita de {cita.servicio.get_categoria_display()} "
-                            f"el {fecha_str} de {cita.hora_inicio.strftime('%H:%M')} a {cita.hora_fin.strftime('%H:%M')}. "
-                            f"Por favor elige otro horario."
+
+                # Contamos cuántas citas se solapan con nuestro bloque [hora_inicio, hora_fin)
+                ocupadas = sum(
+                    1 for c in citas_mismo_dia
+                    if self.hora_inicio < c.hora_fin and self.hora_fin > c.hora_inicio
+                )
+
+                if ocupadas >= capacidad:
+                    fecha_str = self.fecha.strftime('%d/%m/%Y') if hasattr(self.fecha, 'strftime') else str(self.fecha)
+                    raise ValidationError({
+                        'hora_inicio': (
+                            f"No hay disponibilidad para {self.servicio.get_categoria_display().lower()} "
+                            f"el {fecha_str} de {self.hora_inicio.strftime('%H:%M')} a {self.hora_fin.strftime('%H:%M')} "
+                            f"(capacidad máxima de {capacidad} en ese horario). Por favor elige otro horario."
                         )
+                    })
 
     def save(self, *args, **kwargs):
         self.clean()

@@ -1,6 +1,30 @@
 from rest_framework import serializers
-from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, RecepcionFoto
+from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, RecepcionFoto, ConfiguracionTaller
 from django.contrib.auth.models import User
+
+
+class ConfiguracionTallerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConfiguracionTaller
+        fields = [
+            'capacidad_mecanico', 'capacidad_carwash',
+            'hora_apertura', 'hora_cierre',
+            'granularidad_slot', 'dias_laborales',
+            'actualizado_el',
+        ]
+        read_only_fields = ['actualizado_el']
+
+    def validate_dias_laborales(self, value):
+        if not isinstance(value, list) or not all(isinstance(x, int) and 0 <= x <= 6 for x in value):
+            raise serializers.ValidationError("dias_laborales debe ser una lista de enteros entre 0 y 6.")
+        return sorted(set(value))
+
+    def validate(self, attrs):
+        apertura = attrs.get('hora_apertura') or getattr(self.instance, 'hora_apertura', None)
+        cierre = attrs.get('hora_cierre') or getattr(self.instance, 'hora_cierre', None)
+        if apertura and cierre and apertura >= cierre:
+            raise serializers.ValidationError({'hora_cierre': 'La hora de cierre debe ser posterior a la de apertura.'})
+        return attrs
 
 class ClienteMiniSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
