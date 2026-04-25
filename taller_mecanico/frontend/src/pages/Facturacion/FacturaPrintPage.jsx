@@ -428,16 +428,23 @@ export default function FacturaPrintPage() {
             {/* Totales */}
             <div className="flex justify-end">
               <div className="w-full sm:w-80 space-y-2">
-                <div className={`flex justify-between text-sm factura-text-subtle ${p.textSubtle}`}>
-                  <span>Subtotal general</span>
-                  <span className="tabular-nums">{GTQ(factura.subtotal)}</span>
-                </div>
                 {Number(factura.descuento) > 0 && (
                   <div className="flex justify-between text-sm font-semibold" style={{ color: '#059669' }}>
                     <span>Descuento aplicado</span>
                     <span className="tabular-nums">- {GTQ(factura.descuento)}</span>
                   </div>
                 )}
+                <div className={`flex justify-between text-sm factura-text-subtle ${p.textSubtle}`}>
+                  <span>Subtotal (sin IVA)</span>
+                  <span className="tabular-nums">{GTQ(factura.total_sin_iva)}</span>
+                </div>
+                <div className={`flex justify-between text-sm factura-text-subtle ${p.textSubtle}`}>
+                  <span>
+                    IVA {Number(factura.tasa_iva_pct ?? 12).toFixed(0)}%
+                    {factura.iva_incluido ? ' (incluido)' : ''}
+                  </span>
+                  <span className="tabular-nums">{GTQ(factura.monto_iva)}</span>
+                </div>
                 <div className={`flex justify-between items-baseline border-t-2 pt-3 mt-1 factura-divider ${p.divider}`}>
                   <span className={`text-base font-bold uppercase tracking-wide factura-text-strong ${p.textStrong}`} style={{ fontFamily: "'Oswald', sans-serif" }}>
                     Total a pagar
