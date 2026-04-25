@@ -29,6 +29,7 @@ import SistemaUsuariosPage from '../pages/Sistema/SistemaUsuariosPage';
 import SistemaRolesPage from '../pages/Sistema/SistemaRolesPage';
 import ConfiguracionTallerPage from '../pages/Sistema/ConfiguracionTallerPage';
 import ConfiguracionFacturacionPage from '../pages/Sistema/ConfiguracionFacturacionPage';
+import TareasProgramadasPage from '../pages/Sistema/TareasProgramadasPage';
 import EmpresasPage from '../pages/Finanzas/EmpresasPage';
 import EmpresaEstadoCuentaPage from '../pages/Finanzas/EmpresaEstadoCuentaPage';
 import CuentasPorCobrarPage from '../pages/Finanzas/CuentasPorCobrarPage';
@@ -219,6 +220,13 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Configuración Fiscal (FEL)'
+    },
+    {
+        path: '/sistema/tareas-programadas',
+        element: TareasProgramadasPage,
+        private: true,
+        layout: true,
+        title: 'Tareas Programadas'
     },
 ];
 
