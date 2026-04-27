@@ -656,6 +656,12 @@ def verificar_email_view(request, token):
     color_principal = '#10b981' if estado == 'ok' else '#dc2626'
     icono = '✓' if estado == 'ok' else '✗'
 
+    # Link al login del frontend React. Usamos FRONTEND_URL configurado en
+    # `.env`; si no está, fallback al mismo host de la request (lo cual
+    # funciona si el SPA está servido en la misma URL del backend).
+    frontend = getattr(settings, 'FRONTEND_URL', '').rstrip('/') or request.build_absolute_uri('/').rstrip('/')
+    login_url = f"{frontend}/login"
+
     html = f"""
     <!DOCTYPE html>
     <html lang="es">
@@ -697,7 +703,7 @@ def verificar_email_view(request, token):
             <div class="icon">{icono}</div>
             <h1>{titulo}</h1>
             <p>{mensaje}</p>
-            <a class="btn" href="/">Ir al inicio</a>
+            <a class="btn" href="{login_url}">Ir al login</a>
         </div>
     </body>
     </html>
