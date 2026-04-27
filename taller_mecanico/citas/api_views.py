@@ -122,9 +122,21 @@ class CanalNotificacionDetailView(APIView):
         from taller_mecanico.notification_channels import (
             EVENTOS_SOLO_EMAIL, EVENTOS_EMAIL_OBLIGATORIO,
         )
+
+        def _to_bool(raw):
+            """Coercer robusto: maneja JSON booleano y form-encoded strings.
+
+            `bool("false")` en Python es True, así que un cliente que mande
+            form-encoded con `email_activo=false` apagaría el toggle al
+            revés. Aceptamos los strings habituales como falsos.
+            """
+            if isinstance(raw, bool):
+                return raw
+            return str(raw).strip().lower() not in ('false', '0', '', 'no', 'off')
+
         # Solo permitimos modificar email_activo / whatsapp_activo.
         if 'email_activo' in request.data:
-            new_email = bool(request.data.get('email_activo'))
+            new_email = _to_bool(request.data.get('email_activo'))
             # Eventos de seguridad: el correo no se puede apagar — se ignora
             # silenciosamente para evitar romper flujos de activación / cambio
             # de correo / recuperación.
@@ -132,7 +144,7 @@ class CanalNotificacionDetailView(APIView):
                 new_email = True
             canal.email_activo = new_email
         if 'whatsapp_activo' in request.data:
-            wa = bool(request.data.get('whatsapp_activo'))
+            wa = _to_bool(request.data.get('whatsapp_activo'))
             if evento in EVENTOS_SOLO_EMAIL:
                 wa = False
             canal.whatsapp_activo = wa
