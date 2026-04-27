@@ -69,19 +69,25 @@ export default function Login() {
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-[#0a0f1a] text-slate-100">
-            {/* === FONDO === */}
-            {/* Gradient base */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f1a] via-[#0f172a] to-[#020617]" />
-            {/* Resplandores de color */}
-            <div className="pointer-events-none absolute -top-40 -left-40 h-[480px] w-[480px] rounded-full bg-red-600/20 blur-[140px]" />
-            <div className="pointer-events-none absolute top-1/3 right-[-120px] h-[420px] w-[420px] rounded-full bg-blue-600/15 blur-[140px]" />
-            <div className="pointer-events-none absolute bottom-[-160px] left-1/3 h-[420px] w-[420px] rounded-full bg-indigo-700/15 blur-[140px]" />
-            {/* Grid muy sutil */}
+            {/* === FONDO PROFESIONAL === */}
+            {/* Base con gradiente diagonal */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0b1224] via-[#0f172a] to-[#040814]" />
+            {/* Resplandores suaves */}
+            <div className="pointer-events-none absolute -top-32 -left-40 h-[560px] w-[560px] rounded-full bg-red-600/15 blur-[160px]" />
+            <div className="pointer-events-none absolute top-1/3 -right-40 h-[480px] w-[480px] rounded-full bg-sky-700/12 blur-[160px]" />
+            <div className="pointer-events-none absolute -bottom-44 left-1/3 h-[480px] w-[480px] rounded-full bg-indigo-700/10 blur-[160px]" />
+            {/* Halo central sutil */}
             <div
-                className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                className="pointer-events-none absolute inset-0"
                 style={{
-                    backgroundImage: 'linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)',
-                    backgroundSize: '48px 48px',
+                    background: 'radial-gradient(60% 50% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%)',
+                }}
+            />
+            {/* Vignette para profundidad en bordes */}
+            <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                    background: 'radial-gradient(120% 80% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)',
                 }}
             />
 
