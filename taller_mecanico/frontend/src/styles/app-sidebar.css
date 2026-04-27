@@ -15,8 +15,8 @@
     --sb-bg-item:      rgba(255,255,255,0.04);
     --sb-bg-hover:     rgba(255,255,255,0.07);
     --sb-border:       rgba(255,255,255,0.07);
-    --sb-text:         #e2e8f0;
-    --sb-muted:        #475569;
+    --sb-text:         #f1f5f9;
+    --sb-muted:        #cbd5e1;
     --sb-accent:       #6366f1;
     --sb-accent-soft:  rgba(99,102,241,0.15);
     --sb-accent-text:  #a5b4fc;
@@ -30,8 +30,8 @@
     --sb-bg-item:      transparent;
     --sb-bg-hover:     #f1f5f9;
     --sb-border:       #e2e8f0;
-    --sb-text:         #1e293b;
-    --sb-muted:        #94a3b8;
+    --sb-text:         #0f172a;
+    --sb-muted:        #475569;
     --sb-accent:       #3b82f6;
     --sb-accent-soft:  rgba(59,130,246,0.08);
     --sb-accent-text:  #3b82f6;
