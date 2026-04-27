@@ -119,8 +119,8 @@ export default function NuevaCitaSlideOver({ isOpen, onClose, onCitaCreada, defa
   const fetchData = async () => {
     try {
       const [resServicios, resVehiculos] = await Promise.all([
-        axios.get('http://localhost:8000/api/v1/citas/servicios/', { headers: { Authorization: `Bearer ${authTokens.access}` } }),
-        axios.get('http://localhost:8000/api/v1/citas/vehiculos/', { headers: { Authorization: `Bearer ${authTokens.access}` } })
+        axios.get('/api/v1/citas/servicios/', { headers: { Authorization: `Bearer ${authTokens.access}` } }),
+        axios.get('/api/v1/citas/vehiculos/', { headers: { Authorization: `Bearer ${authTokens.access}` } })
       ]);
       setServicios(resServicios.data);
       setVehiculos(resVehiculos.data);
@@ -138,7 +138,7 @@ export default function NuevaCitaSlideOver({ isOpen, onClose, onCitaCreada, defa
     }
     let cancelled = false;
     setSlotsLoading(true);
-    axios.get('http://localhost:8000/api/v1/citas/slots-disponibles/', {
+    axios.get('/api/v1/citas/slots-disponibles/', {
       params: { fecha, servicio_id: servicioSeleccionado.value },
       headers: { Authorization: `Bearer ${authTokens.access}` },
     }).then(res => {
@@ -164,7 +164,7 @@ export default function NuevaCitaSlideOver({ isOpen, onClose, onCitaCreada, defa
     setLoading(true);
     setError('');
     try {
-      await axios.post('http://localhost:8000/api/v1/citas/nueva/', {
+      await axios.post('/api/v1/citas/nueva/', {
         vehiculo: vehiculoSeleccionado.value,
         servicio: servicioSeleccionado.value,
         fecha: fecha,

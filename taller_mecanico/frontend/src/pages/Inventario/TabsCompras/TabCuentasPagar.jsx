@@ -24,7 +24,7 @@ export default function TabCuentasPagar() {
     const fetchCuentas = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/inventario/cuentas-pagar/', { headers });
+            const res = await axios.get('/api/v1/inventario/cuentas-pagar/', { headers });
             setCuentas(res.data.results || res.data);
         } catch (e) {
             console.error(e);

@@ -63,9 +63,9 @@ export default function ServicioFormModal({ isOpen, onClose, servicio, onSaved }
             };
             
             if (isEdit) {
-                await axios.put(`http://localhost:8000/api/v1/citas/servicios/${servicio.id}/`, payload, { headers });
+                await axios.put(`/api/v1/citas/servicios/${servicio.id}/`, payload, { headers });
             } else {
-                await axios.post('http://localhost:8000/api/v1/citas/servicios/', payload, { headers });
+                await axios.post('/api/v1/citas/servicios/', payload, { headers });
             }
             onSaved();
             onClose();

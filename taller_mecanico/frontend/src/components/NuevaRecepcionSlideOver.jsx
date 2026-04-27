@@ -60,7 +60,7 @@ export default function NuevaRecepcionSlideOver({ isOpen, onClose, vehiculo, cit
                 vehiculo: vehiculo.id,
                 cita: citaId || null,
             };
-            const res = await axios.post('http://localhost:8000/api/v1/recepciones/', payload, {
+            const res = await axios.post('/api/v1/recepciones/', payload, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             onRecepcionCreada && onRecepcionCreada(res.data);

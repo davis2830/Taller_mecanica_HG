@@ -9,7 +9,7 @@ import {
     ChevronRight, BarChart2, Truck, Activity, CreditCard
 } from 'lucide-react';
 
-const API = 'http://localhost:8000/api/v1/taller/dashboard/';
+const API = '/api/v1/taller/dashboard/';
 
 const fmtQ = (v) =>
     new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ', maximumFractionDigits: 2 }).format(v || 0);

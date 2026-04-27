@@ -73,7 +73,7 @@ export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }
 
     const fetchClientes = async (q = '') => {
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/clientes/?q=${encodeURIComponent(q)}`, { headers });
+            const res = await axios.get(`/api/v1/clientes/?q=${encodeURIComponent(q)}`, { headers });
             setClientes(res.data.map(c => ({
                 value: c.id,
                 label: `${c.full_name || c.username} (${c.username})`,
@@ -103,9 +103,9 @@ export default function VehiculoFormModal({ isOpen, onClose, vehiculo, onSaved }
                 kilometraje_actual: form.kilometraje_actual ? parseInt(form.kilometraje_actual) : null
             };
             if (isEdit) {
-                await axios.put(`http://localhost:8000/api/v1/vehiculos/${vehiculo.id}/`, payload, { headers });
+                await axios.put(`/api/v1/vehiculos/${vehiculo.id}/`, payload, { headers });
             } else {
-                await axios.post('http://localhost:8000/api/v1/vehiculos/', payload, { headers });
+                await axios.post('/api/v1/vehiculos/', payload, { headers });
             }
             onSaved();
             onClose();

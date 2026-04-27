@@ -83,7 +83,7 @@ export default function ReporteUtilidades() {
         setError('');
         try {
             const params = new URLSearchParams({ fecha_inicio: fechaInicio, fecha_fin: fechaFin });
-            const res = await axios.get(`http://localhost:8000/api/v1/taller/reportes/utilidades/?${params}`, { headers });
+            const res = await axios.get(`/api/v1/taller/reportes/utilidades/?${params}`, { headers });
             setData(res.data);
         } catch (e) {
             setError(e.response?.data?.error || 'Error al cargar el reporte.');

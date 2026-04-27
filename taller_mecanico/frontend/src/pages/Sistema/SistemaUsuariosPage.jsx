@@ -31,8 +31,8 @@ export default function SistemaUsuariosPage() {
         setLoading(true);
         try {
             const [uRes, rRes] = await Promise.all([
-                axios.get('http://localhost:8000/api/v1/usuarios/usuarios/', { headers }),
-                axios.get('http://localhost:8000/api/v1/usuarios/roles/', { headers }),
+                axios.get('/api/v1/usuarios/usuarios/', { headers }),
+                axios.get('/api/v1/usuarios/roles/', { headers }),
             ]);
             setUsuarios(uRes.data.results || uRes.data);
             setRoles(rRes.data);
@@ -44,7 +44,7 @@ export default function SistemaUsuariosPage() {
 
     const toggleEstado = async (u) => {
         try {
-            await axios.post(`http://localhost:8000/api/v1/usuarios/usuarios/${u.id}/toggle_estado/`, {}, { headers });
+            await axios.post(`/api/v1/usuarios/usuarios/${u.id}/toggle_estado/`, {}, { headers });
             showToast(`${u.first_name || u.username} ${u.is_active ? 'deshabilitado' : 'habilitado'}.`);
             fetch();
         } catch (e) { showToast(e.response?.data?.error || 'Error', 'error'); }
@@ -53,7 +53,7 @@ export default function SistemaUsuariosPage() {
     const eliminar = async (u) => {
         if (!window.confirm(`¿Eliminar a ${u.first_name || u.username}? Esta acción no se puede deshacer.`)) return;
         try {
-            await axios.delete(`http://localhost:8000/api/v1/usuarios/usuarios/${u.id}/`, { headers });
+            await axios.delete(`/api/v1/usuarios/usuarios/${u.id}/`, { headers });
             showToast('Usuario eliminado.');
             fetch();
         } catch (e) { showToast(e.response?.data?.error || 'No se puede eliminar.', 'error'); }
@@ -61,7 +61,7 @@ export default function SistemaUsuariosPage() {
 
     const asignarRol = async (usuarioId, rolId) => {
         try {
-            const res = await axios.post(`http://localhost:8000/api/v1/usuarios/usuarios/${usuarioId}/asignar_rol/`, { rol_id: rolId || null }, { headers });
+            const res = await axios.post(`/api/v1/usuarios/usuarios/${usuarioId}/asignar_rol/`, { rol_id: rolId || null }, { headers });
             // Actualizar inmediatamente la fila en el estado local con los datos frescos del servidor
             setUsuarios(prev => prev.map(u => u.id === usuarioId ? res.data : u));
             showToast(`Rol actualizado correctamente.`);

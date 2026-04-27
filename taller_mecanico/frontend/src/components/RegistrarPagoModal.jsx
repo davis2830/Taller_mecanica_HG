@@ -51,7 +51,7 @@ export default function RegistrarPagoModal({ isOpen, onClose, factura, onSaved }
         setLoading(true);
         try {
             const payload = { monto: m.toFixed(2), metodo, fecha_pago: fechaPago, referencia, nota };
-            const res = await axios.post(`http://localhost:8000/api/v1/facturacion/${factura.id}/pagos/`, payload, { headers });
+            const res = await axios.post(`/api/v1/facturacion/${factura.id}/pagos/`, payload, { headers });
             onSaved(res.data);
             onClose();
         } catch (err) {

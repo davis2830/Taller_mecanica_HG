@@ -32,7 +32,7 @@ export default function ClientesList() {
     const fetchClientes = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/usuarios/clientes/', {
+            const res = await axios.get('/api/v1/usuarios/clientes/', {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             setClientes(res.data);
@@ -44,7 +44,7 @@ export default function ClientesList() {
 
     const handleToggleStatus = async (cliente) => {
         try {
-            await axios.post(`http://localhost:8000/api/v1/usuarios/clientes/${cliente.id}/toggle_estado/`, {}, {
+            await axios.post(`/api/v1/usuarios/clientes/${cliente.id}/toggle_estado/`, {}, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             fetchClientes();
@@ -56,7 +56,7 @@ export default function ClientesList() {
     const handleDelete = async (cliente) => {
         if(!window.confirm(`¿Seguro que deseas ELIMINAR a ${cliente.nombre_completo}?`)) return;
         try {
-            await axios.delete(`http://localhost:8000/api/v1/usuarios/clientes/${cliente.id}/`, {
+            await axios.delete(`/api/v1/usuarios/clientes/${cliente.id}/`, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             fetchClientes();

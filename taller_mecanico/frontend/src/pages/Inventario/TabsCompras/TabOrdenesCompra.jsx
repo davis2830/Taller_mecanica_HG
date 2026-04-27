@@ -36,7 +36,7 @@ export default function TabOrdenesCompra() {
     const fetchOrdenes = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/inventario/ordenes-compra/', { headers });
+            const res = await axios.get('/api/v1/inventario/ordenes-compra/', { headers });
             setOrdenes(res.data.results || res.data);
         } catch (e) {
             console.error(e);
@@ -58,7 +58,7 @@ export default function TabOrdenesCompra() {
         if (!confirmModalData) return;
         setReceiving(confirmModalData);
         try {
-            await axios.post(`http://localhost:8000/api/v1/inventario/ordenes-compra/${confirmModalData}/recibir/`, {}, { headers });
+            await axios.post(`/api/v1/inventario/ordenes-compra/${confirmModalData}/recibir/`, {}, { headers });
             fetchOrdenes();
         } catch (error) {
             console.error(error);
@@ -80,7 +80,7 @@ export default function TabOrdenesCompra() {
 
         setCanceling(cancelModalData);
         try {
-            await axios.post(`http://localhost:8000/api/v1/inventario/ordenes-compra/${cancelModalData}/cancelar/`, {
+            await axios.post(`/api/v1/inventario/ordenes-compra/${cancelModalData}/cancelar/`, {
                 motivo_cancelacion: motivoCancelacion
             }, { headers });
             fetchOrdenes();

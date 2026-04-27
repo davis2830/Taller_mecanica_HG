@@ -37,7 +37,7 @@ const METODO_ICON = {
   OTROS: <Receipt size={14} />,
 };
 
-const API_BASE = 'http://localhost:8000/api/v1/facturacion';
+const API_BASE = '/api/v1/facturacion';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function FacturaPrintPage() {

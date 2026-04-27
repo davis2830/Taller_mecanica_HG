@@ -29,7 +29,7 @@ export default function CategoriasPage() {
             // Note: El endpoint CategoriaViewSet no tiene search por defecto activado en Django en la clase que creaste,
             // Pero trae todas las categorias rápido de todos modos para filtrar en frontend si se desea, 
             // o lo devolvemos tal cual para mostrar todo (no suele haber cientos de categorías).
-            const res = await axios.get(`http://localhost:8000/api/v1/inventario/categorias/`, { headers });
+            const res = await axios.get(`/api/v1/inventario/categorias/`, { headers });
             setCategorias(res.data.results || res.data);
         } catch (e) {
             console.error(e);

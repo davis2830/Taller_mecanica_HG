@@ -51,7 +51,7 @@ export default function PagoProveedorFormModal({ isOpen, onClose, cuenta, onSave
         setLoading(true);
 
         try {
-            await axios.post(`http://localhost:8000/api/v1/inventario/cuentas-pagar/${cuenta.id}/registrar_pago/`, formData, {
+            await axios.post(`/api/v1/inventario/cuentas-pagar/${cuenta.id}/registrar_pago/`, formData, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             onSaved();

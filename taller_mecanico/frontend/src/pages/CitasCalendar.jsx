@@ -51,7 +51,7 @@ export default function CitasCalendar() {
 
   const fetchCitas = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/v1/citas/calendario/', {
+      const res = await axios.get('/api/v1/citas/calendario/', {
         headers: { Authorization: `Bearer ${authTokens.access}` }
       });
       setCitasRaw(res.data);
@@ -119,7 +119,7 @@ export default function CitasCalendar() {
       setCheckInLoading(cita.id);
       try {
           await axios.post(
-              `http://localhost:8000/api/v1/taller/orden/crear-desde-cita/${cita.id}/`,
+              `/api/v1/taller/orden/crear-desde-cita/${cita.id}/`,
               {},
               { headers: { Authorization: `Bearer ${authTokens.access}` } }
           );

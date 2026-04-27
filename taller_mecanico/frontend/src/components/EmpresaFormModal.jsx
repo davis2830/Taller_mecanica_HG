@@ -62,9 +62,9 @@ export default function EmpresaFormModal({ isOpen, onClose, empresa, onSaved }) 
         try {
             const payload = { ...form, limite_credito: form.limite_credito || '0.00' };
             if (isEdit) {
-                await axios.patch(`http://localhost:8000/api/v1/usuarios/empresas/${empresa.id}/`, payload, { headers });
+                await axios.patch(`/api/v1/usuarios/empresas/${empresa.id}/`, payload, { headers });
             } else {
-                await axios.post('http://localhost:8000/api/v1/usuarios/empresas/', payload, { headers });
+                await axios.post('/api/v1/usuarios/empresas/', payload, { headers });
             }
             onSaved();
             onClose();

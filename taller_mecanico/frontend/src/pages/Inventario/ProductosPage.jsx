@@ -48,7 +48,7 @@ export default function ProductosPage() {
     const fetchResumen = useCallback(async () => {
         setLoadingResumen(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/inventario/resumen/', { headers });
+            const res = await axios.get('/api/v1/inventario/resumen/', { headers });
             setResumen(res.data);
         } catch (e) {
             console.error(e);
@@ -65,7 +65,7 @@ export default function ProductosPage() {
             if (filterStockBajo) params.append('stock_bajo', 'true');
             // By default list only active unless told otherwise, handled by backend
             
-            const res = await axios.get(`http://localhost:8000/api/v1/inventario/productos/?${params}`, { headers });
+            const res = await axios.get(`/api/v1/inventario/productos/?${params}`, { headers });
             setProductos(res.data);
         } catch (e) {
             console.error(e);

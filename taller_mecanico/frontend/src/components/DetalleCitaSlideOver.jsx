@@ -41,7 +41,7 @@ export default function DetalleCitaSlideOver({ isOpen, onClose, cita, onUpdate }
         setIsCancelling(true);
         setError(null);
         try {
-            await axios.patch(`http://localhost:8000/api/v1/citas/${cita.id}/cancelar/`, {}, {
+            await axios.patch(`/api/v1/citas/${cita.id}/cancelar/`, {}, {
                 headers: { 'Authorization': `Bearer ${authTokens.access}` }
             });
             onUpdate();
@@ -65,7 +65,7 @@ export default function DetalleCitaSlideOver({ isOpen, onClose, cita, onUpdate }
         setError(null);
         try {
             await axios.post(
-                `http://localhost:8000/api/v1/taller/orden/crear-desde-cita/${cita.id}/`,
+                `/api/v1/taller/orden/crear-desde-cita/${cita.id}/`,
                 {},
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );

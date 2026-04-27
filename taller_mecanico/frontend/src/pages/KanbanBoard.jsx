@@ -58,7 +58,7 @@ function KanbanBoard() {
     fetchBoard();
     // Config del taller (toggles de recepción). No bloquea si falla.
     axios
-      .get('http://localhost:8000/api/v1/sistema/configuracion-taller/', {
+      .get('/api/v1/sistema/configuracion-taller/', {
         headers: { 'Authorization': `Bearer ${authTokens.access}` },
       })
       .then((r) => setConfig(r.data || {}))
@@ -77,7 +77,7 @@ function KanbanBoard() {
   const fetchBoard = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/taller/kanban/', {
+      const response = await axios.get('/api/v1/taller/kanban/', {
         headers: { 'Authorization': `Bearer ${authTokens.access}` }
       });
       setData(response.data);
@@ -173,7 +173,7 @@ function KanbanBoard() {
 
     try {
       await axios.patch(
-        `http://localhost:8000/api/v1/taller/orden/${draggableId}/mover/`,
+        `/api/v1/taller/orden/${draggableId}/mover/`,
         { nuevo_estado: finishColumn.id },
         { headers: { 'Authorization': `Bearer ${authTokens.access}` } }
       );

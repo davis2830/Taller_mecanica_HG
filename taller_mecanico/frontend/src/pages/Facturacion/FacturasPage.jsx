@@ -113,7 +113,7 @@ export default function FacturasPage() {
       if (estadoFiltro) params.set('estado', estadoFiltro);
 
       const res = await axios.get(
-        `http://localhost:8000/api/v1/facturacion/?${params}`,
+        `/api/v1/facturacion/?${params}`,
         { headers }
       );
       setResults(res.data.results);

@@ -60,7 +60,7 @@ function Register() {
 
         setIsLoading(true);
         try {
-            const res = await axios.post('http://localhost:8000/api/v1/usuarios/registro/', formData);
+            const res = await axios.post('/api/v1/usuarios/registro/', formData);
             if (res.data.success) {
                 setSuccess(res.data.message || '¡Cuenta creada! Revisa tu correo para activarla.');
                 setTimeout(() => navigate('/login'), 5000);

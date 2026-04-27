@@ -34,7 +34,7 @@ export default function VehiculosList() {
     const fetchVehiculos = async (q = '') => {
         setLoading(true);
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/vehiculos/?q=${q}`, { headers });
+            const res = await axios.get(`/api/v1/vehiculos/?q=${q}`, { headers });
             setVehiculos(res.data);
         } catch (e) {
             if (e.response?.status === 401) logoutUser();
@@ -52,7 +52,7 @@ export default function VehiculosList() {
         if (!window.confirm('¿Seguro que deseas eliminar este vehículo? Esta acción no se puede deshacer.')) return;
         setDeleting(id);
         try {
-            await axios.delete(`http://localhost:8000/api/v1/vehiculos/${id}/`, { headers });
+            await axios.delete(`/api/v1/vehiculos/${id}/`, { headers });
             setVehiculos(vs => vs.filter(v => v.id !== id));
         } catch (e) {
             alert(e.response?.data?.error || 'No se pudo eliminar el vehículo (puede tener citas u órdenes asociadas).');
@@ -62,7 +62,7 @@ export default function VehiculosList() {
 
     const handleHistorial = async (vehiculo) => {
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/vehiculos/${vehiculo.id}/historial/`, { headers });
+            const res = await axios.get(`/api/v1/vehiculos/${vehiculo.id}/historial/`, { headers });
             setHistorialData(res.data);
         } catch (e) {
             alert('No se pudo cargar el historial.');

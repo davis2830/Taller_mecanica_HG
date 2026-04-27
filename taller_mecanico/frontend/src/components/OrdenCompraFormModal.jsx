@@ -53,8 +53,8 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
             const config = { headers: { Authorization: `Bearer ${authTokens?.access}` } };
             // Fetch Proveedores y Kanban
             const [provRes, kanbanRes] = await Promise.all([
-                axios.get('http://localhost:8000/api/v1/inventario/proveedores/', config),
-                axios.get('http://localhost:8000/api/v1/taller/kanban/', config)
+                axios.get('/api/v1/inventario/proveedores/', config),
+                axios.get('/api/v1/taller/kanban/', config)
             ]);
             setProveedores(provRes.data);
             
@@ -78,7 +78,7 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
             const delay = setTimeout(async () => {
                 setFetchingProds(true);
                 try {
-                    const res = await axios.get(`http://localhost:8000/api/v1/inventario/productos/?search=${searchQ}`, {
+                    const res = await axios.get(`/api/v1/inventario/productos/?search=${searchQ}`, {
                         headers: { Authorization: `Bearer ${authTokens?.access}` }
                     });
                     setProductosBuscados(res.data.results || res.data);
@@ -153,7 +153,7 @@ export default function OrdenCompraFormModal({ isOpen, onClose, onSaved }) {
         };
 
         try {
-            await axios.post('http://localhost:8000/api/v1/inventario/ordenes-compra/', payload, {
+            await axios.post('/api/v1/inventario/ordenes-compra/', payload, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             onSaved();

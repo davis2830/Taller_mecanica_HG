@@ -46,7 +46,7 @@ export default function EmpresaEstadoCuentaPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/facturacion/empresas/${id}/estado-cuenta/`, { headers });
+            const res = await axios.get(`/api/v1/facturacion/empresas/${id}/estado-cuenta/`, { headers });
             setData(res.data);
         } catch (err) {
             setError(err.response?.data?.error || err.message || 'No se pudo cargar el estado de cuenta.');

@@ -17,7 +17,7 @@ export default function BoletaRecepcionPage() {
     useEffect(() => {
         const fetch = async () => {
             try {
-                const res = await axios.get(`http://localhost:8000/api/v1/recepciones/${pk}/`, {
+                const res = await axios.get(`/api/v1/recepciones/${pk}/`, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
                 setRecepcion(res.data);
@@ -32,7 +32,7 @@ export default function BoletaRecepcionPage() {
     const handleSendEmail = async () => {
         setEnviandoCorreo(true);
         try {
-            await axios.post(`http://localhost:8000/api/v1/recepciones/${pk}/enviar_boleta/`, { url: window.location.href }, {
+            await axios.post(`/api/v1/recepciones/${pk}/enviar_boleta/`, { url: window.location.href }, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             alert('Boleta enviada por correo al cliente exitosamente.');
@@ -221,7 +221,7 @@ export default function BoletaRecepcionPage() {
                             <div className="boleta-label">Registro Fotográfico del Ingreso</div>
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
                                 {recepcion.fotos.map(f => {
-                                    const srcUrl = f.imagen.startsWith('http') ? f.imagen : `http://localhost:8000${f.imagen}`;
+                                    const srcUrl = f.imagen.startsWith('http') ? f.imagen : `${f.imagen}`;
                                     return <img key={f.id} src={srcUrl} alt="Foto Ingreso" style={{ width: '130px', height: '100px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />;
                                 })}
                             </div>

@@ -34,7 +34,7 @@ export default function EmpresasPage() {
             const params = new URLSearchParams();
             if (searchQ) params.set('q', searchQ);
             if (filtroActivo) params.set('activo', filtroActivo);
-            const res = await axios.get(`http://localhost:8000/api/v1/usuarios/empresas/?${params}`, { headers });
+            const res = await axios.get(`/api/v1/usuarios/empresas/?${params}`, { headers });
             const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
             setEmpresas(list);
         } catch (err) {
@@ -53,7 +53,7 @@ export default function EmpresasPage() {
     const handleDelete = async (empresa) => {
         if (!window.confirm(`¿Eliminar "${empresa.razon_social}"? Solo es posible si no tiene facturas asociadas.`)) return;
         try {
-            await axios.delete(`http://localhost:8000/api/v1/usuarios/empresas/${empresa.id}/`, { headers });
+            await axios.delete(`/api/v1/usuarios/empresas/${empresa.id}/`, { headers });
             fetchEmpresas();
         } catch (err) {
             alert(err.response?.data?.error || 'Error eliminando empresa.');

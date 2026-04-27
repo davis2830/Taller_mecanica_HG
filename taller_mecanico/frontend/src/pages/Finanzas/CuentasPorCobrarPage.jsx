@@ -37,7 +37,7 @@ export default function CuentasPorCobrarPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/facturacion/reportes/cuentas-por-cobrar/', { headers });
+            const res = await axios.get('/api/v1/facturacion/reportes/cuentas-por-cobrar/', { headers });
             setData(res.data);
         } catch (err) {
             setError(err.response?.data?.error || err.message || 'No se pudo cargar el reporte.');
