@@ -384,7 +384,9 @@ def confirmar_cita_email(request, token):
         getattr(settings, 'FRONTEND_URL', '').rstrip('/')
         or request.build_absolute_uri('/').rstrip('/')
     )
-    cta_url = f"{frontend}/citas"
+    # En estado 'ok' llevamos al usuario a su listado de citas.
+    # En error, al inicio del SPA — el label "Ir al inicio" debe ir a "/".
+    cta_url = f"{frontend}/citas" if estado == 'ok' else (frontend or '/')
     cta_label = 'Ver mis citas' if estado == 'ok' else 'Ir al inicio'
 
     # Escapar TODO valor que se interpole en el HTML. `titulo` y `mensaje`
