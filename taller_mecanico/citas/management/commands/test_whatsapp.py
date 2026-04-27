@@ -75,10 +75,21 @@ class Command(BaseCommand):
             f"Backend: {backend}  |  evento: {evento}  |  destino: {telefono}"
         ))
 
+        # --mensaje (texto libre) solo aplica al path --sync, porque la task
+        # Celery rerenderiza la plantilla del evento desde `params`. Si no
+        # bloqueamos esto, el mensaje custom se descarta silenciosamente y la
+        # task termina con 'no-template'. Forzamos --sync para evitar la
+        # confusión (ver Devin Review BUG #0001 en PR #35).
+        if custom and not sync:
+            raise CommandError(
+                "--mensaje requiere --sync (texto libre se renderiza inline; "
+                "la task Celery solo acepta plantillas registradas)."
+            )
+
         if custom:
-            params = {'mensaje_custom': custom}
             self.stdout.write(self.style.NOTICE(f"Mensaje custom: {custom}"))
             mensaje = custom
+            params = {}
         else:
             params = PARAMS_DEMO
             mensaje = renderizar_plantilla(evento, params)
