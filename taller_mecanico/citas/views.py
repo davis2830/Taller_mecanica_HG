@@ -340,6 +340,7 @@ def confirmar_cita_email(request, token):
     from django.core.signing import Signer, BadSignature
     from django.conf import settings
     from django.http import HttpResponse
+    from django.utils.html import escape
     signer = Signer()
 
     estado = 'ok'
@@ -380,13 +381,23 @@ def confirmar_cita_email(request, token):
     cta_url = f"{frontend}/citas"
     cta_label = 'Ver mis citas' if estado == 'ok' else 'Ir al inicio'
 
+    # Escapar TODO valor que se interpole en el HTML. `titulo` y `mensaje`
+    # contienen valores DB-source (cita.servicio.nombre, get_estado_display)
+    # editables por staff — sin escape sería un stored XSS. `cta_url` viene
+    # de FRONTEND_URL (settings) pero lo escapamos también por defensa en
+    # profundidad. `color_principal` e `icono` son literales hardcoded.
+    titulo_esc = escape(titulo)
+    mensaje_esc = escape(mensaje)
+    cta_url_esc = escape(cta_url)
+    cta_label_esc = escape(cta_label)
+
     html = f"""
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>{titulo} — AutoServiPro</title>
+        <title>{titulo_esc} — AutoServiPro</title>
         <style>
             body {{
                 margin: 0; min-height: 100vh; display: flex;
@@ -419,9 +430,9 @@ def confirmar_cita_email(request, token):
     <body>
         <div class="card">
             <div class="icon">{icono}</div>
-            <h1>{titulo}</h1>
-            <p>{mensaje}</p>
-            <a class="btn" href="{cta_url}">{cta_label}</a>
+            <h1>{titulo_esc}</h1>
+            <p>{mensaje_esc}</p>
+            <a class="btn" href="{cta_url_esc}">{cta_label_esc}</a>
         </div>
     </body>
     </html>
