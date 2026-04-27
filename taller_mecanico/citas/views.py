@@ -331,8 +331,20 @@ def nueva_cita(request, fecha, categoria):
 
 
 def confirmar_cita_email(request, token):
+    """
+    Endpoint público al que llega el cliente desde el correo de confirmación.
+    Renderiza una página HTML autocontenida con el resultado y un botón que
+    lleva al SPA React (FRONTEND_URL/citas) — NO redirige a vistas Django
+    legacy.
+    """
     from django.core.signing import Signer, BadSignature
+    from django.conf import settings
+    from django.http import HttpResponse
     signer = Signer()
+
+    estado = 'ok'
+    titulo = 'Cita confirmada'
+    mensaje = ''
 
     try:
         cita_id = signer.unsign(token)
@@ -341,16 +353,81 @@ def confirmar_cita_email(request, token):
         if cita.estado == 'PENDIENTE':
             cita.estado = 'CONFIRMADA'
             cita.save()
-            messages.success(request, f'¡Excelente! Tu cita para {cita.servicio.nombre} ha sido confirmada.')
+            titulo = '¡Cita confirmada!'
+            mensaje = f'Tu cita para {cita.servicio.nombre} quedó confirmada. Te esperamos.'
         elif cita.estado == 'CONFIRMADA':
-            messages.info(request, 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!')
+            titulo = 'Cita ya confirmada'
+            mensaje = 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!'
         else:
-            messages.warning(request, f'Tu cita se encuentra en estado: {cita.get_estado_display()} y ya no puede ser confirmada.')
-
+            estado = 'error'
+            titulo = 'Cita no confirmable'
+            mensaje = (
+                f'Tu cita se encuentra en estado: {cita.get_estado_display()} '
+                'y ya no puede ser confirmada.'
+            )
     except BadSignature:
-        messages.error(request, 'El enlace de confirmación es inválido o está corrupto.')
+        estado = 'error'
+        titulo = 'Enlace inválido'
+        mensaje = 'El enlace de confirmación es inválido o ya expiró.'
 
-    return redirect('mis_citas') if request.user.is_authenticated else redirect('login')
+    color_principal = '#10b981' if estado == 'ok' else '#dc2626'
+    icono = '✓' if estado == 'ok' else '✗'
+
+    frontend = (
+        getattr(settings, 'FRONTEND_URL', '').rstrip('/')
+        or request.build_absolute_uri('/').rstrip('/')
+    )
+    cta_url = f"{frontend}/citas"
+    cta_label = 'Ver mis citas' if estado == 'ok' else 'Ir al inicio'
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>{titulo} — AutoServiPro</title>
+        <style>
+            body {{
+                margin: 0; min-height: 100vh; display: flex;
+                align-items: center; justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background: #f8fafc; color: #0f172a; padding: 16px;
+            }}
+            .card {{
+                background: #fff; max-width: 460px; width: 100%;
+                border-radius: 16px; padding: 40px 32px;
+                box-shadow: 0 10px 40px rgba(15,23,42,0.08);
+                text-align: center; border: 1px solid #e2e8f0;
+            }}
+            .icon {{
+                width: 72px; height: 72px; border-radius: 50%;
+                background: {color_principal}; color: #fff;
+                font-size: 38px; font-weight: 800; line-height: 72px;
+                margin: 0 auto 18px;
+            }}
+            h1 {{ font-size: 22px; margin: 0 0 12px; }}
+            p {{ color: #475569; line-height: 1.55; margin: 0 0 24px; }}
+            a.btn {{
+                display: inline-block; background: #0f766e; color: #fff;
+                text-decoration: none; padding: 11px 22px; border-radius: 9px;
+                font-weight: 600; font-size: 14px;
+            }}
+            a.btn:hover {{ background: #0e6b63; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon">{icono}</div>
+            <h1>{titulo}</h1>
+            <p>{mensaje}</p>
+            <a class="btn" href="{cta_url}">{cta_label}</a>
+        </div>
+    </body>
+    </html>
+    """
+    status_code = 200 if estado == 'ok' else 400
+    return HttpResponse(html, status=status_code)
 
 
 @login_required

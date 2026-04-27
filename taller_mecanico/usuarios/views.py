@@ -15,6 +15,20 @@ from django.conf import settings
 from .forms import UserRegisterForm, UserUpdateForm, PerfilUpdateForm, RolForm, AsignarRolForm
 from .models import Rol, Perfil
 
+def _redirect_spa_login(request, query=''):
+    """
+    Redirige al login del SPA React. Si FRONTEND_URL no está configurado,
+    cae al login de Django como último recurso (no debería pasar en runtime).
+    `query` se concatena al final, ej. '?verificado=true'.
+    """
+    base = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
+    if base:
+        return redirect(f"{base}/login{query}")
+    # Fallback: si no está FRONTEND_URL, intentamos construirla con el host de
+    # la request (útil cuando el SPA está servido detrás del mismo origen).
+    return redirect(f"{request.build_absolute_uri('/').rstrip('/')}/login{query}")
+
+
 def es_admin(user):
     if not user.is_authenticated:
         return False
@@ -75,7 +89,7 @@ def register(request):
                 
                 nombre = form.cleaned_data.get('first_name', '') or form.cleaned_data.get('email', '')
                 messages.success(request, f'¡Casi listo {nombre}! Te hemos enviado un correo electrónico. Por favor revisa tu bandeja de entrada o SPAM para poder iniciar sesión.')
-                return redirect('login')
+                return _redirect_spa_login(request)
                 
             except Exception as e:
                 # Si hay error, eliminar el usuario creado para evitar inconsistencias
@@ -94,15 +108,14 @@ def activar_cuenta(request, uidb64, token):
     except(TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
 
-    from django.conf import settings
     if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
         messages.success(request, '¡Felicidades! Tu cuenta ha sido activada y verificada exitosamente. Ya puedes iniciar sesión.')
-        return redirect(f"{settings.FRONTEND_URL.rstrip('/')}/login?verificado=true")
+        return _redirect_spa_login(request, '?verificado=true')
     else:
         messages.error(request, '⚠️ El enlace de activación es inválido o ya expiró por seguridad. Intenta registrar tu cuenta de nuevo.')
-        return redirect(f"{settings.FRONTEND_URL.rstrip('/')}/login?verificado=error")
+        return _redirect_spa_login(request, '?verificado=error')
 
 def reenviar_activacion(request):
     if request.method == 'POST':
@@ -112,7 +125,7 @@ def reenviar_activacion(request):
                 user = User.objects.get(email=email)
                 if getattr(user, 'is_active', False):
                     messages.info(request, 'Esta cuenta ya se encuentra activa. Puedes iniciar sesión.')
-                    return redirect('login')
+                    return _redirect_spa_login(request)
                 
                 # Re-enviar correo de activación
                 from django.urls import reverse
@@ -138,7 +151,7 @@ def reenviar_activacion(request):
                 )
                 
                 messages.success(request, f'¡Enlace reenviado! Hemos enviado un nuevo correo a {email}. Por favor revisa tu bandeja de entrada o SPAM.')
-                return redirect('login')
+                return _redirect_spa_login(request)
             except User.DoesNotExist:
                 messages.error(request, 'No se encontró ninguna cuenta registrada con este correo electrónico.')
         else:
