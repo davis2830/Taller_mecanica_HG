@@ -150,8 +150,13 @@ class MiPerfilSolicitarCambioEmailView(APIView):
         perfil.email_token_expira = timezone.now() + timedelta(hours=24)
         perfil.save()
 
-        frontend = getattr(settings, 'FRONTEND_URL', '').rstrip('/') or 'http://localhost:5173'
-        link = f"{frontend}/perfil/verificar-email/{perfil.email_token}/"
+        # Construye el link contra el host del backend (mismo origen que está
+        # usando el cliente). Esto evita problemas con FRONTEND_URL mal seteado
+        # o entornos donde el SPA no maneja /perfil/verificar-email/* directo.
+        from django.urls import reverse
+        link = request.build_absolute_uri(
+            reverse('verificar_email', args=[perfil.email_token])
+        )
         try:
             send_mail(
                 subject="Confirma tu nuevo correo — AutoServiPro",

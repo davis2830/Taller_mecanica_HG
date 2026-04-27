@@ -598,3 +598,109 @@ def configuracion_sistema(request):
 
     env_data = parse_env(env_path)
     return render(request, 'usuarios/configuracion_sistema.html', {'env': env_data})
+
+# ===========================================================================
+# Verificación de cambio de correo (vista Django, no React)
+# ===========================================================================
+# El correo de confirmación se envía con un link que apunta a esta vista
+# (no al SPA), porque el SPA puede no estar montado en la misma URL que el
+# backend. Esta vista hace la verificación y renderiza una página HTML
+# autocontenida con un mensaje de éxito o error.
+
+def verificar_email_view(request, token):
+    """
+    Vista pública que confirma un cambio de email cuando el usuario abre
+    el link enviado al email nuevo. No requiere auth.
+    """
+    from django.utils import timezone
+    from django.http import HttpResponse
+    from .models import Perfil
+
+    perfil = Perfil.objects.filter(email_token=token).first() if token else None
+
+    estado = 'ok'
+    titulo = 'Correo confirmado'
+    mensaje = ''
+
+    if not perfil:
+        estado = 'error'
+        titulo = 'Link inválido'
+        mensaje = 'Este link no es válido o ya fue usado.'
+    elif perfil.email_token_expira and perfil.email_token_expira < timezone.now():
+        perfil.email_token = ''
+        perfil.email_pendiente = ''
+        perfil.email_token_expira = None
+        perfil.save()
+        estado = 'error'
+        titulo = 'Link expirado'
+        mensaje = 'El link expiró. Solicita el cambio nuevamente desde tu perfil.'
+    elif not perfil.email_pendiente:
+        estado = 'error'
+        titulo = 'Sin cambio pendiente'
+        mensaje = 'No hay un cambio de correo pendiente para esta cuenta.'
+    elif User.objects.filter(email__iexact=perfil.email_pendiente).exclude(pk=perfil.usuario_id).exists():
+        estado = 'error'
+        titulo = 'Correo en uso'
+        mensaje = 'Ese correo ya está usado por otra cuenta. Solicita el cambio con un correo diferente.'
+    else:
+        nuevo = perfil.email_pendiente
+        u = perfil.usuario
+        u.email = nuevo
+        u.save()
+        perfil.email_pendiente = ''
+        perfil.email_token = ''
+        perfil.email_token_expira = None
+        perfil.save()
+        mensaje = f'Tu correo se actualizó a {nuevo}. Ya puedes iniciar sesión usándolo.'
+
+    color_principal = '#10b981' if estado == 'ok' else '#dc2626'
+    icono = '✓' if estado == 'ok' else '✗'
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>{titulo} — AutoServiPro</title>
+        <style>
+            body {{
+                margin: 0; min-height: 100vh; display: flex;
+                align-items: center; justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background: #f8fafc; color: #0f172a; padding: 16px;
+            }}
+            .card {{
+                background: #fff; max-width: 460px; width: 100%;
+                border-radius: 16px; padding: 40px 32px;
+                box-shadow: 0 10px 40px rgba(15,23,42,0.08);
+                text-align: center; border: 1px solid #e2e8f0;
+            }}
+            .icon {{
+                width: 72px; height: 72px; border-radius: 50%;
+                background: {color_principal}; color: #fff;
+                font-size: 38px; font-weight: 800; line-height: 72px;
+                margin: 0 auto 18px;
+            }}
+            h1 {{ font-size: 22px; margin: 0 0 12px; }}
+            p {{ color: #475569; line-height: 1.55; margin: 0 0 24px; }}
+            a.btn {{
+                display: inline-block; background: #0f766e; color: #fff;
+                text-decoration: none; padding: 11px 22px; border-radius: 9px;
+                font-weight: 600; font-size: 14px;
+            }}
+            a.btn:hover {{ background: #0e6b63; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon">{icono}</div>
+            <h1>{titulo}</h1>
+            <p>{mensaje}</p>
+            <a class="btn" href="/">Ir al inicio</a>
+        </div>
+    </body>
+    </html>
+    """
+    status_code = 200 if estado == 'ok' else 400
+    return HttpResponse(html, status=status_code)
