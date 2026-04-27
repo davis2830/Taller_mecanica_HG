@@ -81,11 +81,14 @@ def _normalizar_e164(telefono: str) -> str:
     Si solo son dígitos, asume el código de país de settings.WHATSAPP_DEFAULT_COUNTRY_CODE
     (default '502' = Guatemala).
     """
-    raw = (telefono or '').strip().replace(' ', '').replace('-', '')
+    raw = (telefono or '').strip()
     if not raw:
         return ''
     if raw.startswith('+'):
-        return raw
+        # Extraer SOLO dígitos del resto — los humanos copian números con
+        # paréntesis, puntos, espacios o guiones ("+(502) 1234-5678").
+        digitos = ''.join(ch for ch in raw[1:] if ch.isdigit())
+        return f"+{digitos}" if digitos else ''
     digitos = ''.join(ch for ch in raw if ch.isdigit())
     if not digitos:
         return ''
@@ -157,7 +160,18 @@ def _send_twilio(evento: str, telefono: str, mensaje: str) -> str:
             body=mensaje,
         )
     except TwilioRestException as exc:
-        # Errores típicos del sandbox: número no opted-in (63007/63016/63018),
+        # Errores 5xx (Twilio caído / problema transitorio del lado del
+        # proveedor) deben re-lanzarse para que el wrapper Celery dispare
+        # retry exponencial. Si los tragáramos aquí el mensaje se perdería
+        # silenciosamente.
+        if exc.status and exc.status >= 500:
+            logger.warning(
+                "[whatsapp:%s] Twilio 5xx transitorio (status=%s code=%s) "
+                "— re-lanzando para retry.",
+                evento, exc.status, exc.code,
+            )
+            raise
+        # Errores permanentes (4xx): número no opted-in (63007/63016/63018),
         # número inválido (21211), credenciales incorrectas (20003).
         # Estos NO se retryan — el problema no se resuelve esperando.
         logger.warning(
