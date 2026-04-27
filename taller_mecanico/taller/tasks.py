@@ -33,7 +33,7 @@ def enviar_aviso_esperando_repuestos_task(self, orden_id):
     try:
         orden = (
             OrdenTrabajo.objects
-            .select_related('vehiculo', 'vehiculo__cliente', 'cita', 'mecanico_asignado')
+            .select_related('vehiculo', 'vehiculo__propietario', 'cita', 'mecanico_asignado')
             .prefetch_related('repuestos__producto')
             .get(id=orden_id)
         )
@@ -83,7 +83,7 @@ def enviar_aviso_esperando_repuestos_task(self, orden_id):
                 } for d in oc.detalles.all()],
             })
 
-    cliente = getattr(orden.vehiculo, 'cliente', None)
+    cliente = getattr(orden.vehiculo, 'propietario', None)
     cliente_nombre = (
         f"{cliente.first_name} {cliente.last_name}".strip()
         if cliente else '—'
