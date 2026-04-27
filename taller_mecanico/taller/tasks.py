@@ -159,7 +159,9 @@ def enviar_aviso_esperando_repuestos_cliente_task(self, orden_id):
     # Despachar WhatsApp en paralelo si está habilitado y hay teléfono.
     # Se hace ANTES de los gates específicos de email (canal_email, .email)
     # para que un cliente con solo número de teléfono igual reciba el aviso.
-    if canal_whatsapp(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
+    # Solo en el primer intento — si el correo falla y la task se reintenta,
+    # NO queremos duplicar el WhatsApp al cliente.
+    if self.request.retries == 0 and canal_whatsapp(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
         perfil = getattr(cliente, 'perfil', None)
         telefono = getattr(perfil, 'telefono', '') or ''
         if telefono:

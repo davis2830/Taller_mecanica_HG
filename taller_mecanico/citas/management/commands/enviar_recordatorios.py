@@ -69,14 +69,21 @@ class Command(BaseCommand):
         sin_email = 0
         canal_apagado = 0
 
-        # Pre-chequeo del canal email para este evento. Si está apagado por
+        # Pre-chequeo de canales para este evento. Si email está apagado por
         # configuración, enviar_email_cita devolverá False sin error — no
         # queremos que eso se contabilice como falla ni que se cree un
         # Notificacion(enviado=False) que bloquee retries futuros.
-        from taller_mecanico.notification_channels import canal_email, EVENTO_CITA_RECORDATORIO
+        from taller_mecanico.notification_channels import (
+            canal_email, canal_whatsapp, EVENTO_CITA_RECORDATORIO,
+        )
         email_canal_activo = canal_email(EVENTO_CITA_RECORDATORIO)
+        wa_canal_activo = canal_whatsapp(EVENTO_CITA_RECORDATORIO)
         if not email_canal_activo:
             logger.info('[recordatorio] canal email deshabilitado por configuración del taller — WhatsApp seguirá disparándose si está activo.')
+
+        def _telefono_de(cita):
+            perfil = getattr(cita.cliente, 'perfil', None)
+            return getattr(perfil, 'telefono', '') or ''
 
         # Procesar cada cita
         for cita in citas_para_recordar:
@@ -98,35 +105,60 @@ class Command(BaseCommand):
                 # despacha WhatsApp internamente para clientes con teléfono
                 # pero sin correo. Solo lo recordamos para el resumen.
                 cliente_sin_email = not cita.cliente.email
+                # Predecir si enviar_email_cita despachará WhatsApp (mismo
+                # check que hace internamente). Lo usamos para crear un
+                # registro de dedup si solo el canal WhatsApp salió.
+                whatsapp_dispatched = wa_canal_activo and bool(_telefono_de(cita))
 
                 if not modo_test:
                     # Enviar el email usando el nuevo sistema elegante
                     from citas.utils import enviar_email_cita
 
                     try:
-                        if enviar_email_cita(cita, 'recordatorio'):
+                        email_ok = enviar_email_cita(cita, 'recordatorio')
+                        if email_ok:
                             # Registrar la notificación
+                            mensaje = f'Recordatorio enviado a {cita.cliente.email}'
+                            if whatsapp_dispatched:
+                                mensaje += ' + WhatsApp'
                             Notificacion.objects.create(
                                 cita=cita,
                                 tipo='RECORDATORIO',
-                                mensaje=f'Recordatorio enviado a {cita.cliente.email}',
+                                mensaje=mensaje,
                                 enviado=True
                             )
 
                             recordatorios_enviados += 1
                             logger.info(f'✓ Recordatorio enviado para la cita #{cita.id} ({cita.cliente.email})')
+                        elif whatsapp_dispatched:
+                            # Email no salió (sin email del cliente, o canal
+                            # apagado), pero WhatsApp SÍ — creamos dedup
+                            # record para que la próxima ejecución del
+                            # comando no vuelva a despachar WhatsApp.
+                            Notificacion.objects.create(
+                                cita=cita,
+                                tipo='RECORDATORIO',
+                                mensaje='Recordatorio enviado por WhatsApp (sin correo)',
+                                enviado=True,
+                            )
+                            recordatorios_enviados += 1
+                            logger.info(
+                                f'✓ Cita #{cita.id}: solo WhatsApp despachado '
+                                f'({"sin email" if cliente_sin_email else "canal email apagado"}).'
+                            )
+                            if cliente_sin_email:
+                                sin_email += 1
+                            elif not email_canal_activo:
+                                canal_apagado += 1
                         elif cliente_sin_email:
-                            # Cliente sin email — WhatsApp se intentó dentro
-                            # de enviar_email_cita si el canal estaba activo.
+                            # Sin email y sin WhatsApp — nada que despachar.
                             sin_email += 1
                             logger.info(
-                                f'⏭ Cita #{cita.id}: cliente {cita.cliente.username} sin email; '
-                                f'WhatsApp se disparó si el canal estaba activo.'
+                                f'⏭ Cita #{cita.id}: cliente {cita.cliente.username} '
+                                f'sin email y sin WhatsApp activo; saltando.'
                             )
                         elif not email_canal_activo:
-                            # No es error: el admin apagó el canal email a propósito.
-                            # WhatsApp se intentó internamente; no creamos
-                            # Notificacion para no bloquear retries futuros.
+                            # Email apagado y WhatsApp tampoco aplicable.
                             canal_apagado += 1
                             logger.info(f'⏭ Cita #{cita.id}: canal email apagado, sin notificación persistida.')
                         else:
