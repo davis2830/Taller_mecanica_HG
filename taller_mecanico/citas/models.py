@@ -56,6 +56,20 @@ class ConfiguracionTaller(models.Model):
         help_text="Si está activo, una misma cita puede tener más de una recepción (por ejemplo, si el vehículo volvió a ingresar)."
     )
 
+    # Marca / branding del taller
+    nombre_empresa = models.CharField(
+        max_length=120,
+        blank=True,
+        default='',
+        help_text="Nombre comercial del taller; se muestra en sidebar, login y facturas. Si está vacío se usa 'AutoServi'."
+    )
+    logo = models.ImageField(
+        upload_to='taller/logos/',
+        blank=True,
+        null=True,
+        help_text="Logo del taller (PNG/JPG). Aparece en sidebar, login y facturas. Idealmente cuadrado o transparente."
+    )
+
     actualizado_el = models.DateTimeField(auto_now=True)
 
     class Meta:

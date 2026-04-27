@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, ConfiguracionTaller
 from .api_serializers import (
     CitaSerializer, CitaCreacionSerializer,
@@ -35,6 +36,8 @@ class EsAdministradorPermission(BasePermission):
 class ConfiguracionTallerView(APIView):
     """GET/PATCH de la config del taller (singleton)."""
     permission_classes = [EsAdministradorPermission]
+    # Aceptamos JSON y multipart porque el campo `logo` es ImageField.
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get(self, request):
         config = ConfiguracionTaller.get()
@@ -47,6 +50,34 @@ class ConfiguracionTallerView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        """DELETE solo el logo (sin tocar el resto de la config)."""
+        config = ConfiguracionTaller.get()
+        if config.logo:
+            config.logo.delete(save=False)
+            config.logo = None
+            config.save()
+        return Response(ConfiguracionTallerSerializer(config).data)
+
+
+class MarcaPublicaView(APIView):
+    """
+    GET /api/v1/marca/   (público, sin auth)
+
+    Devuelve la marca/branding del taller para que el login y otras
+    pantallas no autenticadas puedan mostrar el logo y nombre. No
+    expone datos sensibles de la configuración.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        config = ConfiguracionTaller.get()
+        return Response({
+            'nombre_empresa': config.nombre_empresa or '',
+            'logo_url': config.logo.url if config.logo else None,
+        })
 
 
 class SlotsDisponiblesView(APIView):

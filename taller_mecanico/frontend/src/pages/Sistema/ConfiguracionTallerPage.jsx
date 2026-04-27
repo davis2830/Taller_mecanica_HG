@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
-import { SlidersHorizontal, Save, Loader2, AlertTriangle, Users, Sun, Clock, CalendarDays, ClipboardList } from 'lucide-react';
+import { SlidersHorizontal, Save, Loader2, AlertTriangle, Users, Sun, Clock, CalendarDays, ClipboardList, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { refreshMarca } from '../../context/MarcaContext';
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -23,6 +24,7 @@ export default function ConfiguracionTallerPage() {
     const [form, setForm] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
     const [toast, setToast] = useState(null);
     const [error, setError] = useState(null);
 
@@ -57,13 +59,16 @@ export default function ConfiguracionTallerPage() {
     const save = async () => {
         setSaving(true);
         try {
+            // No mandamos el campo `logo` ni `logo_url` por JSON (logo es write-only via multipart).
+            const { logo, logo_url, ...payload } = form;
             const res = await axios.patch(
                 '/api/v1/sistema/configuracion-taller/',
-                form,
+                payload,
                 { headers },
             );
             setConfig(res.data);
             setForm(res.data);
+            await refreshMarca();
             showToast('Configuración guardada correctamente.', 'success');
         } catch (e) {
             const data = e.response?.data;
@@ -73,6 +78,51 @@ export default function ConfiguracionTallerPage() {
             showToast(msg, 'error');
         }
         setSaving(false);
+    };
+
+    const onLogoFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('El logo no puede pesar más de 2MB.', 'error');
+            return;
+        }
+        setUploadingLogo(true);
+        try {
+            const fd = new FormData();
+            fd.append('logo', file);
+            const res = await axios.patch(
+                '/api/v1/sistema/configuracion-taller/',
+                fd,
+                { headers: { ...headers, 'Content-Type': 'multipart/form-data' } },
+            );
+            setConfig(res.data);
+            setForm(res.data);
+            await refreshMarca();
+            showToast('Logo actualizado correctamente.', 'success');
+        } catch (err) {
+            showToast('No se pudo subir el logo. Intenta con un PNG o JPG.', 'error');
+        }
+        setUploadingLogo(false);
+        e.target.value = ''; // permite re-elegir el mismo archivo
+    };
+
+    const removeLogo = async () => {
+        if (!confirm('¿Quitar el logo del taller?')) return;
+        setUploadingLogo(true);
+        try {
+            const res = await axios.delete(
+                '/api/v1/sistema/configuracion-taller/',
+                { headers },
+            );
+            setConfig(res.data);
+            setForm(res.data);
+            await refreshMarca();
+            showToast('Logo eliminado.', 'success');
+        } catch (err) {
+            showToast('No se pudo eliminar el logo.', 'error');
+        }
+        setUploadingLogo(false);
     };
 
     const bg = isDark ? 'bg-slate-900' : 'bg-slate-50';
@@ -128,6 +178,67 @@ export default function ConfiguracionTallerPage() {
                     {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                     Guardar cambios
                 </button>
+            </div>
+
+            {/* Card: Marca / Branding */}
+            <div className={`rounded-xl border ${cardBg} ${cardBorder} p-5 mb-5`}>
+                <div className="flex items-center gap-2 mb-1">
+                    <ImageIcon size={18} className="text-blue-500" />
+                    <h2 className="font-bold">Marca de la empresa</h2>
+                </div>
+                <p className={`text-xs mb-4 ${sub}`}>
+                    El logo y nombre se muestran en el sidebar, login, facturas y correos.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-5 items-start">
+                    {/* Logo preview + upload */}
+                    <div>
+                        <label className={labelCls}>Logo</label>
+                        <div className={`w-32 h-32 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden ${isDark ? 'border-slate-600 bg-slate-900' : 'border-slate-300 bg-slate-50'}`}>
+                            {config?.logo_url ? (
+                                <img src={config.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
+                            ) : (
+                                <ImageIcon size={36} className={isDark ? 'text-slate-600' : 'text-slate-400'} />
+                            )}
+                        </div>
+                        <div className="mt-2 flex flex-col gap-1.5">
+                            <label className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${isDark ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'} ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                {uploadingLogo ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />}
+                                {config?.logo_url ? 'Cambiar' : 'Subir'}
+                                <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                    onChange={onLogoFileChange}
+                                    disabled={uploadingLogo}
+                                    className="hidden"
+                                />
+                            </label>
+                            {config?.logo_url && (
+                                <button
+                                    type="button"
+                                    onClick={removeLogo}
+                                    disabled={uploadingLogo}
+                                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${isDark ? 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+                                >
+                                    <Trash2 size={14} /> Quitar
+                                </button>
+                            )}
+                        </div>
+                        <p className={`text-[11px] mt-2 ${sub}`}>PNG, JPG, SVG o WebP. Máx. 2MB.</p>
+                    </div>
+                    {/* Nombre */}
+                    <div>
+                        <label className={labelCls}>Nombre comercial</label>
+                        <input
+                            type="text"
+                            className={inputCls}
+                            placeholder="Ej. Taller HG, AutoServi Pro, etc."
+                            value={form.nombre_empresa || ''}
+                            onChange={e => setForm({ ...form, nombre_empresa: e.target.value })}
+                            maxLength={120}
+                        />
+                        <p className={`text-xs mt-1 ${sub}`}>Reemplaza la palabra "AutoServi" en sidebar, login y facturas. Si lo dejas vacío se usa el default.</p>
+                    </div>
+                </div>
             </div>
 
             {/* Card: Capacidad */}

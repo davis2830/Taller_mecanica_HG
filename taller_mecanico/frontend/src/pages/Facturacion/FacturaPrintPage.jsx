@@ -10,6 +10,7 @@ import {
 
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useMarca } from '../../context/MarcaContext';
 import AsignarCreditoModal from '../../components/AsignarCreditoModal';
 import RegistrarPagoModal from '../../components/RegistrarPagoModal';
 
@@ -45,6 +46,7 @@ export default function FacturaPrintPage() {
   const navigate = useNavigate();
   const { authTokens, user } = useContext(AuthContext);
   const { isDark } = useTheme();
+  const { marca } = useMarca();
   const isSuperAdmin = !!user?.is_superuser;
 
   const [factura, setFactura] = useState(null);
@@ -441,17 +443,30 @@ export default function FacturaPrintPage() {
           <div className={`p-6 sm:p-10 ${p.cardBg} factura-surface factura-text ${p.text}`}>
             {/* Header */}
             <div className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b-2 pb-6 mb-8 factura-divider-soft ${p.dividerSoft}`}>
-              <div>
-                <h1 className={`text-3xl sm:text-4xl font-black tracking-tight uppercase factura-text-strong ${p.textStrong}`} style={{ fontFamily: "'Oswald', sans-serif" }}>
-                  {factura.taller?.nombre?.split(' ')[0] || 'AutoServi'}
-                  <span className="text-orange-500 ml-1" style={{ color: '#f97316' }}>
-                    {factura.taller?.nombre?.split(' ').slice(1).join(' ') || 'Pro'}
-                  </span>
-                </h1>
-                <div className={`text-sm mt-2 leading-relaxed factura-text-faint ${p.textFaint}`}>
-                  {factura.taller?.direccion}<br />
-                  Tel: {factura.taller?.telefono}<br />
-                  NIT: {factura.taller?.nit}
+              <div className="flex items-start gap-4">
+                {marca?.logo_url && (
+                  <img
+                    src={marca.logo_url}
+                    alt={marca?.nombre_empresa || 'Logo'}
+                    className="h-20 w-20 object-contain flex-shrink-0"
+                  />
+                )}
+                <div>
+                  <h1 className={`text-3xl sm:text-4xl font-black tracking-tight uppercase factura-text-strong ${p.textStrong}`} style={{ fontFamily: "'Oswald', sans-serif" }}>
+                    {marca?.nombre_empresa
+                      ? marca.nombre_empresa
+                      : (<>
+                          {factura.taller?.nombre?.split(' ')[0] || 'AutoServi'}
+                          <span className="text-orange-500 ml-1" style={{ color: '#f97316' }}>
+                            {factura.taller?.nombre?.split(' ').slice(1).join(' ') || 'Pro'}
+                          </span>
+                        </>)}
+                  </h1>
+                  <div className={`text-sm mt-2 leading-relaxed factura-text-faint ${p.textFaint}`}>
+                    {factura.taller?.direccion}<br />
+                    Tel: {factura.taller?.telefono}<br />
+                    NIT: {factura.taller?.nit}
+                  </div>
                 </div>
               </div>
               <div className="text-left sm:text-right">
@@ -793,7 +808,7 @@ export default function FacturaPrintPage() {
 
             {/* Footer */}
             <div className={`mt-10 pt-5 border-t text-center text-xs factura-divider-soft ${p.dividerSoft} ${p.textFaint} factura-text-faint`}>
-              Gracias por confiar en {factura.taller?.nombre || 'AutoServi Pro'}.{' '}
+              Gracias por confiar en {marca?.nombre_empresa || factura.taller?.nombre || 'AutoServi Pro'}.{' '}
               Esta es una representación impresa de la factura electrónica.
             </div>
           </div>
