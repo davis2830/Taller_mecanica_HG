@@ -1,0 +1,53 @@
+{% extends 'emails/base.html' %}
+{% load humanize %}
+
+{% block subject %}Cotización lista — tu vehículo en {{ marca.nombre_empresa }}{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Cotización{% endblock %}
+{% block banner_color %}#06b6d4{% endblock %}
+{% block banner_title %}Cotización generada{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.85);font-size:13px;margin-top:6px;">Revisa el detalle y autoriza para continuar con la reparación.</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ cita.cliente.first_name|default:cita.cliente.username }}</strong>,
+</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.55;">
+    Finalizamos el diagnóstico de tu vehículo y elaboramos la cotización con los repuestos
+    necesarios para la reparación. A continuación te compartimos el detalle:
+</p>
+
+{% include 'citas/emails/_cita_info.html' %}
+
+{% if repuestos %}
+<h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Detalle de repuestos</h3>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+    <thead>
+        <tr style="background:#f8fafc;color:#475569;text-align:left;">
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Producto</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Cant.</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Subtotal</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in repuestos %}
+        <tr>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">{{ r.producto.nombre }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ r.cantidad }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;">Q {{ r.subtotal|floatformat:2|intcomma }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr style="background:#f8fafc;">
+            <td style="padding:10px;font-weight:600;color:#475569;text-align:right;" colspan="2">Mano de obra</td>
+            <td style="padding:10px;font-weight:600;text-align:right;">Q {{ cita.servicio.precio|floatformat:2|intcomma }}</td>
+        </tr>
+        <tr style="background:#ecfeff;">
+            <td style="padding:10px;font-weight:700;color:#155e75;text-align:right;font-size:14px;" colspan="2">Total estimado</td>
+            <td style="padding:10px;font-weight:700;text-align:right;color:#155e75;font-size:14px;">Q {{ precio_mostrar|floatformat:2|intcomma }}</td>
+        </tr>
+    </tfoot>
+</table>
+{% endif %}
+{% endblock %}

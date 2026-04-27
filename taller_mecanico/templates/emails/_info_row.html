@@ -1,0 +1,14 @@
+{% comment %}
+Fila de un "key/value" con icono. Variables:
+  - icon    : nombre del icono (sin extensión, ej. 'calendar') — opcional
+  - label   : etiqueta a la izquierda (requerido)
+  - value   : valor a la derecha (requerido, puede ser HTML safe)
+{% endcomment %}<tr>
+    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;width:160px;vertical-align:top;">
+        {% if icon %}<span style="color:#64748b;margin-right:6px;">{% include 'emails/icons/'|add:icon|add:'.html' with size=14 color="#64748b" %}</span>{% endif %}
+        {{ label }}
+    </td>
+    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#0f172a;">
+        {{ value|safe }}
+    </td>
+</tr>

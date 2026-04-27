@@ -1,0 +1,50 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Tu vehículo está esperando repuestos{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}En espera{% endblock %}
+{% block banner_color %}#f59e0b{% endblock %}
+{% block banner_title %}Esperando los repuestos de tu vehículo{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.9);font-size:13px;margin-top:6px;">Te avisamos en cuanto lleguen para continuar la reparación.</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ cliente.first_name|default:cliente.username }}</strong>,
+</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.55;">
+    Queremos mantenerte al tanto: tu vehículo en {{ marca.nombre_empresa }} pasó al estado
+    <strong>“Esperando repuestos”</strong>. Esto significa que ya hicimos el pedido de las piezas
+    necesarias y estamos a la espera de que lleguen para continuar con la reparación.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
+    {% include 'emails/_info_row.html' with icon="truck" label="Vehículo" value=orden.vehiculo.marca|add:" "|add:orden.vehiculo.modelo|add:" — "|add:orden.vehiculo.placa %}
+    {% include 'emails/_info_row.html' with icon="clipboard" label="Orden de trabajo" value="#"|add:orden.id|stringformat:"s" %}
+</table>
+
+{% if items %}
+<h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Piezas que estamos esperando</h3>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+    <thead>
+        <tr style="background:#f8fafc;color:#475569;text-align:left;">
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Pieza</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Cantidad</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for it in items %}
+        <tr>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">{{ it.producto }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ it.cantidad }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px 16px;margin-top:18px;font-size:13px;color:#9a3412;line-height:1.55;">
+    <strong>¿Qué sigue?</strong><br>
+    En cuanto el material esté disponible, retomaremos el trabajo y te avisaremos cuando tu
+    vehículo esté listo para recoger. Si tienes dudas, puedes contactarnos directamente.
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Resumen diario de alertas de inventario{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Resumen diario{% endblock %}
+{% block banner_color %}#0f172a{% endblock %}
+{% block banner_title %}Resumen diario de alertas{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.9);font-size:13px;margin-top:6px;">{{ fecha_humana }}</div>{% endblock %}
+
+{% block content %}
+<div style="display:flex;gap:12px;margin-bottom:16px;">
+    <div style="flex:1;padding:14px 16px;background:#fee2e2;border-radius:8px;text-align:center;">
+        <div style="font-size:24px;font-weight:700;color:#991b1b;">{{ total }}</div>
+        <div style="color:#7f1d1d;font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Total alertas</div>
+    </div>
+</div>
+
+{% if alertas_por_tipo %}
+<h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Desglose por tipo</h3>
+<ul style="margin:6px 0 0 18px;padding:0;font-size:13px;color:#334155;line-height:1.6;">
+    {% for tipo, cantidad in alertas_por_tipo.items %}
+        <li><strong>{{ tipo }}:</strong> {{ cantidad }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Detalle de alertas activas</h3>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;">
+    <thead>
+        <tr style="background:#f8fafc;color:#475569;">
+            <th align="left" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Código</th>
+            <th align="left" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Producto</th>
+            <th align="center" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Prioridad</th>
+            <th align="center" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Stock</th>
+            <th align="left" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Tipo</th>
+            <th align="left" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Fecha</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for alerta in alertas_activas %}
+        <tr>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">{{ alerta.producto.codigo }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">{{ alerta.producto.nombre }}</td>
+            <td align="center" style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">
+                <span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;
+                    {% if alerta.prioridad == 'CRITICA' %}background:#fee2e2;color:#991b1b;
+                    {% elif alerta.prioridad == 'ALTA' %}background:#ffedd5;color:#9a3412;
+                    {% elif alerta.prioridad == 'MEDIA' %}background:#fef3c7;color:#92400e;
+                    {% else %}background:#dcfce7;color:#166534;{% endif %}">
+                    {{ alerta.get_prioridad_display }}
+                </span>
+            </td>
+            <td align="center" style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-weight:600;">{{ alerta.producto.stock_actual }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">{{ alerta.get_tipo_display }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;">{{ alerta.fecha_creacion|date:"d/m H:i" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px 16px;margin-top:18px;font-size:13px;color:#065f46;">
+    <strong>Recomendaciones</strong>
+    <ul style="margin:8px 0 0 18px;padding:0;line-height:1.6;">
+        <li>Resolver las alertas críticas primero.</li>
+        <li>Contactar a los proveedores de productos agotados.</li>
+        <li>Realizar inventario físico de los productos en alerta.</li>
+        <li>Ajustar niveles de stock mínimo si es necesario.</li>
+    </ul>
+</div>
+{% endblock %}

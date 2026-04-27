@@ -1,27 +1,35 @@
-{% autoescape off %}<!DOCTYPE html><html><head>    <meta charset="utf-8">    <title>Verificación de Cuenta</title></head><body style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 30px;">
-<div style="max-width: 550px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">        <!-- Header -->    
-<div style="background-color: #22c55e; color: #ffffff; text-align: center; padding: 25px 20px;">        <h1 style="margin: 0; font-size: 22px; font-weight: 600;">✔️ Verificación de Cuenta</h1>        
-<p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Taller Mecánico Profesional</p>    </div>
-    <!-- Body -->    
-<div style="padding: 30px 35px;">        
-<p style="font-size: 15px; color: #334155; margin-top: 0;">Hola <strong>{{ user.first_name|default:"Cliente" }}</strong>,</p>                
-<p style="font-size: 15px; color: #475569; line-height: 1.6;">            Gracias por registrarte en <strong>AutoServi Pro</strong>. Queda un último paso importante para asegurar la privacidad de tu cuenta y proteger tus vehículos registrados.        </p>        <!-- Accent Card -->        
-<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 30px 20px; margin: 30px 0; text-align: center;">            
-<p style="margin: 0 0 20px; font-size: 15px; color: #334155; font-weight: 500;">Haz clic en el siguiente botón para confirmar tu correo electrónico:</p>            <a href="{{ base_url }}{% url 'activar_cuenta' uidb64=uid token=token %}"                style="display: inline-block; background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 14px 28px; font-size: 15px; font-weight: bold; border-radius: 30px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">                Verificar Mi Cuenta            </a>            
-<p style="margin: 20px 0 0; font-size: 12px; color: #94a3b8;">Si el botón no funciona, ingresa este enlace en tu navegador:<br>            <a href="{{ base_url }}{% url 'activar_cuenta' uidb64=uid token=token %}" style="color: #64748b;">{{ base_url }}{% url 'activar_cuenta' uidb64=uid token=token %}</a></p>        </div>
-        
-<div style="background-color: #dcfce7; border-radius: 6px; padding: 18px 25px; margin-bottom: 30px;">            
-<p style="margin: 0; font-size: 14px; color: #166534; font-weight: bold; margin-bottom: 8px;">ℹ️ Información Importante</p>            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #166534; line-height: 1.6;">                <li>Este enlace de activación es único y de un solo uso por seguridad.</li>                <li>Nunca te pediremos tu contraseña a través del correo electrónico.</li>                <li>Si tú no creaste esta cuenta, simplemente ignora este correo.</li>            </ul>        </div>
-        <!-- Help -->        
-<div style="text-align: center; margin-top: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">            
-<p style="font-size: 14px; font-weight: 600; color: #334155; margin: 0 0 8px;">¿Necesitas ayuda?</p>            
-<p style="font-size: 13px; color: #64748b; margin: 0;">Contáctanos al 📞 +502 1234-5678</p>            
-<p style="font-size: 13px; color: #64748b; margin: 5px 0 0;">o escribe a ✉️ info@tallermecanico.gt</p>        </div>
-    </div>
-    <!-- Footer -->    
-<div style="background-color: #1e293b; color: #94a3b8; text-align: center; padding: 25px; font-size: 12px;">        
-<p style="margin: 0; font-weight: 600; color: #e2e8f0;">🔧 Taller Mecánico Profesional</p>        
-<p style="margin: 6px 0 0;">Tu taller de confianza - servicio de calidad garantizado</p>        
-<p style="margin: 15px 0 0; font-size: 10px; opacity: 0.6;">Email generado automáticamente. Por favor no responder.</p>    </div>
+{% extends 'emails/base.html' %}
+
+{% block subject %}Activa tu cuenta en {{ marca.nombre_empresa }}{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Activación de cuenta{% endblock %}
+{% block banner_color %}#16a34a{% endblock %}
+{% block banner_title %}Confirma tu correo para activar tu cuenta{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.85);font-size:13px;margin-top:6px;">Bienvenido a {{ marca.nombre_empresa }}.</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ user.first_name|default:"Cliente" }}</strong>,
+</p>
+<p style="margin:0 0 14px;font-size:14px;line-height:1.55;">
+    Gracias por registrarte en <strong>{{ marca.nombre_empresa }}</strong>. Queda un último paso
+    para asegurar la privacidad de tu cuenta y proteger tus vehículos registrados:
+    confirma este correo electrónico haciendo clic en el botón.
+</p>
+
+{% include 'emails/_button.html' with url=base_url|add:activar_url label="Activar mi cuenta" color="#16a34a" %}
+
+<p style="margin:8px 0 0;font-size:12px;color:#64748b;text-align:center;">
+    Si el botón no funciona, copia este enlace en tu navegador:<br>
+    <a href="{{ base_url }}{{ activar_url }}" style="color:#0ea5e9;word-break:break-all;">{{ base_url }}{{ activar_url }}</a>
+</p>
+
+<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px 16px;margin-top:18px;font-size:13px;color:#065f46;">
+    <strong>Información importante</strong>
+    <ul style="margin:8px 0 0 18px;padding:0;line-height:1.6;">
+        <li>El enlace es único y de un solo uso por seguridad.</li>
+        <li>Nunca pediremos tu contraseña por correo.</li>
+        <li>Si no creaste esta cuenta, puedes ignorar este mensaje.</li>
+    </ul>
 </div>
-</body></html>{% endautoescape %}
+{% endblock %}

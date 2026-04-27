@@ -1,0 +1,15 @@
+{% comment %}
+Botón CTA reutilizable. Variables:
+  - url    : destino (requerido)
+  - label  : texto del botón (requerido)
+  - color  : background hex (default #0ea5e9)
+{% endcomment %}<table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px auto;">
+    <tr>
+        <td align="center" style="border-radius:8px;background:{{ color|default:'#0ea5e9' }};">
+            <a href="{{ url }}"
+               style="display:inline-block;padding:12px 26px;color:#ffffff;font-weight:600;font-size:14px;text-decoration:none;border-radius:8px;">
+                {{ label }}
+            </a>
+        </td>
+    </tr>
+</table>

@@ -1,0 +1,44 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}{{ urgencia }}: {{ alerta.get_tipo_display }} — {{ alerta.producto.nombre }}{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Alerta de inventario{% endblock %}
+{% block banner_color %}{{ color }}{% endblock %}
+{% block banner_title %}{{ alerta.get_tipo_display }} — {{ alerta.producto.nombre }}{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.9);font-size:13px;margin-top:6px;">Prioridad {{ alerta.get_prioridad_display }}</div>{% endblock %}
+
+{% block content %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:8px;padding:0 18px;margin-bottom:14px;">
+    {% include 'emails/_info_row.html' with icon="package" label="Producto" value=alerta.producto.codigo|add:" — "|add:alerta.producto.nombre %}
+    <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;width:160px;vertical-align:top;">
+            <span style="color:#64748b;margin-right:6px;">{% include 'emails/icons/alert-triangle.html' with size=14 color="#64748b" %}</span>
+            Stock actual
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
+            <span style="display:inline-block;padding:3px 10px;border-radius:99px;background:{{ color }};color:#fff;font-weight:700;font-size:13px;">
+                {{ alerta.producto.stock_actual }}
+            </span>
+        </td>
+    </tr>
+    {% include 'emails/_info_row.html' with icon="info" label="Stock mínimo" value=alerta.producto.stock_minimo %}
+    {% include 'emails/_info_row.html' with icon="clipboard" label="Categoría" value=alerta.producto.categoria.nombre|default:"Sin categoría" %}
+    {% if alerta.producto.proveedor_principal %}
+        {% include 'emails/_info_row.html' with icon="truck" label="Proveedor" value=alerta.producto.proveedor_principal.nombre %}
+    {% endif %}
+</table>
+
+<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;color:#78350f;">
+    <strong>Mensaje:</strong> {{ alerta.mensaje }}
+</div>
+
+<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px 16px;margin-top:14px;font-size:13px;color:#065f46;">
+    <strong>Acciones recomendadas</strong>
+    <ul style="margin:8px 0 0 18px;padding:0;line-height:1.6;">
+        <li>Revisar el inventario físico.</li>
+        <li>Contactar al proveedor para reposición.</li>
+        <li>Considerar compras de emergencia si es crítico.</li>
+        <li>Actualizar el stock mínimo si la demanda cambió.</li>
+    </ul>
+</div>
+{% endblock %}

@@ -1,142 +1,92 @@
-{% load humanize %}<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>OT #{{ orden.id }} en espera de repuestos</title>
-</head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
+{% extends 'emails/base.html' %}
+{% load humanize %}
+
+{% block subject %}OT #{{ orden.id }} en espera de repuestos{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Aviso interno{% endblock %}
+{% block banner_color %}#f59e0b{% endblock %}
+{% block banner_title %}OT #{{ orden.id }} — Esperando repuestos{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.9);font-size:13px;margin-top:6px;">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} — {{ orden.vehiculo.placa }}</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;line-height:1.55;">
+    La orden de trabajo <strong>#{{ orden.id }}</strong> pasó al estado
+    <strong style="color:#92400e;">Esperando Repuestos</strong>.
+    A continuación el detalle del vehículo y las piezas pendientes.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;">
+    {% include 'emails/_info_row.html' with icon="user" label="Cliente" value=cliente_nombre %}
+    {% include 'emails/_info_row.html' with icon="truck" label="Vehículo" value=orden.vehiculo.marca|add:" "|add:orden.vehiculo.modelo|add:" — "|add:orden.vehiculo.placa %}
+    {% if orden.mecanico_asignado %}
+        {% include 'emails/_info_row.html' with icon="wrench" label="Mecánico" value=orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username %}
+    {% endif %}
+    {% if orden.cita %}
+        {% include 'emails/_info_row.html' with icon="calendar" label="Cita" value="#"|add:orden.cita.id|stringformat:"s"|add:" — "|add:orden.cita.fecha|stringformat:"s" %}
+    {% endif %}
+</table>
+
+<h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Repuestos requeridos</h3>
+{% if items %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+    <thead>
+        <tr style="background:#f8fafc;color:#475569;text-align:left;">
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Producto</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Cant.</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Precio</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Subtotal</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for it in items %}
         <tr>
-            <td align="center">
-                <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
-                    <tr>
-                        <td style="background:#f59e0b;padding:18px 28px;color:#fff;">
-                            <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.85;">Aviso de taller</div>
-                            <div style="font-size:20px;font-weight:bold;margin-top:4px;">OT #{{ orden.id }} — Esperando repuestos</div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:24px 28px 8px;">
-                            <p style="margin:0 0 12px;font-size:14px;line-height:1.5;">
-                                La orden de trabajo <strong>#{{ orden.id }}</strong> pasó al estado
-                                <strong style="color:#92400e;">Esperando Repuestos</strong>.
-                                A continuación el detalle del vehículo y las piezas pendientes.
-                            </p>
-
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:13px;">
-                                <tr>
-                                    <td style="padding:6px 0;color:#64748b;width:130px;">Vehículo</td>
-                                    <td style="padding:6px 0;font-weight:bold;">
-                                        {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} — {{ orden.vehiculo.placa }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:6px 0;color:#64748b;">Cliente</td>
-                                    <td style="padding:6px 0;">{{ cliente_nombre }}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:6px 0;color:#64748b;">Mecánico</td>
-                                    <td style="padding:6px 0;">
-                                        {% if orden.mecanico_asignado %}{{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}{% else %}—{% endif %}
-                                    </td>
-                                </tr>
-                                {% if orden.cita %}
-                                <tr>
-                                    <td style="padding:6px 0;color:#64748b;">Cita</td>
-                                    <td style="padding:6px 0;">#{{ orden.cita.id }} — {{ orden.cita.fecha }}</td>
-                                </tr>
-                                {% endif %}
-                            </table>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:8px 28px 0;">
-                            <h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Repuestos requeridos</h3>
-                            {% if items %}
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
-                                <thead>
-                                    <tr style="background:#f8fafc;color:#475569;text-align:left;">
-                                        <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Producto</th>
-                                        <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Cant.</th>
-                                        <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Precio</th>
-                                        <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;">Subtotal</th>
-                                        <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for it in items %}
-                                    <tr>
-                                        <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">
-                                            {{ it.producto }}{% if it.sku %} <span style="color:#94a3b8;">({{ it.sku }})</span>{% endif %}
-                                        </td>
-                                        <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ it.cantidad }}</td>
-                                        <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">Q {{ it.precio_unitario|floatformat:2|intcomma }}</td>
-                                        <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:bold;">Q {{ it.subtotal|floatformat:2|intcomma }}</td>
-                                        <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">
-                                            {% if it.en_transito %}
-                                            <span style="display:inline-block;padding:2px 8px;border-radius:99px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:bold;">En tránsito</span>
-                                            {% else %}
-                                            <span style="display:inline-block;padding:2px 8px;border-radius:99px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:bold;">Pendiente</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            {% else %}
-                            <p style="margin:8px 0;color:#64748b;font-size:13px;font-style:italic;">
-                                Aún no se asignaron repuestos a esta orden de trabajo.
-                            </p>
-                            {% endif %}
-                        </td>
-                    </tr>
-
-                    {% if ordenes_compra %}
-                    <tr>
-                        <td style="padding:8px 28px 0;">
-                            <h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Órdenes de compra asociadas</h3>
-                            {% for oc in ordenes_compra %}
-                            <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                                    <strong style="font-size:14px;">{{ oc.numero }}</strong>
-                                    <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e0e7ff;color:#3730a3;font-weight:bold;">{{ oc.estado }}</span>
-                                </div>
-                                <div style="font-size:12px;color:#64748b;">
-                                    Proveedor: <strong style="color:#0f172a;">{{ oc.proveedor }}</strong>
-                                    {% if oc.fecha_esperada %} · Esperada: {{ oc.fecha_esperada }}{% endif %}
-                                    {% if oc.total %} · Total: <strong>Q {{ oc.total|floatformat:2|intcomma }}</strong>{% endif %}
-                                </div>
-                                <ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:#334155;">
-                                    {% for d in oc.detalles %}
-                                    <li>{{ d.cantidad_recibida }}/{{ d.cantidad_solicitada }} — {{ d.producto }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            {% endfor %}
-                        </td>
-                    </tr>
-                    {% endif %}
-
-                    {% if detalle_url %}
-                    <tr>
-                        <td style="padding:18px 28px 28px;text-align:center;">
-                            <a href="{{ detalle_url }}" style="display:inline-block;background:#0ea5e9;color:#fff;padding:10px 22px;border-radius:8px;font-weight:bold;text-decoration:none;font-size:13px;">
-                                Ver orden en el taller
-                            </a>
-                        </td>
-                    </tr>
-                    {% endif %}
-
-                    <tr>
-                        <td style="padding:14px 28px;background:#f8fafc;color:#94a3b8;font-size:11px;text-align:center;border-top:1px solid #e2e8f0;">
-                            Mensaje automático del sistema de taller · {{ fecha|date:"d/m/Y H:i" }}
-                        </td>
-                    </tr>
-                </table>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">
+                {{ it.producto }}{% if it.sku %} <span style="color:#94a3b8;">({{ it.sku }})</span>{% endif %}
+            </td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ it.cantidad }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">Q {{ it.precio_unitario|floatformat:2|intcomma }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;">Q {{ it.subtotal|floatformat:2|intcomma }}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;">
+                {% if it.en_transito %}
+                <span style="display:inline-block;padding:2px 8px;border-radius:99px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;">En tránsito</span>
+                {% else %}
+                <span style="display:inline-block;padding:2px 8px;border-radius:99px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;">Pendiente</span>
+                {% endif %}
             </td>
         </tr>
-    </table>
-</body>
-</html>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="margin:8px 0;color:#64748b;font-size:13px;font-style:italic;">
+    Aún no se asignaron repuestos a esta orden de trabajo.
+</p>
+{% endif %}
+
+{% if ordenes_compra %}
+<h3 style="margin:18px 0 8px;font-size:14px;color:#0f172a;">Órdenes de compra asociadas</h3>
+{% for oc in ordenes_compra %}
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;">
+    <div style="margin-bottom:6px;">
+        <strong style="font-size:14px;">{{ oc.numero }}</strong>
+        <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e0e7ff;color:#3730a3;font-weight:600;margin-left:6px;">{{ oc.estado }}</span>
+    </div>
+    <div style="font-size:12px;color:#64748b;">
+        Proveedor: <strong style="color:#0f172a;">{{ oc.proveedor }}</strong>
+        {% if oc.fecha_esperada %} · Esperada: {{ oc.fecha_esperada }}{% endif %}
+        {% if oc.total %} · Total: <strong>Q {{ oc.total|floatformat:2|intcomma }}</strong>{% endif %}
+    </div>
+    <ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:#334155;">
+        {% for d in oc.detalles %}
+        <li>{{ d.cantidad_recibida }}/{{ d.cantidad_solicitada }} — {{ d.producto }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if detalle_url %}
+{% include 'emails/_button.html' with url=detalle_url label="Ver orden en el taller" color="#0ea5e9" %}
+{% endif %}
+{% endblock %}

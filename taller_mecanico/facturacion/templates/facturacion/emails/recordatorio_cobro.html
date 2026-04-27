@@ -1,0 +1,37 @@
+{% extends 'emails/base.html' %}
+{% load humanize %}
+
+{% block subject %}{{ asunto }}{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Cuentas por cobrar{% endblock %}
+{% block banner_color %}{{ color }}{% endblock %}
+{% block banner_title %}{{ encabezado }}{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.85);font-size:13px;margin-top:6px;">Estado de cuenta — {{ empresa.razon_social }}</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 14px;font-size:14px;line-height:1.55;">
+    Estimados <strong>{{ empresa.razon_social }}</strong>, les compartimos el detalle del saldo
+    pendiente correspondiente a la siguiente factura:
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:8px;padding:0 18px;">
+    {% include 'emails/_info_row.html' with icon="file-text" label="Factura" value=factura.numero_factura|default:factura.id %}
+    {% include 'emails/_info_row.html' with icon="dollar-sign" label="Total" value="Q "|add:factura.total_general|stringformat:"s" %}
+    {% include 'emails/_info_row.html' with icon="check-circle" label="Pagado" value="Q "|add:factura.total_pagado|stringformat:"s" %}
+    <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;width:160px;vertical-align:top;">
+            <span style="color:#64748b;margin-right:6px;">{% include 'emails/icons/alert-triangle.html' with size=14 color="#64748b" %}</span>
+            Saldo pendiente
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:14px;color:{{ color }};font-weight:700;">
+            Q {{ saldo|floatformat:2|intcomma }}
+        </td>
+    </tr>
+    {% include 'emails/_info_row.html' with icon="calendar" label="Vencimiento" value=fecha_venc %}
+</table>
+
+<p style="margin:18px 0 0;font-size:13px;color:#475569;line-height:1.55;">
+    Les recordamos amablemente la cancelación del saldo pendiente. Si ya realizaron el pago,
+    pueden ignorar este mensaje.
+</p>
+{% endblock %}

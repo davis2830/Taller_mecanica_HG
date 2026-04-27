@@ -1,0 +1,24 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Tu vehículo está en revisión{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}En revisión{% endblock %}
+{% block banner_color %}#8b5cf6{% endblock %}
+{% block banner_title %}Tu vehículo está en revisión{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ cita.cliente.first_name|default:cita.cliente.username }}</strong>,
+</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.55;">
+    Nuestro equipo de mecánicos comenzó la revisión de tu vehículo en {{ marca.nombre_empresa }}.
+    Te avisaremos si se requieren refacciones adicionales o cuando esté listo para entrega.
+</p>
+
+{% include 'citas/emails/_cita_info.html' %}
+
+<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:12px 14px;margin-top:16px;font-size:13px;color:#6b21a8;">
+    Mientras tanto puedes consultar el avance de tu cita en nuestra plataforma. Cualquier duda
+    estamos a tu disposición.
+</div>
+{% endblock %}
