@@ -49,10 +49,15 @@ def obtener_usuarios_notificacion():
         return []
 
 def enviar_alerta_email(alerta):
-    """Enviar email de alerta de inventario usando template HTML."""
-    if not canal_email(EVENTO_INVENTARIO_ALERTA_STOCK):
-        logger.info("[inventario:alerta_stock] canal email deshabilitado por config; saltando.")
-        return False
+    """Enviar alerta de inventario.
+
+    Crea SIEMPRE las notificaciones in-app (campanita web) — son un canal
+    independiente del correo. Solo el envío por correo respeta el toggle
+    `CanalNotificacion.email_activo` para el evento de stock.
+
+    Retorna True si se procesó la alerta correctamente (in-app o email);
+    False si hubo error o no había destinatarios.
+    """
     try:
         usuarios_destinatarios = obtener_usuarios_notificacion()
 
@@ -71,8 +76,26 @@ def enviar_alerta_email(alerta):
         color, urgencia = tipo_meta.get(alerta.tipo, ('#0ea5e9', 'Información'))
 
         asunto = f"{urgencia}: {alerta.get_tipo_display()} - {alerta.producto.nombre}"
-        emoji = ''  # mantenido por compatibilidad con notificaciones internas más abajo
-        
+
+        # ── In-app notifications (campanita) — siempre se crean ───────────
+        # No dependen del canal email; permiten que el admin se entere en la
+        # UI aunque el correo esté apagado.
+        from usuarios.models import Notificacion
+        for usuario in usuarios_destinatarios:
+            Notificacion.objects.create(
+                usuario=usuario,
+                titulo=f"{urgencia}: {alerta.producto.nombre}",
+                mensaje=f"Stock Actual: {alerta.producto.stock_actual} | Mínimo: {alerta.producto.stock_minimo}",
+                tipo='WARNING' if alerta.tipo in ['STOCK_BAJO'] else 'CRITICAL',
+                enlace=f"/inventario/productos/?q={alerta.producto.codigo}"
+            )
+
+        # ── Correo ────────────────────────────────────────────────────────
+        # Si el canal está apagado, salimos aquí — la in-app ya quedó creada.
+        if not canal_email(EVENTO_INVENTARIO_ALERTA_STOCK):
+            logger.info("[inventario:alerta_stock] canal email deshabilitado por config; in-app creada, saltando correo.")
+            return True
+
         contexto = get_email_context({
             'alerta': alerta,
             'urgencia': urgencia,
@@ -84,21 +107,10 @@ def enviar_alerta_email(alerta):
             logger.exception(f"Error renderizando alerta_stock template: {exc}")
             return False
         mensaje_texto = strip_tags(mensaje_html)
-        
-        # Guardar notificaciones web para todos los destinatarios antes de enviar el correo
-        from usuarios.models import Notificacion
-        for usuario in usuarios_destinatarios:
-            Notificacion.objects.create(
-                usuario=usuario,
-                titulo=f"{urgencia}: {alerta.producto.nombre}",
-                mensaje=f"Stock Actual: {alerta.producto.stock_actual} | Mínimo: {alerta.producto.stock_minimo}",
-                tipo='WARNING' if alerta.tipo in ['STOCK_BAJO'] else 'CRITICAL',
-                enlace=f"/inventario/productos/?q={alerta.producto.codigo}"
-            )
-            
+
         # Crear y enviar email asincrónicamente para no bloquear la aplicación
         import threading
-        
+
         def send_email_async():
             try:
                 email = EmailMultiAlternatives(
@@ -117,9 +129,9 @@ def enviar_alerta_email(alerta):
         thread = threading.Thread(target=send_email_async)
         thread.daemon = True
         thread.start()
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"Error al procesar alerta/email: {e}")
         return False

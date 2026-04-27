@@ -118,6 +118,17 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
     precio_mostrar = _calcular_precio_mostrar(cita)
     nombre_servicio = cita.servicio.nombre
 
+    # Pre-calcular URLs que entran tanto en el correo como en el WhatsApp
+    # para que el mensaje de WhatsApp NO se enqueue con el link vacío.
+    enlace_confirmar = ''
+    if tipo_email == 'confirmacion' and cita.estado == 'PENDIENTE':
+        base_url = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
+        if base_url:
+            token = Signer().sign(str(cita.id))
+            enlace_confirmar = f"{base_url}/citas/confirmar-email/{token}/"
+    # url_encuesta no se rellena hasta que exista el módulo de encuestas.
+    url_encuesta = ''
+
     # ── WhatsApp ────────────────────────────────────────────────
     # Se dispara en paralelo al correo; no bloquea ni cambia el resultado.
     if evento and canal_whatsapp(evento):
@@ -132,8 +143,8 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
                 'estado': cita.get_estado_display() if hasattr(cita, 'get_estado_display') else cita.estado,
                 'vehiculo': f"{cita.vehiculo.marca} {cita.vehiculo.modelo} ({cita.vehiculo.placa})",
                 'total': f"{precio_mostrar:.2f}",
-                'enlace_confirmar': '',  # se rellena más abajo si aplica
-                'url_encuesta': '',
+                'enlace_confirmar': enlace_confirmar,
+                'url_encuesta': url_encuesta,
             }
             try:
                 enviar_whatsapp_task.delay(evento, telefono, params)
@@ -162,11 +173,7 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
     if tipo_email == 'confirmacion':
         if cita.estado == 'PENDIENTE':
             template = 'citas/emails/cita_pendiente_confirmar.html'
-            base_url = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
-            token = Signer().sign(str(cita.id))
-            ctx['enlace_confirmar'] = (
-                f"{base_url}/citas/confirmar-email/{token}/" if base_url else ''
-            )
+            ctx['enlace_confirmar'] = enlace_confirmar
             asunto = f"Confirma tu cita — {nombre_servicio}"
         else:
             template = 'citas/emails/cita_confirmada.html'
