@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Draggable } from '@hello-pangea/dnd';
-import { Clock, Wrench, CheckCircle, User, Package, Truck } from 'lucide-react';
+import { Clock, Wrench, CheckCircle, User, Package, Truck, FileText } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import FlowTrail from './FlowTrail';
@@ -9,6 +9,7 @@ import FlowTrail from './FlowTrail';
 const STATE_CONFIG = {
   EN_ESPERA:           { bar: '#94a3b8', label: 'En Espera',     icon: <Clock size={11} />,       darkBadge: '#1e293b', darkText: '#94a3b8',   lightBadge: '#f1f5f9', lightText: '#475569'  },
   EN_REVISION:         { bar: '#3b82f6', label: 'En Revisión',   icon: <Wrench size={11} />,      darkBadge: '#172554', darkText: '#93c5fd',   lightBadge: '#dbeafe', lightText: '#1d4ed8'  },
+  COTIZACION:          { bar: '#06b6d4', label: 'Cotización',    icon: <FileText size={11} />,    darkBadge: '#083344', darkText: '#67e8f9',   lightBadge: '#cffafe', lightText: '#155e75'  },
   ESPERANDO_REPUESTOS: { bar: '#f59e0b', label: 'Esp. Repuesto', icon: <Package size={11} />,     darkBadge: '#431407', darkText: '#fcd34d',   lightBadge: '#fef3c7', lightText: '#92400e'  },
   LISTO:               { bar: '#10b981', label: 'Listo',          icon: <CheckCircle size={11} />, darkBadge: '#022c22', darkText: '#6ee7b7',   lightBadge: '#d1fae5', lightText: '#065f46'  },
   ENTREGADO:           { bar: '#a855f7', label: 'Entregado',      icon: <Truck size={11} />,       darkBadge: '#2e1065', darkText: '#d8b4fe',   lightBadge: '#ede9fe', lightText: '#6d28d9'  },
