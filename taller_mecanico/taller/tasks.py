@@ -150,13 +150,15 @@ def enviar_aviso_esperando_repuestos_cliente_task(self, orden_id):
         return f"OT {orden_id} no existe."
 
     cliente = getattr(orden.vehiculo, 'propietario', None)
-    if not cliente or not cliente.email:
+    if not cliente:
         logger.info(
-            f"[esperando_repuestos:cliente] OT {orden_id} sin email de cliente; saltando."
+            f"[esperando_repuestos:cliente] OT {orden_id} sin propietario; saltando."
         )
-        return "Cliente sin email."
+        return "Sin cliente."
 
     # Despachar WhatsApp en paralelo si está habilitado y hay teléfono.
+    # Se hace ANTES de los gates específicos de email (canal_email, .email)
+    # para que un cliente con solo número de teléfono igual reciba el aviso.
     if canal_whatsapp(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
         perfil = getattr(cliente, 'perfil', None)
         telefono = getattr(perfil, 'telefono', '') or ''
@@ -178,6 +180,12 @@ def enviar_aviso_esperando_repuestos_cliente_task(self, orden_id):
             f"[esperando_repuestos:cliente] OT {orden_id}: canal email deshabilitado por config; saltando."
         )
         return "Canal email deshabilitado."
+
+    if not cliente.email:
+        logger.info(
+            f"[esperando_repuestos:cliente] OT {orden_id} sin email de cliente; saltando correo."
+        )
+        return "Cliente sin email."
 
     contexto = get_email_context({
         'orden': orden,

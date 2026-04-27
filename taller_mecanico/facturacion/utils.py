@@ -108,14 +108,17 @@ def enviar_email_recordatorio_cobro(factura, dias_diferencia=0):
       - 0       : vence hoy
       - positivo: vencida
     """
-    if not factura.empresa or not factura.empresa.email_cobro:
+    # Guards de negocio: aplican a TODOS los canales.
+    if not factura.empresa:
         return False
     if factura.condicion_pago != 'CREDITO':
         return False
     if factura.pago_estado in ('PAGADA', 'NO_APLICA'):
         return False
 
-    # Despacho WhatsApp paralelo (mock por ahora)
+    # Despacho WhatsApp paralelo (mock por ahora). Se hace ANTES del check
+    # de email_cobro para que una empresa con solo teléfono y sin email
+    # de cobro registrado pueda recibir el recordatorio por WhatsApp.
     if canal_whatsapp(EVENTO_RECORDATORIO_COBRO):
         telefono = getattr(factura.empresa, 'telefono', '') or ''
         if telefono:
@@ -134,6 +137,10 @@ def enviar_email_recordatorio_cobro(factura, dias_diferencia=0):
 
     if not canal_email(EVENTO_RECORDATORIO_COBRO):
         logger.info(f"[facturacion:recordatorio] canal email deshabilitado por config; saltando.")
+        return False
+
+    # Guard específico de email — después del WhatsApp porque solo afecta correo.
+    if not factura.empresa.email_cobro:
         return False
 
     empresa = factura.empresa
