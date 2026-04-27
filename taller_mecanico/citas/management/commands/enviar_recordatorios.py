@@ -67,14 +67,26 @@ class Command(BaseCommand):
         errores = 0
         ya_enviados = 0
         sin_email = 0
-        
+        canal_apagado = 0
+
+        # Pre-chequeo del canal email para este evento. Si está apagado por
+        # configuración, enviar_email_cita devolverá False sin error — no
+        # queremos que eso se contabilice como falla ni que se cree un
+        # Notificacion(enviado=False) que bloquee retries futuros.
+        from taller_mecanico.notification_channels import canal_email, EVENTO_CITA_RECORDATORIO
+        email_canal_activo = canal_email(EVENTO_CITA_RECORDATORIO)
+        if not email_canal_activo:
+            logger.info('[recordatorio] canal email deshabilitado por configuración del taller — WhatsApp seguirá disparándose si está activo.')
+
         # Procesar cada cita
         for cita in citas_para_recordar:
             try:
-                # Verificar si ya se envió un recordatorio para esta cita
+                # Dedup: solo bloqueamos si YA se envió con éxito (enviado=True).
+                # Así los reintentos manuales tras re-activar el canal funcionan.
                 recordatorio_existente = Notificacion.objects.filter(
                     cita=cita,
-                    tipo='RECORDATORIO'
+                    tipo='RECORDATORIO',
+                    enviado=True,
                 ).exists()
                 
                 if recordatorio_existente:
@@ -104,6 +116,12 @@ class Command(BaseCommand):
                             
                             recordatorios_enviados += 1
                             logger.info(f'✓ Recordatorio enviado para la cita #{cita.id} ({cita.cliente.email})')
+                        elif not email_canal_activo:
+                            # No es error: el admin apagó el canal email a propósito.
+                            # WhatsApp se intentó internamente; no creamos
+                            # Notificacion para no bloquear retries futuros.
+                            canal_apagado += 1
+                            logger.info(f'⏭ Cita #{cita.id}: canal email apagado, sin notificación persistida.')
                         else:
                             raise Exception("No se pudo enviar el email")
                             
@@ -133,6 +151,8 @@ class Command(BaseCommand):
         logger.info(f'✓ Recordatorios enviados: {recordatorios_enviados}')
         logger.info(f'📧 Ya enviados anteriormente: {ya_enviados}')
         logger.info(f'❌ Sin email: {sin_email}')
+        if canal_apagado > 0:
+            logger.info(f'⏭ Saltadas por canal email apagado: {canal_apagado}')
         if errores > 0:
             logger.error(f'✗ Errores: {errores}')
         logger.info('='*50)
