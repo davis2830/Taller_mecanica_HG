@@ -22,6 +22,7 @@ export default function MiPerfilPage() {
     const [toast, setToast] = useState(null);
     const [pwForm, setPwForm] = useState({ password_actual: '', password_nueva: '', password_nueva_confirm: '' });
     const [emailForm, setEmailForm] = useState({ email_nuevo: '', password_actual: '' });
+    const [avatarBroken, setAvatarBroken] = useState(false);
 
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
@@ -42,6 +43,8 @@ export default function MiPerfilPage() {
     }, []);
 
     useEffect(() => { fetchPerfil(); }, [fetchPerfil]);
+    // Resetea el flag de avatar roto cuando cambia el URL (ej. después de subir foto nueva).
+    useEffect(() => { setAvatarBroken(false); }, [form?.avatar_url]);
 
     const guardarDatos = async () => {
         setSaving(true);
@@ -150,7 +153,13 @@ export default function MiPerfilPage() {
             : (isDark ? 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400')
     }`;
 
-    const initials = (form.first_name || form.username || '?').slice(0, 1).toUpperCase();
+    const initials = (() => {
+        const fn = (form.first_name || '').trim();
+        const ln = (form.last_name || '').trim();
+        if (fn || ln) return ((fn[0] || '') + (ln[0] || '')).toUpperCase();
+        return (form.username || '?').slice(0, 2).toUpperCase();
+    })();
+    const showAvatarImg = !!form.avatar_url && !avatarBroken;
 
     return (
         <div className={`max-w-5xl mx-auto p-6 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
@@ -178,14 +187,15 @@ export default function MiPerfilPage() {
             {/* Header card with avatar */}
             <div className={`rounded-xl border ${cardCls} p-6 mb-6 flex flex-col sm:flex-row items-center gap-5`}>
                 <div className="relative">
-                    {form.avatar_url ? (
+                    {showAvatarImg ? (
                         <img
                             src={form.avatar_url}
-                            alt="Avatar"
+                            alt=""
                             className="w-24 h-24 rounded-full object-cover border-2 border-teal-500"
+                            onError={() => setAvatarBroken(true)}
                         />
                     ) : (
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-3xl font-bold">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-3xl font-bold border-2 border-teal-400 shadow-md">
                             {initials}
                         </div>
                     )}
