@@ -157,35 +157,16 @@ class MiPerfilSolicitarCambioEmailView(APIView):
         link = request.build_absolute_uri(
             reverse('verificar_email', args=[perfil.email_token])
         )
-        try:
-            send_mail(
-                subject="Confirma tu nuevo correo — AutoServiPro",
-                message=(
-                    f"Hola {request.user.first_name or request.user.username},\n\n"
-                    f"Recibimos una solicitud para cambiar el correo de tu cuenta a {email_nuevo}.\n"
-                    f"Para confirmar el cambio, abre el siguiente link:\n\n{link}\n\n"
-                    f"El link expira en 24 horas. Si tú no solicitaste este cambio, "
-                    f"ignora este correo y cambia tu contraseña."
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email_nuevo],
-                fail_silently=True,
-            )
-            if request.user.email:
-                send_mail(
-                    subject="Solicitud de cambio de correo — AutoServiPro",
-                    message=(
-                        f"Hola {request.user.first_name or request.user.username},\n\n"
-                        f"Se está intentando cambiar tu correo a {email_nuevo}.\n"
-                        f"Si NO fuiste tú, cambia tu contraseña inmediatamente y avisa al "
-                        f"administrador del taller."
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[request.user.email],
-                    fail_silently=True,
-                )
-        except Exception:
-            pass
+        # Encolamos los correos en Celery para que el request no bloquee y
+        # haya reintentos automáticos si el SMTP falla temporalmente.
+        from .tasks import (
+            enviar_email_verificacion_cambio_correo_task,
+            enviar_aviso_cambio_correo_task,
+        )
+        nombre = request.user.first_name or request.user.username
+        enviar_email_verificacion_cambio_correo_task.delay(email_nuevo, nombre, link)
+        if request.user.email:
+            enviar_aviso_cambio_correo_task.delay(request.user.email, nombre, email_nuevo)
 
         return Response({
             'detail': f'Te enviamos un correo de verificación a {email_nuevo}. Tu correo actual no cambió hasta que confirmes.',

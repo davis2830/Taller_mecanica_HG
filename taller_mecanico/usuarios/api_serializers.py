@@ -93,9 +93,9 @@ class PerfilSerializer(serializers.ModelSerializer):
     def get_avatar_url(self, obj):
         if not obj.avatar:
             return None
-        request = self.context.get('request')
-        url = obj.avatar.url
-        return request.build_absolute_uri(url) if request else url
+        # Devolvemos siempre URL relativa para que el navegador la resuelva
+        # contra el origen de la página (compatible con SPA + proxy /media/).
+        return obj.avatar.url
 
 class UserSerializer(serializers.ModelSerializer):
     perfil = PerfilSerializer(read_only=True)
@@ -150,9 +150,9 @@ class MiPerfilSerializer(serializers.ModelSerializer):
             return None
         if not avatar:
             return None
-        request = self.context.get('request')
-        url = avatar.url
-        return request.build_absolute_uri(url) if request else url
+        # Devolvemos siempre URL relativa para que el navegador la resuelva
+        # contra el origen de la página (compatible con SPA + proxy /media/).
+        return avatar.url
 
     def update(self, instance, validated_data):
         perfil_data = validated_data.pop('perfil', {})
