@@ -286,6 +286,71 @@ class Notificacion(models.Model):
     def __str__(self):
         return f"{self.get_tipo_display()} - Cita {self.cita.id}"
 
+
+class CanalNotificacion(models.Model):
+    """
+    Configuración por evento del taller: ¿se manda por correo? ¿por WhatsApp?
+
+    Cada fila representa un tipo de notificación que el sistema puede emitir
+    (ej. 'cita_recordatorio'). El taller controla qué canales están activos
+    para cada evento. Si NO existe fila para un evento, el default es
+    correo=True / whatsapp=False (manteniendo compatibilidad con el comportamiento
+    anterior a este PR).
+
+    El cliente NO puede sobreescribir estas preferencias — control 100% del taller.
+    """
+    evento = models.SlugField(
+        max_length=64, unique=True,
+        help_text="Identificador interno del evento (ej. 'cita_recordatorio')."
+    )
+    label = models.CharField(
+        max_length=120,
+        help_text="Nombre humano del evento, mostrado en el panel de configuración."
+    )
+    descripcion = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text="Descripción opcional para el panel."
+    )
+    grupo = models.CharField(
+        max_length=32, default='General',
+        help_text="Agrupa eventos en la UI (ej. 'Citas', 'Facturación', 'Inventario')."
+    )
+    email_activo = models.BooleanField(
+        default=True,
+        help_text="Si está activo, el evento dispara correo a destinatarios."
+    )
+    whatsapp_activo = models.BooleanField(
+        default=False,
+        help_text="Si está activo, el evento dispara mensaje WhatsApp (Twilio)."
+    )
+    orden = models.PositiveIntegerField(
+        default=0,
+        help_text="Orden de aparición en el panel."
+    )
+    actualizado_el = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Canal de notificación"
+        verbose_name_plural = "Canales de notificación"
+        ordering = ['grupo', 'orden', 'label']
+
+    def __str__(self):
+        return f"{self.label} ({self.evento})"
+
+    @classmethod
+    def get_config(cls, evento):
+        """Devuelve (email_activo, whatsapp_activo) para un evento.
+
+        Si no hay fila — significa que la migración inicial aún no creó el
+        registro o que el evento es nuevo: default → email=True, whatsapp=False.
+        """
+        try:
+            row = cls.objects.only('email_activo', 'whatsapp_activo').get(evento=evento)
+            return bool(row.email_activo), bool(row.whatsapp_activo)
+        except cls.DoesNotExist:
+            return True, False
+
+
 # =======================================================================
 # HOJA DE RECEPCIÓN (CHECK-IN) E HISTORIAL CLÍNICO
 # =======================================================================

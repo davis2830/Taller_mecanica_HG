@@ -26,8 +26,40 @@ import datetime
 import logging
 
 from taller_mecanico.email_helpers import get_email_context
+from taller_mecanico.notification_channels import (
+    canal_email, canal_whatsapp,
+    EVENTO_CITA_PENDIENTE_CONFIRMAR, EVENTO_CITA_CONFIRMADA,
+    EVENTO_CITA_RECORDATORIO, EVENTO_CITA_CAMBIO_ESTADO,
+    EVENTO_CITA_EN_REVISION, EVENTO_CITA_COTIZACION,
+    EVENTO_CITA_LISTO, EVENTO_CITA_ENCUESTA,
+)
+from taller_mecanico.whatsapp import enviar_whatsapp_task
 
 logger = logging.getLogger(__name__)
+
+
+# Mapa tipo_email (legacy) -> evento canónico de CanalNotificacion.
+def _evento_para_tipo(tipo_email, cita):
+    if tipo_email == 'confirmacion':
+        return (
+            EVENTO_CITA_PENDIENTE_CONFIRMAR
+            if cita.estado == 'PENDIENTE'
+            else EVENTO_CITA_CONFIRMADA
+        )
+    return {
+        'recordatorio': EVENTO_CITA_RECORDATORIO,
+        'cambio_estado': EVENTO_CITA_CAMBIO_ESTADO,
+        'en_revision': EVENTO_CITA_EN_REVISION,
+        'cotizacion': EVENTO_CITA_COTIZACION,
+        'listo': EVENTO_CITA_LISTO,
+        'encuesta': EVENTO_CITA_ENCUESTA,
+    }.get(tipo_email)
+
+
+def _telefono_cliente(cita):
+    """Extrae el teléfono del cliente desde Perfil si está disponible."""
+    perfil = getattr(cita.cliente, 'perfil', None)
+    return getattr(perfil, 'telefono', '') or ''
 
 _DIAS = {0: 'Lunes', 1: 'Martes', 2: 'Miércoles', 3: 'Jueves',
          4: 'Viernes', 5: 'Sábado', 6: 'Domingo'}
@@ -69,19 +101,55 @@ def _calcular_precio_mostrar(cita):
 
 def enviar_email_cita(cita, tipo_email, destinatario_email=None):
     """
-    Envía un correo HTML al cliente para un evento de cita.
-    Retorna True si se envió, False si no había email o falló el envío.
-    """
-    destinatario = destinatario_email or cita.cliente.email
-    if not destinatario:
-        return False
+    Envía notificaciones al cliente para un evento de cita.
 
+    Despacha tanto el correo (si está habilitado en CanalNotificacion para
+    el evento) como el mensaje de WhatsApp (mock en este PR; Twilio en PR F).
+
+    Retorna True si se envió por correo, False si no había email, el canal
+    está deshabilitado o falló el envío. WhatsApp se dispara aparte como
+    Celery task y no afecta el valor de retorno.
+    """
+    evento = _evento_para_tipo(tipo_email, cita)
     cuando = (
         f"{formato_fecha_es(cita.fecha)} a las "
         f"{cita.hora_inicio.strftime('%H:%M')}"
     )
     precio_mostrar = _calcular_precio_mostrar(cita)
     nombre_servicio = cita.servicio.nombre
+
+    # ── WhatsApp ────────────────────────────────────────────────
+    # Se dispara en paralelo al correo; no bloquea ni cambia el resultado.
+    if evento and canal_whatsapp(evento):
+        telefono = _telefono_cliente(cita)
+        if telefono:
+            params = {
+                'cliente_nombre': cita.cliente.first_name or cita.cliente.username,
+                'marca': (get_email_context().get('marca') or {}).get('nombre_empresa') or 'el taller',
+                'servicio': nombre_servicio,
+                'cuando': cuando,
+                'cita_id': cita.id,
+                'estado': cita.get_estado_display() if hasattr(cita, 'get_estado_display') else cita.estado,
+                'vehiculo': f"{cita.vehiculo.marca} {cita.vehiculo.modelo} ({cita.vehiculo.placa})",
+                'total': f"{precio_mostrar:.2f}",
+                'enlace_confirmar': '',  # se rellena más abajo si aplica
+                'url_encuesta': '',
+            }
+            try:
+                enviar_whatsapp_task.delay(evento, telefono, params)
+            except Exception as exc:
+                # Si el broker no responde, no rompemos el correo.
+                logger.warning(f"[whatsapp:{evento}] no se pudo encolar: {exc}")
+
+    # ── Correo ──────────────────────────────────────────────────
+    # Si el canal está deshabilitado para este evento, salimos sin enviar.
+    if evento and not canal_email(evento):
+        logger.info(f"[email:{evento}] canal deshabilitado por configuración del taller; saltando.")
+        return False
+
+    destinatario = destinatario_email or cita.cliente.email
+    if not destinatario:
+        return False
 
     # Contexto base + datos comunes a todas las plantillas.
     ctx = get_email_context({

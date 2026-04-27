@@ -6,6 +6,10 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from usuarios.models import Perfil
 from taller_mecanico.email_helpers import get_email_context
+from taller_mecanico.notification_channels import (
+    canal_email,
+    EVENTO_INVENTARIO_ALERTA_STOCK, EVENTO_INVENTARIO_RESUMEN_DIARIO,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,9 @@ def obtener_usuarios_notificacion():
 
 def enviar_alerta_email(alerta):
     """Enviar email de alerta de inventario usando template HTML."""
+    if not canal_email(EVENTO_INVENTARIO_ALERTA_STOCK):
+        logger.info("[inventario:alerta_stock] canal email deshabilitado por config; saltando.")
+        return False
     try:
         usuarios_destinatarios = obtener_usuarios_notificacion()
 
@@ -155,7 +162,11 @@ def enviar_resumen_alertas_diario():
     """Enviar resumen diario de alertas activas"""
     from .models import AlertaInventario
     from django.utils import timezone
-    
+
+    if not canal_email(EVENTO_INVENTARIO_RESUMEN_DIARIO):
+        logger.info("[inventario:resumen_diario] canal email deshabilitado por config; saltando.")
+        return False
+
     try:
         alertas_activas = AlertaInventario.objects.filter(activa=True).order_by('-prioridad', '-fecha_creacion')
         

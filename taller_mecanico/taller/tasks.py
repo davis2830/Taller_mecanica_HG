@@ -11,6 +11,12 @@ from django.utils import timezone
 import logging
 
 from taller_mecanico.email_helpers import get_email_context
+from taller_mecanico.notification_channels import (
+    canal_email, canal_whatsapp,
+    EVENTO_OT_ESPERANDO_REPUESTOS_TALLER,
+    EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE,
+)
+from taller_mecanico.whatsapp import enviar_whatsapp_task
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +82,12 @@ def enviar_aviso_esperando_repuestos_task(self, orden_id):
     except Exception:
         logger.warning(f"[esperando_repuestos:taller] OT {orden_id} no existe; abortando aviso.")
         return f"OT {orden_id} no existe."
+
+    if not canal_email(EVENTO_OT_ESPERANDO_REPUESTOS_TALLER):
+        logger.info(
+            f"[esperando_repuestos:taller] OT {orden_id}: canal email deshabilitado por config; saltando."
+        )
+        return "Canal email deshabilitado."
 
     usuarios = obtener_usuarios_notificacion()
     emails = [u.email for u in usuarios if u.email]
@@ -143,6 +155,29 @@ def enviar_aviso_esperando_repuestos_cliente_task(self, orden_id):
             f"[esperando_repuestos:cliente] OT {orden_id} sin email de cliente; saltando."
         )
         return "Cliente sin email."
+
+    # Despachar WhatsApp en paralelo si está habilitado y hay teléfono.
+    if canal_whatsapp(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
+        perfil = getattr(cliente, 'perfil', None)
+        telefono = getattr(perfil, 'telefono', '') or ''
+        if telefono:
+            params = {
+                'cliente_nombre': cliente.first_name or cliente.username,
+                'marca': (get_email_context().get('marca') or {}).get('nombre_empresa') or 'el taller',
+                'vehiculo': f"{orden.vehiculo.marca} {orden.vehiculo.modelo} ({orden.vehiculo.placa})",
+            }
+            try:
+                enviar_whatsapp_task.delay(
+                    EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE, telefono, params,
+                )
+            except Exception as exc:
+                logger.warning(f"[whatsapp:esperando_repuestos] no se pudo encolar: {exc}")
+
+    if not canal_email(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
+        logger.info(
+            f"[esperando_repuestos:cliente] OT {orden_id}: canal email deshabilitado por config; saltando."
+        )
+        return "Canal email deshabilitado."
 
     contexto = get_email_context({
         'orden': orden,

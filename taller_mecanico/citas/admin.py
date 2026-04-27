@@ -1,6 +1,6 @@
 # citas/admin.py
 from django.contrib import admin
-from .models import Vehiculo, Cita, TipoServicio, Notificacion, ConfiguracionTaller
+from .models import Vehiculo, Cita, TipoServicio, Notificacion, ConfiguracionTaller, CanalNotificacion
 
 class VehiculoAdmin(admin.ModelAdmin):
     list_display = ('marca', 'modelo', 'año', 'placa', 'propietario')
@@ -31,6 +31,14 @@ class ConfiguracionTallerAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(CanalNotificacion)
+class CanalNotificacionAdmin(admin.ModelAdmin):
+    list_display = ('label', 'evento', 'grupo', 'email_activo', 'whatsapp_activo', 'actualizado_el')
+    list_filter = ('grupo', 'email_activo', 'whatsapp_activo')
+    search_fields = ('evento', 'label')
+    list_editable = ('email_activo', 'whatsapp_activo')
 
 
 admin.site.register(Vehiculo, VehiculoAdmin)
