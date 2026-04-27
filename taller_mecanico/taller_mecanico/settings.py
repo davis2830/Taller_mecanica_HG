@@ -149,6 +149,20 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=15, cast=int)
 
 # =====================================================================
+# WHATSAPP (Twilio) — Configurado desde el archivo .env
+# =====================================================================
+# Backend de envío:
+#   - 'mock'   → solo loguea, no envía nada (default — útil en dev / CI)
+#   - 'twilio' → envía vía Twilio REST API (requiere las 3 variables de abajo)
+WHATSAPP_BACKEND = config('WHATSAPP_BACKEND', default='mock')
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
+# Número WhatsApp en formato E.164 (ej. '+14155238886' para sandbox compartido).
+TWILIO_WHATSAPP_FROM = config('TWILIO_WHATSAPP_FROM', default='')
+# Código de país por defecto para teléfonos guardados sin '+' ni código.
+WHATSAPP_DEFAULT_COUNTRY_CODE = config('WHATSAPP_DEFAULT_COUNTRY_CODE', default='502')
+
+# =====================================================================
 # CELERY — Configuración
 # =====================================================================
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
