@@ -11,14 +11,23 @@ from django.core.management import call_command
 logger = logging.getLogger(__name__)
 
 
-def recordatorios_citas_job():
+def recordatorios_citas_job_async():
     """
-    Llama al management command `enviar_recordatorios` que envía un correo
-    a los clientes con cita CONFIRMADA o PENDIENTE para el día siguiente.
-    Idempotente: el command revisa el modelo `Notificacion` para no
-    reenviar si ya se mandó.
+    Cron path: encola el envío en Celery (`.delay()`) para no bloquear el
+    scheduler. Si el worker Celery no está corriendo, el mensaje se queda
+    en RabbitMQ hasta que se levante.
     """
-    logger.info("[Citas] Disparando recordatorios de citas para mañana...")
+    from .tasks import enviar_recordatorios_citas_task
+    logger.info("[Citas] Encolando recordatorios de citas (Celery)...")
+    enviar_recordatorios_citas_task.delay()
+
+
+def recordatorios_citas_job_sync():
+    """
+    Run-now path: ejecuta el command síncrono para devolver feedback
+    inmediato al toast de la UI.
+    """
+    logger.info("[Citas] Ejecutando recordatorios de citas (síncrono)...")
     call_command('enviar_recordatorios')
 
 
@@ -35,6 +44,8 @@ def iniciar():
     from usuarios.models import TareaProgramada
 
     register_callback(
-        TareaProgramada.TAREA_CITAS_RECORDATORIOS, recordatorios_citas_job,
+        TareaProgramada.TAREA_CITAS_RECORDATORIOS,
+        recordatorios_citas_job_async,
+        sync_callback=recordatorios_citas_job_sync,
     )
     schedule_when_ready(TareaProgramada.TAREA_CITAS_RECORDATORIOS)

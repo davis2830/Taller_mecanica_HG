@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 _scheduler = None
 _started = False
 _pending_tarea_ids = set()
-_callbacks = {}  # tarea_id -> wrapped callable
+_callbacks = {}            # tarea_id -> wrapped callable (cron path, puede ser async/.delay)
+_run_now_callbacks = {}    # tarea_id -> wrapped callable síncrono (botón "Ejecutar ahora")
 _lock = threading.RLock()
 _init_thread = None
 
@@ -70,9 +71,17 @@ def _wrap_callback(tarea_id, raw_callback):
     return wrapped
 
 
-def register_callback(tarea_id, callback):
-    """Registra el callable que se invocará cuando dispare el job."""
+def register_callback(tarea_id, callback, sync_callback=None):
+    """
+    Registra el callable que se invocará cuando dispare el job (cron).
+    Opcionalmente, `sync_callback` registra otra versión que se llama desde
+    el botón "Ejecutar ahora" de la UI — útil cuando la versión cron despacha
+    la tarea a Celery con `.delay()` y queremos que el run-now ejecute
+    síncrono para devolver feedback al toast inmediatamente.
+    """
     _callbacks[tarea_id] = _wrap_callback(tarea_id, callback)
+    if sync_callback is not None:
+        _run_now_callbacks[tarea_id] = _wrap_callback(tarea_id, sync_callback)
 
 
 def apply_db_config(tarea_id):
@@ -184,9 +193,10 @@ def _do_start():
 def run_now(tarea_id):
     """
     Dispara el callback ahora mismo (síncrono). Usado por el botón
-    "Ejecutar ahora" desde la UI.
+    "Ejecutar ahora" desde la UI. Si hay un `sync_callback` registrado,
+    se prefiere sobre el cron-callback (que puede ir a Celery con .delay()).
     """
-    callback = _callbacks.get(tarea_id)
+    callback = _run_now_callbacks.get(tarea_id) or _callbacks.get(tarea_id)
     if not callback:
         raise ValueError(f"Tarea '{tarea_id}' no tiene callback registrado.")
     callback()

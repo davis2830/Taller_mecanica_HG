@@ -10,21 +10,47 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def recordatorios_cobro_job():
-    """
-    Marca facturas vencidas y envía recordatorios de cobro respetando el toggle
-    `ConfiguracionFacturacion.recordatorios_cobro_auto`.
-    """
-    from .models import ConfiguracionFacturacion
+def _get_tasks():
     from .tasks import (
         actualizar_facturas_vencidas_task,
         enviar_recordatorios_cobro_task,
     )
+    return actualizar_facturas_vencidas_task, enviar_recordatorios_cobro_task
 
+
+def recordatorios_cobro_job_async():
+    """
+    Cron path: encola las tareas en Celery (`.delay()`) en lugar de
+    ejecutarlas síncrono. Si el worker no corre, los mensajes se quedan
+    en RabbitMQ hasta que se levante.
+    """
+    from .models import ConfiguracionFacturacion
+    actualizar_vencidas, enviar_recordatorios = _get_tasks()
     config = ConfiguracionFacturacion.get()
-    # Siempre marcamos vencidas (es seguro y no genera tráfico saliente).
+
+    actualizar_vencidas.delay()
+    logger.info("[CxC] Marcado de vencidas encolado en Celery.")
+
+    if not config.recordatorios_cobro_auto:
+        logger.info("[CxC] Recordatorios automáticos deshabilitados; se omite el envío.")
+        return
+
+    enviar_recordatorios.delay()
+    logger.info("[CxC] Recordatorios encolados en Celery.")
+
+
+def recordatorios_cobro_job_sync():
+    """
+    Run-now path: ejecuta síncrono usando `.apply()` para devolver
+    feedback inmediato al toast de la UI (al usuario que apretó
+    "Ejecutar ahora").
+    """
+    from .models import ConfiguracionFacturacion
+    actualizar_vencidas, enviar_recordatorios = _get_tasks()
+    config = ConfiguracionFacturacion.get()
+
     try:
-        r1 = actualizar_facturas_vencidas_task.apply()
+        r1 = actualizar_vencidas.apply()
         logger.info("[CxC] Marcado de vencidas: %s", r1.result)
     except Exception as e:
         logger.exception("[CxC] Falló actualizar_facturas_vencidas: %s", e)
@@ -34,7 +60,7 @@ def recordatorios_cobro_job():
         return
 
     try:
-        r2 = enviar_recordatorios_cobro_task.apply()
+        r2 = enviar_recordatorios.apply()
         logger.info("[CxC] Recordatorios enviados: %s", r2.result)
     except Exception as e:
         logger.exception("[CxC] Falló enviar_recordatorios_cobro: %s", e)
@@ -50,6 +76,8 @@ def iniciar():
     from usuarios.models import TareaProgramada
 
     register_callback(
-        TareaProgramada.TAREA_CXC_RECORDATORIOS, recordatorios_cobro_job,
+        TareaProgramada.TAREA_CXC_RECORDATORIOS,
+        recordatorios_cobro_job_async,
+        sync_callback=recordatorios_cobro_job_sync,
     )
     schedule_when_ready(TareaProgramada.TAREA_CXC_RECORDATORIOS)
