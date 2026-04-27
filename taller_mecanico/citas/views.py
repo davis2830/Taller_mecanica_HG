@@ -331,26 +331,122 @@ def nueva_cita(request, fecha, categoria):
 
 
 def confirmar_cita_email(request, token):
+    """
+    Endpoint público al que llega el cliente desde el correo de confirmación.
+    Renderiza una página HTML autocontenida con el resultado y un botón que
+    lleva al SPA React (FRONTEND_URL/citas) — NO redirige a vistas Django
+    legacy.
+    """
     from django.core.signing import Signer, BadSignature
+    from django.conf import settings
+    from django.http import HttpResponse
+    from django.utils.html import escape
     signer = Signer()
+
+    estado = 'ok'
+    titulo = 'Cita confirmada'
+    mensaje = ''
 
     try:
         cita_id = signer.unsign(token)
-        cita = get_object_or_404(Cita, id=cita_id)
-
-        if cita.estado == 'PENDIENTE':
-            cita.estado = 'CONFIRMADA'
-            cita.save()
-            messages.success(request, f'¡Excelente! Tu cita para {cita.servicio.nombre} ha sido confirmada.')
-        elif cita.estado == 'CONFIRMADA':
-            messages.info(request, 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!')
-        else:
-            messages.warning(request, f'Tu cita se encuentra en estado: {cita.get_estado_display()} y ya no puede ser confirmada.')
-
     except BadSignature:
-        messages.error(request, 'El enlace de confirmación es inválido o está corrupto.')
+        cita_id = None
 
-    return redirect('mis_citas') if request.user.is_authenticated else redirect('login')
+    cita = Cita.objects.filter(id=cita_id).first() if cita_id else None
+
+    if cita is None:
+        # Token corrupto o cita eliminada después de enviar el correo. En
+        # ambos casos queremos mostrar la página HTML autocontenida — NO la
+        # 404 default de Django.
+        estado = 'error'
+        titulo = 'Enlace inválido'
+        mensaje = 'El enlace de confirmación es inválido o ya expiró.'
+    elif cita.estado == 'PENDIENTE':
+        cita.estado = 'CONFIRMADA'
+        cita.save()
+        titulo = '¡Cita confirmada!'
+        mensaje = f'Tu cita para {cita.servicio.nombre} quedó confirmada. Te esperamos.'
+    elif cita.estado == 'CONFIRMADA':
+        titulo = 'Cita ya confirmada'
+        mensaje = 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!'
+    else:
+        estado = 'error'
+        titulo = 'Cita no confirmable'
+        mensaje = (
+            f'Tu cita se encuentra en estado: {cita.get_estado_display()} '
+            'y ya no puede ser confirmada.'
+        )
+
+    color_principal = '#10b981' if estado == 'ok' else '#dc2626'
+    icono = '✓' if estado == 'ok' else '✗'
+
+    frontend = (
+        getattr(settings, 'FRONTEND_URL', '').rstrip('/')
+        or request.build_absolute_uri('/').rstrip('/')
+    )
+    # En estado 'ok' llevamos al usuario a su listado de citas.
+    # En error, al inicio del SPA — el label "Ir al inicio" debe ir a "/".
+    cta_url = f"{frontend}/citas" if estado == 'ok' else (frontend or '/')
+    cta_label = 'Ver mis citas' if estado == 'ok' else 'Ir al inicio'
+
+    # Escapar TODO valor que se interpole en el HTML. `titulo` y `mensaje`
+    # contienen valores DB-source (cita.servicio.nombre, get_estado_display)
+    # editables por staff — sin escape sería un stored XSS. `cta_url` viene
+    # de FRONTEND_URL (settings) pero lo escapamos también por defensa en
+    # profundidad. `color_principal` e `icono` son literales hardcoded.
+    titulo_esc = escape(titulo)
+    mensaje_esc = escape(mensaje)
+    cta_url_esc = escape(cta_url)
+    cta_label_esc = escape(cta_label)
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>{titulo_esc} — AutoServiPro</title>
+        <style>
+            body {{
+                margin: 0; min-height: 100vh; display: flex;
+                align-items: center; justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background: #f8fafc; color: #0f172a; padding: 16px;
+            }}
+            .card {{
+                background: #fff; max-width: 460px; width: 100%;
+                border-radius: 16px; padding: 40px 32px;
+                box-shadow: 0 10px 40px rgba(15,23,42,0.08);
+                text-align: center; border: 1px solid #e2e8f0;
+            }}
+            .icon {{
+                width: 72px; height: 72px; border-radius: 50%;
+                background: {color_principal}; color: #fff;
+                font-size: 38px; font-weight: 800; line-height: 72px;
+                margin: 0 auto 18px;
+            }}
+            h1 {{ font-size: 22px; margin: 0 0 12px; }}
+            p {{ color: #475569; line-height: 1.55; margin: 0 0 24px; }}
+            a.btn {{
+                display: inline-block; background: #0f766e; color: #fff;
+                text-decoration: none; padding: 11px 22px; border-radius: 9px;
+                font-weight: 600; font-size: 14px;
+            }}
+            a.btn:hover {{ background: #0e6b63; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon">{icono}</div>
+            <h1>{titulo_esc}</h1>
+            <p>{mensaje_esc}</p>
+            <a class="btn" href="{cta_url_esc}">{cta_label_esc}</a>
+        </div>
+    </body>
+    </html>
+    """
+    status_code = 200 if estado == 'ok' else 400
+    return HttpResponse(html, status=status_code)
 
 
 @login_required
