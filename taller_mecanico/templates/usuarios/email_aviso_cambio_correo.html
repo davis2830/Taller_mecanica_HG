@@ -1,0 +1,29 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Solicitud de cambio de correo{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Seguridad de la cuenta{% endblock %}
+{% block banner_color %}#dc2626{% endblock %}
+{% block banner_title %}Solicitud de cambio de correo{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.85);font-size:13px;margin-top:6px;">Te avisamos para proteger tu cuenta.</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ nombre }}</strong>,
+</p>
+<p style="margin:0 0 14px;font-size:14px;line-height:1.55;">
+    Se está intentando cambiar el correo de tu cuenta a
+    <strong>{{ email_nuevo }}</strong>.
+</p>
+
+<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px 16px;font-size:13px;color:#991b1b;">
+    <strong>¿No fuiste tú?</strong> Cambia tu contraseña inmediatamente y avisa al
+    administrador del taller. El cambio NO se aplicará hasta que el correo nuevo
+    sea verificado.
+</div>
+
+<p style="margin:18px 0 0;font-size:13px;color:#475569;line-height:1.55;">
+    Si fuiste tú, puedes ignorar este mensaje — verás el cambio reflejado en cuanto
+    confirmes desde el correo nuevo.
+</p>
+{% endblock %}

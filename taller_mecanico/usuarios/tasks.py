@@ -7,7 +7,24 @@ del worker (no se pierden si el SMTP está temporalmente caído).
 """
 from celery import shared_task
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
+from taller_mecanico.email_helpers import get_email_context
+
+
+def _enviar_html(subject, template, context, to_email):
+    html = render_to_string(template, context)
+    texto = strip_tags(html)
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=texto,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[to_email],
+    )
+    msg.attach_alternative(html, 'text/html')
+    msg.send(fail_silently=False)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -17,18 +34,17 @@ def enviar_email_verificacion_cambio_correo_task(self, email_destino, nombre, li
     correo NUEVO del usuario.
     """
     try:
-        send_mail(
-            subject="Confirma tu nuevo correo — AutoServiPro",
-            message=(
-                f"Hola {nombre},\n\n"
-                f"Recibimos una solicitud para cambiar el correo de tu cuenta a {email_destino}.\n"
-                f"Para confirmar el cambio, abre el siguiente link:\n\n{link}\n\n"
-                f"El link expira en 24 horas. Si tú no solicitaste este cambio, "
-                f"ignora este correo y cambia tu contraseña."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email_destino],
-            fail_silently=False,
+        ctx = get_email_context({
+            'email_destino': email_destino,
+            'nombre': nombre,
+            'link': link,
+        })
+        subject = f"Confirma tu nuevo correo — {ctx['marca']['nombre_empresa']}"
+        _enviar_html(
+            subject,
+            'usuarios/email_verificacion_cambio_correo.html',
+            ctx,
+            email_destino,
         )
     except Exception as exc:
         raise self.retry(exc=exc)
@@ -41,17 +57,16 @@ def enviar_aviso_cambio_correo_task(self, email_destino, nombre, email_nuevo):
     si no fue el dueño de la cuenta quien lo solicitó.
     """
     try:
-        send_mail(
-            subject="Solicitud de cambio de correo — AutoServiPro",
-            message=(
-                f"Hola {nombre},\n\n"
-                f"Se está intentando cambiar tu correo a {email_nuevo}.\n"
-                f"Si NO fuiste tú, cambia tu contraseña inmediatamente y avisa al "
-                f"administrador del taller."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email_destino],
-            fail_silently=False,
+        ctx = get_email_context({
+            'nombre': nombre,
+            'email_nuevo': email_nuevo,
+        })
+        subject = f"Solicitud de cambio de correo — {ctx['marca']['nombre_empresa']}"
+        _enviar_html(
+            subject,
+            'usuarios/email_aviso_cambio_correo.html',
+            ctx,
+            email_destino,
         )
     except Exception as exc:
         raise self.retry(exc=exc)

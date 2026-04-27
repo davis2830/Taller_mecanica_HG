@@ -106,7 +106,10 @@ class ActualizarEstadoOrdenView(APIView):
             # Aviso interno (admin/mecánico/superusuarios) al pasar a ESPERANDO_REPUESTOS:
             # incluye lista de repuestos pendientes y OC asociadas.
             if nuevo_estado == 'ESPERANDO_REPUESTOS' and estado_anterior != 'ESPERANDO_REPUESTOS':
-                from taller.tasks import enviar_aviso_esperando_repuestos_task
+                from taller.tasks import (
+                    enviar_aviso_esperando_repuestos_task,
+                    enviar_aviso_esperando_repuestos_cliente_task,
+                )
                 orden_id_local = orden.id
 
                 def _dispatch_repuestos(orden_id=orden_id_local):
@@ -114,6 +117,10 @@ class ActualizarEstadoOrdenView(APIView):
                         enviar_aviso_esperando_repuestos_task.delay(orden_id)
                     except Exception as e:
                         print(f"Celery Error al enviar aviso 'esperando_repuestos' OT {orden_id}: {e}")
+                    try:
+                        enviar_aviso_esperando_repuestos_cliente_task.delay(orden_id)
+                    except Exception as e:
+                        print(f"Celery Error al enviar aviso 'esperando_repuestos' (cliente) OT {orden_id}: {e}")
                 transaction.on_commit(_dispatch_repuestos)
 
             return Response({'success': True, 'estado': orden.estado, 'mecanico_nombre': orden.mecanico_asignado.get_full_name() if orden.mecanico_asignado else None})

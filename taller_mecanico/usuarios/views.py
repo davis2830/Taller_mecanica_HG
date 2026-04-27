@@ -51,14 +51,18 @@ def register(request):
                     )
                 
                 # Enviar correo de activación con Token criptográfico
-                current_site = get_current_site(request)
-                mail_subject = 'Activa tu cuenta en AutoServi Pro'
-                message = render_to_string('usuarios/email_activacion.html', {
+                from django.urls import reverse
+                from taller_mecanico.email_helpers import get_email_context
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = default_token_generator.make_token(user)
+                activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
+                ctx = get_email_context({
                     'user': user,
-                    'base_url': settings.FRONTEND_URL.rstrip('/'),
-                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'token': default_token_generator.make_token(user),
+                    'base_url': (settings.FRONTEND_URL or '').rstrip('/'),
+                    'activar_url': activar_path,
                 })
+                mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
+                message = render_to_string('usuarios/email_activacion.html', ctx)
                 
                 send_mail(
                     mail_subject,
@@ -111,13 +115,18 @@ def reenviar_activacion(request):
                     return redirect('login')
                 
                 # Re-enviar correo de activación
-                mail_subject = 'Activa tu cuenta en AutoServi Pro'
-                message = render_to_string('usuarios/email_activacion.html', {
+                from django.urls import reverse
+                from taller_mecanico.email_helpers import get_email_context
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = default_token_generator.make_token(user)
+                activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
+                ctx = get_email_context({
                     'user': user,
-                    'base_url': settings.FRONTEND_URL.rstrip('/'),
-                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'token': default_token_generator.make_token(user),
+                    'base_url': (settings.FRONTEND_URL or '').rstrip('/'),
+                    'activar_url': activar_path,
                 })
+                mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
+                message = render_to_string('usuarios/email_activacion.html', ctx)
                 
                 send_mail(
                     mail_subject,

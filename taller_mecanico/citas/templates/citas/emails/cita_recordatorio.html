@@ -1,0 +1,24 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Recordatorio de cita — {{ cita.servicio.nombre }}{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Recordatorio{% endblock %}
+{% block banner_color %}#0ea5e9{% endblock %}
+{% block banner_title %}Recordatorio: tu cita es {{ cuando_texto }}{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.85);font-size:13px;margin-top:6px;">Te esperamos en {{ marca.nombre_empresa }}.</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ cita.cliente.first_name|default:cita.cliente.username }}</strong>,
+</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.55;">
+    Te recordamos que tienes una cita programada para <strong>{{ cuando_texto }}</strong>.
+</p>
+
+{% include 'citas/emails/_cita_info.html' %}
+
+<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-top:16px;font-size:13px;color:#075985;">
+    Si necesitas <strong>reagendar o cancelar</strong>, por favor contáctanos lo antes posible
+    para liberar el cupo a otros clientes.
+</div>
+{% endblock %}

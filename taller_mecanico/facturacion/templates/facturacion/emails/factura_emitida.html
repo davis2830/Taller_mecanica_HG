@@ -1,0 +1,79 @@
+{% extends 'emails/base.html' %}
+{% load humanize %}
+
+{% block subject %}Factura electrónica #{{ factura.numero_factura }}{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Factura{% endblock %}
+{% block banner_color %}#1e40af{% endblock %}
+{% block banner_title %}Comprobante de pago — Factura {{ factura.numero_factura }}{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.85);font-size:13px;margin-top:6px;">Emitida el {{ fecha_emision }}</div>{% endblock %}
+
+{% block content %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+    <tr>
+        <td style="vertical-align:top;font-size:13px;">
+            <div style="color:#64748b;text-transform:uppercase;font-size:11px;letter-spacing:.5px;font-weight:600;">Factura a</div>
+            <div style="color:#0f172a;font-weight:600;font-size:15px;margin-top:2px;">{{ cliente_nombre }}</div>
+            <div style="color:#475569;margin-top:2px;">{{ vehiculo_desc }}</div>
+        </td>
+        <td align="right" style="vertical-align:top;font-size:13px;">
+            <div style="color:#64748b;text-transform:uppercase;font-size:11px;letter-spacing:.5px;font-weight:600;">Folio</div>
+            <div style="color:#1e40af;font-weight:700;font-size:15px;margin-top:2px;">{{ factura.numero_factura }}</div>
+            <div style="color:#475569;margin-top:2px;">{{ fecha_emision }}</div>
+        </td>
+    </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+    <thead>
+        <tr style="background:#f8fafc;">
+            <th align="left" style="padding:10px 14px;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;">Concepto</th>
+            <th align="right" style="padding:10px 14px;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;">Importe</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="padding:12px 14px;border-bottom:1px solid #f1f5f9;color:#0f172a;">
+                Mano de obra
+                <div style="font-size:12px;color:#64748b;margin-top:2px;">{{ servicio_nombre }}</div>
+            </td>
+            <td align="right" style="padding:12px 14px;border-bottom:1px solid #f1f5f9;color:#0f172a;">Q {{ monto_mo|floatformat:2|intcomma }}</td>
+        </tr>
+        {% if repuestos %}
+        <tr>
+            <td colspan="2" style="padding:8px 14px 4px;border-bottom:1px solid #f1f5f9;">
+                <div style="color:#0f172a;font-weight:500;margin-bottom:4px;">Repuestos instalados</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;">
+                    {% for r in repuestos %}
+                    <tr>
+                        <td style="padding:3px 0;color:#475569;">{{ r.cantidad }}× {{ r.producto.nombre }}</td>
+                        <td align="right" style="padding:3px 0;color:#0f172a;">Q {{ r.importe|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+    <tfoot>
+        <tr style="background:#f8fafc;">
+            <td style="padding:8px 14px;color:#64748b;font-size:13px;">Subtotal</td>
+            <td align="right" style="padding:8px 14px;color:#0f172a;font-size:13px;">Q {{ subtotal|floatformat:2|intcomma }}</td>
+        </tr>
+        {% if monto_dto > 0 %}
+        <tr style="background:#f8fafc;">
+            <td style="padding:4px 14px;color:#dc2626;font-size:13px;">Descuento</td>
+            <td align="right" style="padding:4px 14px;color:#dc2626;font-size:13px;">– Q {{ monto_dto|floatformat:2|intcomma }}</td>
+        </tr>
+        {% endif %}
+        <tr style="background:#1e40af;color:#fff;">
+            <td style="padding:12px 14px;font-weight:700;font-size:15px;">Total pagado</td>
+            <td align="right" style="padding:12px 14px;font-weight:700;font-size:15px;">Q {{ total|floatformat:2|intcomma }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:13px;color:#065f46;">
+    <strong>Pago liquidado</strong> mediante {{ metodo_pago }}. Gracias por tu preferencia.
+</div>
+{% endblock %}

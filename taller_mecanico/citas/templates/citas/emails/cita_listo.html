@@ -1,0 +1,25 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Tu vehículo está listo para recoger{% endblock %}
+{% block header_color %}#0f172a{% endblock %}
+{% block header_tag %}Listo{% endblock %}
+{% block banner_color %}#10b981{% endblock %}
+{% block banner_title %}Tu vehículo está listo{% endblock %}
+{% block banner_subtitle %}<div style="color:rgba(255,255,255,.9);font-size:13px;margin-top:6px;">Pasa a recogerlo y a completar el pago en caja.</div>{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 12px;font-size:14px;">
+    Hola <strong>{{ cita.cliente.first_name|default:cita.cliente.username }}</strong>,
+</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.55;">
+    El servicio en tu vehículo concluyó satisfactoriamente. Ya puedes pasar a recogerlo a
+    {{ marca.nombre_empresa }} en nuestro horario de atención.
+</p>
+
+{% include 'citas/emails/_cita_info.html' %}
+
+<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:#065f46;">
+    <strong>Importante:</strong> Para retirar el vehículo, te pedimos traer tu identificación
+    y la documentación del mismo. Si otra persona lo recoge, deberá ir autorizada por escrito.
+</div>
+{% endblock %}
