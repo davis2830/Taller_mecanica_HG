@@ -81,18 +81,23 @@ def enviar_alerta_email(alerta):
 
         asunto = f"{urgencia}: {alerta.get_tipo_display()} - {alerta.producto.nombre}"
 
-        # ── In-app notifications (campanita) — siempre se crean ───────────
-        # No dependen del canal email; permiten que el admin se entere en la
-        # UI aunque el correo esté apagado.
-        from usuarios.models import Notificacion
-        for usuario in usuarios_destinatarios:
-            Notificacion.objects.create(
-                usuario=usuario,
-                titulo=f"{urgencia}: {alerta.producto.nombre}",
-                mensaje=f"Stock Actual: {alerta.producto.stock_actual} | Mínimo: {alerta.producto.stock_minimo}",
-                tipo='WARNING' if alerta.tipo in ['STOCK_BAJO'] else 'CRITICAL',
-                enlace=f"/inventario/productos/?q={alerta.producto.codigo}"
-            )
+        # ── In-app notifications (campanita) ──────────────────────────────
+        # Independientes del canal email pero deduplicadas por alerta — solo
+        # se crean la primera vez que se procesa la alerta. Si más adelante
+        # el admin re-activa el correo, evaluar_stock_producto volverá a
+        # llamar enviar_alerta_email pero NO se duplicarán las in-app.
+        if not alerta.notificado_in_app:
+            from usuarios.models import Notificacion
+            for usuario in usuarios_destinatarios:
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    titulo=f"{urgencia}: {alerta.producto.nombre}",
+                    mensaje=f"Stock Actual: {alerta.producto.stock_actual} | Mínimo: {alerta.producto.stock_minimo}",
+                    tipo='WARNING' if alerta.tipo in ['STOCK_BAJO'] else 'CRITICAL',
+                    enlace=f"/inventario/productos/?q={alerta.producto.codigo}"
+                )
+            alerta.notificado_in_app = True
+            alerta.save(update_fields=['notificado_in_app'])
 
         # ── Correo ────────────────────────────────────────────────────────
         # Si el canal está apagado, salimos aquí — la in-app ya quedó creada.
