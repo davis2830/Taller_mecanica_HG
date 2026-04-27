@@ -48,6 +48,39 @@ class ProductoViewSet(viewsets.ModelViewSet):
             return ProductoListSerializer
         return ProductoSerializer
 
+    def perform_create(self, serializer):
+        """
+        Al crear un producto con stock inicial > 0, deja un movimiento de
+        AJUSTE para que la trazabilidad del inventario quede completa.
+        """
+        producto = serializer.save()
+        if producto.stock_actual and producto.stock_actual > 0:
+            MovimientoInventario.objects.create(
+                producto=producto,
+                tipo='AJUSTE',
+                motivo='AJUSTE_INVENTARIO',
+                cantidad=producto.stock_actual,
+                precio_unitario=producto.precio_compra or 0,
+                stock_anterior=0,
+                stock_nuevo=producto.stock_actual,
+                observaciones='Stock inicial al dar de alta el producto.',
+                usuario=self.request.user if self.request.user.is_authenticated else None,
+            )
+
+    def perform_update(self, serializer):
+        """
+        Bloquea cambios directos a `stock_actual` desde la edición de
+        producto. Para modificar stock se debe registrar un movimiento
+        (Entrada / Salida / Ajuste) que deje trazabilidad.
+        """
+        instance = self.get_object()
+        nuevo_stock = serializer.validated_data.get('stock_actual')
+        if nuevo_stock is not None and nuevo_stock != instance.stock_actual:
+            # Restauramos el valor original; el front debería tener el campo
+            # disabled, pero defendemos también en backend.
+            serializer.validated_data['stock_actual'] = instance.stock_actual
+        serializer.save()
+
 from django.db import transaction
 
 class MovimientoInventarioViewSet(viewsets.ModelViewSet):
@@ -106,10 +139,10 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(usuario=request.user)
         
-        # Al producto bajar el stock, checkear trigger de alerta no es estrictamente necesario aquí si hay signals, 
+        # Al producto bajar el stock, checkear trigger de alerta no es estrictamente necesario aquí si hay signals,
         # pero podemos chequear:
-        from inventario.utils import verificar_stock_producto
-        verificar_stock_producto(producto)
+        from inventario.utils import evaluar_stock_producto
+        evaluar_stock_producto(producto)
         
         return Response(serializer.data, status=201)
 
