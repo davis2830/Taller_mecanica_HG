@@ -55,8 +55,12 @@ def enviar_alerta_email(alerta):
     independiente del correo. Solo el envío por correo respeta el toggle
     `CanalNotificacion.email_activo` para el evento de stock.
 
-    Retorna True si se procesó la alerta correctamente (in-app o email);
-    False si hubo error o no había destinatarios.
+    Retorna True si el correo se despachó (los callers usan este valor para
+    marcar `notificado_por_email`). Retorna False si no había
+    destinatarios, hubo un error, o el canal email está deshabilitado por
+    configuración del taller — en ese último caso la in-app SÍ se creó pero
+    no se marca `notificado_por_email` para que un futuro re-encendido del
+    canal pueda volver a disparar el correo de esta alerta.
     """
     try:
         usuarios_destinatarios = obtener_usuarios_notificacion()
@@ -92,9 +96,12 @@ def enviar_alerta_email(alerta):
 
         # ── Correo ────────────────────────────────────────────────────────
         # Si el canal está apagado, salimos aquí — la in-app ya quedó creada.
+        # Retornamos False (NO True) para que el caller no marque
+        # `notificado_por_email = True`; queremos que si el admin re-activa
+        # el canal más tarde, esta alerta vuelva a entrar al flujo de correo.
         if not canal_email(EVENTO_INVENTARIO_ALERTA_STOCK):
             logger.info("[inventario:alerta_stock] canal email deshabilitado por config; in-app creada, saltando correo.")
-            return True
+            return False
 
         contexto = get_email_context({
             'alerta': alerta,
