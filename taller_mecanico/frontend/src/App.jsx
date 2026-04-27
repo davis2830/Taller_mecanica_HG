@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { MarcaProvider } from './context/MarcaContext';
 import Layout from './components/Layout';
 import routes from './config/routes';
 
@@ -75,7 +76,9 @@ function App() {
         <Router>
             <ThemeProvider>
                 <AuthProvider>
-                    <AppRoutes />
+                    <MarcaProvider>
+                        <AppRoutes />
+                    </MarcaProvider>
                 </AuthProvider>
             </ThemeProvider>
         </Router>

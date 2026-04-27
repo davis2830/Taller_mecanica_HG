@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 
 
 class ConfiguracionTallerSerializer(serializers.ModelSerializer):
+    logo_url = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = ConfiguracionTaller
         fields = [
@@ -12,9 +14,18 @@ class ConfiguracionTallerSerializer(serializers.ModelSerializer):
             'granularidad_slot', 'dias_laborales',
             'requerir_recepcion_antes_trabajo',
             'permitir_re_recepcion',
+            'nombre_empresa', 'logo', 'logo_url',
             'actualizado_el',
         ]
-        read_only_fields = ['actualizado_el']
+        read_only_fields = ['actualizado_el', 'logo_url']
+        extra_kwargs = {'logo': {'write_only': True, 'required': False}}
+
+    def get_logo_url(self, obj):
+        if not obj.logo:
+            return None
+        # URL relativa para que la resuelva el navegador contra el origen
+        # de la página (mismo patrón que avatar de usuario).
+        return obj.logo.url
 
     def validate_dias_laborales(self, value):
         if not isinstance(value, list) or not all(isinstance(x, int) and 0 <= x <= 6 for x in value):

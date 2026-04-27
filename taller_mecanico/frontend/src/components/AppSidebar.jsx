@@ -7,6 +7,7 @@ import {
     SlidersHorizontal, FileText, Building2, DollarSign, Clock
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { useMarca } from '../context/MarcaContext';
 import '../styles/app-sidebar.css';
 
 /* ──── Mapa de ruta → sección padre ──────────────────── */
@@ -122,6 +123,7 @@ export default function AppSidebar() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logoutUser } = useContext(AuthContext);
+    const { marca } = useMarca();
     const [collapsed, setCollapsed]     = useState(false);
     const [expandedMenu, setExpandedMenu] = useState(() => getInitialExpanded(location.pathname));
 
@@ -191,11 +193,17 @@ export default function AppSidebar() {
     );
 
     // ── Header compartido ───────────────────────────────
+    const nombreMarca = marca?.nombre_empresa || 'AutoServi';
+    const logoUrl = marca?.logo_url || null;
     const SidebarHeader = () => (
-        <div className="sidebar-header">
-            <div className="sidebar-logo">
-                <Settings size={22} className="logo-icon" />
-                {!collapsed && <span className="logo-text">AutoServi</span>}
+        <div className={`sidebar-header ${collapsed ? 'is-collapsed' : ''}`}>
+            <div className="sidebar-logo" title={nombreMarca}>
+                {logoUrl ? (
+                    <img src={logoUrl} alt={nombreMarca} className="logo-img" />
+                ) : (
+                    <Settings size={22} className="logo-icon" />
+                )}
+                {!collapsed && <span className="logo-text">{nombreMarca}</span>}
             </div>
             <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} title={collapsed ? 'Expandir' : 'Colapsar'}>
                 {collapsed ? '→' : '←'}

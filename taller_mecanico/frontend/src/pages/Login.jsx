@@ -5,6 +5,7 @@ import {
     CalendarClock, Kanban, CalendarRange, BarChart3, Trophy, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { useMarca } from '../context/MarcaContext';
 
 /* =============================================================================
  *   AutoServiPro · Login redesign
@@ -37,6 +38,9 @@ const FEATURES = [
 
 export default function Login() {
     const { loginUser } = useContext(AuthContext);
+    const { marca } = useMarca();
+    const nombreMarca = marca?.nombre_empresa || 'AutoServi Pro';
+    const logoUrl = marca?.logo_url || null;
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -98,13 +102,19 @@ export default function Login() {
                     <div className="w-full max-w-md">
                         {/* Logo */}
                         <div className="mb-8 flex flex-col items-center">
-                            <div className="relative mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-red-500 to-red-700 shadow-2xl shadow-red-500/30">
-                                <Wrench size={44} className="text-white" strokeWidth={2.5} />
-                                <div className="absolute inset-0 rounded-3xl bg-white/10 mix-blend-overlay" />
+                            <div className="relative mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-red-500 to-red-700 shadow-2xl shadow-red-500/30 overflow-hidden">
+                                {logoUrl ? (
+                                    <img src={logoUrl} alt={nombreMarca} className="max-h-[78%] max-w-[78%] object-contain" />
+                                ) : (
+                                    <Wrench size={44} className="text-white" strokeWidth={2.5} />
+                                )}
+                                <div className="absolute inset-0 rounded-3xl bg-white/10 mix-blend-overlay pointer-events-none" />
                                 <div className="absolute -inset-1 rounded-3xl border border-red-400/30" />
                             </div>
                             <h1 className="text-center text-3xl font-black tracking-tight text-white sm:text-4xl">
-                                AutoServi <span className="text-red-500">Pro</span>
+                                {marca?.nombre_empresa
+                                    ? marca.nombre_empresa
+                                    : (<>AutoServi <span className="text-red-500">Pro</span></>)}
                             </h1>
                             <p className="mt-2 text-sm text-slate-400">Sistema de gestión integral del taller</p>
                         </div>
@@ -221,7 +231,7 @@ export default function Login() {
                         </div>
 
                         <p className="mt-6 text-center text-xs text-slate-500">
-                            © {new Date().getFullYear()} AutoServi Pro · Sistema de Taller Mecánico
+                            © {new Date().getFullYear()} {nombreMarca} · Sistema de Taller Mecánico
                         </p>
                     </div>
                 </div>

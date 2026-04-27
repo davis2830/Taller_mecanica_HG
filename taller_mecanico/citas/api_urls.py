@@ -5,6 +5,9 @@ urlpatterns = [
     # Configuración del Taller (singleton)
     path('sistema/configuracion-taller/', api_views.ConfiguracionTallerView.as_view(), name='api_config_taller'),
 
+    # Marca pública (logo + nombre) — accesible sin auth para login.
+    path('marca/', api_views.MarcaPublicaView.as_view(), name='api_marca_publica'),
+
     # Citas
     path('citas/calendario/', api_views.CalendarioCitasView.as_view(), name='api_citas_calendario'),
     path('citas/<int:pk>/', api_views.CitaDetailView.as_view(), name='api_cita_detail'),
