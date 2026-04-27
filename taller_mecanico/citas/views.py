@@ -349,27 +349,33 @@ def confirmar_cita_email(request, token):
 
     try:
         cita_id = signer.unsign(token)
-        cita = get_object_or_404(Cita, id=cita_id)
-
-        if cita.estado == 'PENDIENTE':
-            cita.estado = 'CONFIRMADA'
-            cita.save()
-            titulo = '¡Cita confirmada!'
-            mensaje = f'Tu cita para {cita.servicio.nombre} quedó confirmada. Te esperamos.'
-        elif cita.estado == 'CONFIRMADA':
-            titulo = 'Cita ya confirmada'
-            mensaje = 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!'
-        else:
-            estado = 'error'
-            titulo = 'Cita no confirmable'
-            mensaje = (
-                f'Tu cita se encuentra en estado: {cita.get_estado_display()} '
-                'y ya no puede ser confirmada.'
-            )
     except BadSignature:
+        cita_id = None
+
+    cita = Cita.objects.filter(id=cita_id).first() if cita_id else None
+
+    if cita is None:
+        # Token corrupto o cita eliminada después de enviar el correo. En
+        # ambos casos queremos mostrar la página HTML autocontenida — NO la
+        # 404 default de Django.
         estado = 'error'
         titulo = 'Enlace inválido'
         mensaje = 'El enlace de confirmación es inválido o ya expiró.'
+    elif cita.estado == 'PENDIENTE':
+        cita.estado = 'CONFIRMADA'
+        cita.save()
+        titulo = '¡Cita confirmada!'
+        mensaje = f'Tu cita para {cita.servicio.nombre} quedó confirmada. Te esperamos.'
+    elif cita.estado == 'CONFIRMADA':
+        titulo = 'Cita ya confirmada'
+        mensaje = 'Tu cita ya se encontraba confirmada previamente. ¡Te esperamos!'
+    else:
+        estado = 'error'
+        titulo = 'Cita no confirmable'
+        mensaje = (
+            f'Tu cita se encuentra en estado: {cita.get_estado_display()} '
+            'y ya no puede ser confirmada.'
+        )
 
     color_principal = '#10b981' if estado == 'ok' else '#dc2626'
     icono = '✓' if estado == 'ok' else '✗'

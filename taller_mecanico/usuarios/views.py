@@ -89,7 +89,7 @@ def register(request):
                 
                 nombre = form.cleaned_data.get('first_name', '') or form.cleaned_data.get('email', '')
                 messages.success(request, f'¡Casi listo {nombre}! Te hemos enviado un correo electrónico. Por favor revisa tu bandeja de entrada o SPAM para poder iniciar sesión.')
-                return _redirect_spa_login(request)
+                return _redirect_spa_login(request, '?registro=ok')
                 
             except Exception as e:
                 # Si hay error, eliminar el usuario creado para evitar inconsistencias
@@ -125,7 +125,7 @@ def reenviar_activacion(request):
                 user = User.objects.get(email=email)
                 if getattr(user, 'is_active', False):
                     messages.info(request, 'Esta cuenta ya se encuentra activa. Puedes iniciar sesión.')
-                    return _redirect_spa_login(request)
+                    return _redirect_spa_login(request, '?ya_activo=true')
                 
                 # Re-enviar correo de activación
                 from django.urls import reverse
@@ -151,7 +151,7 @@ def reenviar_activacion(request):
                 )
                 
                 messages.success(request, f'¡Enlace reenviado! Hemos enviado un nuevo correo a {email}. Por favor revisa tu bandeja de entrada o SPAM.')
-                return _redirect_spa_login(request)
+                return _redirect_spa_login(request, '?reenvio=ok')
             except User.DoesNotExist:
                 messages.error(request, 'No se encontró ninguna cuenta registrada con este correo electrónico.')
         else:

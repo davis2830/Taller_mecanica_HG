@@ -59,6 +59,12 @@ export default function Login() {
             setError('El enlace de activación es inválido o expiró.');
         } else if (params.get('email_actualizado') === 'true') {
             setSuccess('Correo actualizado. Inicia sesión con el nuevo correo.');
+        } else if (params.get('registro') === 'ok') {
+            setSuccess('¡Casi listo! Te enviamos un correo. Revisa tu bandeja de entrada o SPAM y activa tu cuenta antes de iniciar sesión.');
+        } else if (params.get('reenvio') === 'ok') {
+            setSuccess('Enlace reenviado. Revisa tu bandeja de entrada o SPAM.');
+        } else if (params.get('ya_activo') === 'true') {
+            setSuccess('Esta cuenta ya estaba activa. Puedes iniciar sesión.');
         }
     }, [location]);
 
