@@ -28,7 +28,7 @@ export default function ServiciosList() {
             if (busqueda) params.append('q', busqueda);
             if (filtroCategoria) params.append('categoria', filtroCategoria);
             
-            const res = await axios.get(`http://localhost:8000/api/v1/citas/servicios/?${params.toString()}`, {
+            const res = await axios.get(`/api/v1/citas/servicios/?${params.toString()}`, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             setServicios(res.data);
@@ -53,7 +53,7 @@ export default function ServiciosList() {
         setDeleteLoading(servicio.id);
         
         try {
-            await axios.delete(`http://localhost:8000/api/v1/citas/servicios/${servicio.id}/`, {
+            await axios.delete(`/api/v1/citas/servicios/${servicio.id}/`, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             fetchServicios();

@@ -14,7 +14,7 @@ export default function AlertasWidget({ onAlertaResuelta }) {
     const fetchAlertas = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/inventario/alertas/', {
+            const res = await axios.get('/api/v1/inventario/alertas/', {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             setAlertas(res.data.results || res.data);
@@ -30,7 +30,7 @@ export default function AlertasWidget({ onAlertaResuelta }) {
 
     const handleResolver = async (id) => {
         try {
-            await axios.patch(`http://localhost:8000/api/v1/inventario/alertas/${id}/resolver/`, {}, {
+            await axios.patch(`/api/v1/inventario/alertas/${id}/resolver/`, {}, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             fetchAlertas();

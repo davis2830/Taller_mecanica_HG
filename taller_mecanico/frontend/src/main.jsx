@@ -6,7 +6,7 @@ import App from './App.jsx'
 
 // Si la app se sirve desde un host distinto a localhost (p. ej. un túnel
 // público con Basic Auth), reescribimos las llamadas absolutas a
-// http://localhost:8000 para que sean relativas (las enruta el proxy de Vite),
+//  para que sean relativas (las enruta el proxy de Vite),
 // y movemos el JWT del header Authorization a X-Authorization para no chocar
 // con el Basic Auth del proxy (el backend tiene un middleware que lo recoge).
 if (typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)(:|$)/.test(window.location.host)) {

@@ -60,10 +60,10 @@ export default function ProductoFormModal({ isOpen, onClose, producto, onSaved }
         setFetchingDeps(true);
         try {
             const [catRes, provRes] = await Promise.all([
-                axios.get('http://localhost:8000/api/v1/inventario/categorias/', {
+                axios.get('/api/v1/inventario/categorias/', {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 }),
-                axios.get('http://localhost:8000/api/v1/inventario/proveedores-mini/', {
+                axios.get('/api/v1/inventario/proveedores-mini/', {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 })
             ]);
@@ -102,11 +102,11 @@ export default function ProductoFormModal({ isOpen, onClose, producto, onSaved }
 
         try {
             if (producto?.id) {
-                await axios.put(`http://localhost:8000/api/v1/inventario/productos/${producto.id}/`, payload, {
+                await axios.put(`/api/v1/inventario/productos/${producto.id}/`, payload, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
             } else {
-                await axios.post('http://localhost:8000/api/v1/inventario/productos/', payload, {
+                await axios.post('/api/v1/inventario/productos/', payload, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
             }

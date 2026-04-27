@@ -31,7 +31,7 @@ export default function MovimientosPage() {
             if (filterTipo) params.append('tipo', filterTipo);
             
             // Asumiendo que el viewset tiene paginación por defecto si es muy largo, pero por ahora tomemos la data directa
-            const res = await axios.get(`http://localhost:8000/api/v1/inventario/movimientos/?${params}`, { headers });
+            const res = await axios.get(`/api/v1/inventario/movimientos/?${params}`, { headers });
             
             // Si el backend usa PageNumberPagination retorna count, results... Asumiremos res.data.results o res.data
             setMovimientos(res.data.results || res.data);

@@ -83,8 +83,8 @@ export default function NuevaRecepcionPage() {
         setLoadingVehiculos(true);
         try {
             const [resCita, resVehs] = await Promise.all([
-                axios.get(`http://localhost:8000/api/v1/citas/${citaId}/`, { headers }),
-                axios.get(`http://localhost:8000/api/v1/vehiculos/?q=`, { headers }),
+                axios.get(`/api/v1/citas/${citaId}/`, { headers }),
+                axios.get(`/api/v1/vehiculos/?q=`, { headers }),
             ]);
 
             const opciones = resVehs.data.map(v => ({
@@ -127,7 +127,7 @@ export default function NuevaRecepcionPage() {
     const buscarVehiculos = async (q = '') => {
         setLoadingVehiculos(true);
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/vehiculos/?q=${encodeURIComponent(q)}`, { headers });
+            const res = await axios.get(`/api/v1/vehiculos/?q=${encodeURIComponent(q)}`, { headers });
             const opciones = res.data.map(v => ({
                 value: v.id,
                 label: `${v.placa} — ${v.marca} ${v.modelo} (${v.propietario?.full_name || v.propietario?.username})`,
@@ -218,7 +218,7 @@ export default function NuevaRecepcionPage() {
                 formData.append('fotos_upload', file); // Custom key to intercept in backend
             });
 
-            const res = await axios.post('http://localhost:8000/api/v1/recepciones/', formData, {
+            const res = await axios.post('/api/v1/recepciones/', formData, {
                 headers: {
                     ...headers,
                     'Content-Type': 'multipart/form-data'

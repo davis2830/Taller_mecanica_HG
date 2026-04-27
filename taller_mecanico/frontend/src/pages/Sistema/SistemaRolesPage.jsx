@@ -24,7 +24,7 @@ export default function SistemaRolesPage() {
     const fetch = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/usuarios/roles/', { headers });
+            const res = await axios.get('/api/v1/usuarios/roles/', { headers });
             setRoles(res.data);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
@@ -47,10 +47,10 @@ export default function SistemaRolesPage() {
         setSaving(true);
         try {
             if (modal.mode === 'create') {
-                await axios.post('http://localhost:8000/api/v1/usuarios/roles/', form, { headers });
+                await axios.post('/api/v1/usuarios/roles/', form, { headers });
                 showToast(`Rol "${form.nombre}" creado.`);
             } else {
-                await axios.patch(`http://localhost:8000/api/v1/usuarios/roles/${modal.rol.id}/`, form, { headers });
+                await axios.patch(`/api/v1/usuarios/roles/${modal.rol.id}/`, form, { headers });
                 showToast(`Rol "${form.nombre}" actualizado.`);
             }
             setModal(null);
@@ -64,7 +64,7 @@ export default function SistemaRolesPage() {
     const handleDelete = async (rol) => {
         if (!window.confirm(`¿Eliminar el rol "${rol.nombre}"? No se puede si hay usuarios asignados.`)) return;
         try {
-            await axios.delete(`http://localhost:8000/api/v1/usuarios/roles/${rol.id}/`, { headers });
+            await axios.delete(`/api/v1/usuarios/roles/${rol.id}/`, { headers });
             showToast(`Rol "${rol.nombre}" eliminado.`);
             fetch();
         } catch (e) {

@@ -66,11 +66,11 @@ export default function ProveedorFormModal({ isOpen, onClose, proveedor, onSaved
 
         try {
             if (proveedor?.id) {
-                await axios.put(`http://localhost:8000/api/v1/inventario/proveedores/${proveedor.id}/`, formData, {
+                await axios.put(`/api/v1/inventario/proveedores/${proveedor.id}/`, formData, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
             } else {
-                await axios.post('http://localhost:8000/api/v1/inventario/proveedores/', formData, {
+                await axios.post('/api/v1/inventario/proveedores/', formData, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
             }

@@ -6,7 +6,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:8000/api/v1/usuarios/tareas-programadas/';
+const API = '/api/v1/usuarios/tareas-programadas/';
 
 function fmtDateTime(iso) {
   if (!iso) return '—';

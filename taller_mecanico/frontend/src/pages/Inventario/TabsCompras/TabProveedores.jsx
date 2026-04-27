@@ -22,7 +22,7 @@ export default function TabProveedores() {
     const fetchProveedores = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/inventario/proveedores/', { headers });
+            const res = await axios.get('/api/v1/inventario/proveedores/', { headers });
             setProveedores(res.data.results || res.data);
         } catch (e) {
             console.error(e);

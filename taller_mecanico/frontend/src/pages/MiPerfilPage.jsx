@@ -7,7 +7,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 
-const API = 'http://localhost:8000/api/v1/usuarios/me';
+const API = '/api/v1/usuarios/me';
 
 export default function MiPerfilPage() {
     const { isDark } = useTheme();

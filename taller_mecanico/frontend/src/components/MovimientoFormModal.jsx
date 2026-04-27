@@ -44,7 +44,7 @@ export default function MovimientoFormModal({ isOpen, onClose, onSaved }) {
             const delay = setTimeout(async () => {
                 setFetchingProds(true);
                 try {
-                    const res = await axios.get(`http://localhost:8000/api/v1/inventario/productos/?search=${searchQ}`, {
+                    const res = await axios.get(`/api/v1/inventario/productos/?search=${searchQ}`, {
                         headers: { Authorization: `Bearer ${authTokens?.access}` }
                     });
                     setProductos(res.data);
@@ -98,7 +98,7 @@ export default function MovimientoFormModal({ isOpen, onClose, onSaved }) {
         };
 
         try {
-            await axios.post('http://localhost:8000/api/v1/inventario/movimientos/', payload, {
+            await axios.post('/api/v1/inventario/movimientos/', payload, {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
             onSaved();

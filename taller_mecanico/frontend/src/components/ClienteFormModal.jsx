@@ -45,9 +45,9 @@ export default function ClienteFormModal({ isOpen, onClose, cliente, onSaved }) 
         setError('');
         try {
             if (isEdit) {
-                await axios.put(`http://localhost:8000/api/v1/usuarios/clientes/${cliente.id}/`, form, { headers });
+                await axios.put(`/api/v1/usuarios/clientes/${cliente.id}/`, form, { headers });
             } else {
-                await axios.post('http://localhost:8000/api/v1/usuarios/clientes/', form, { headers });
+                await axios.post('/api/v1/usuarios/clientes/', form, { headers });
             }
             onSaved();
             onClose();

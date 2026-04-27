@@ -13,7 +13,7 @@ export default function VerificarEmailPage() {
     useEffect(() => {
         const verificar = async () => {
             try {
-                const res = await axios.post(`http://localhost:8000/api/v1/usuarios/me/email/verificar/${token}/`);
+                const res = await axios.post(`/api/v1/usuarios/me/email/verificar/${token}/`);
                 setEstado('ok');
                 setMensaje(res.data.detail || 'Correo confirmado.');
             } catch (e) {

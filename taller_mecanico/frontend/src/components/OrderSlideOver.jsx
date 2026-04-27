@@ -139,7 +139,7 @@ function BillingModal({ orderData, isOpen, onClose, onSuccess, isDark, headers }
     setProcessing(true);
     try {
       const res = await axios.post(
-        `http://localhost:8000/api/v1/taller/orden/${orderData.id}/facturar/`,
+        `/api/v1/taller/orden/${orderData.id}/facturar/`,
         { metodo_pago: metodo, descuento: descuentoNum },
         { headers }
       );
@@ -371,7 +371,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
 
   const fetchOrder = async () => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/v1/taller/orden/${orderId}/`, { headers });
+      const res = await axios.get(`/api/v1/taller/orden/${orderId}/`, { headers });
       setOrderData(res.data);
       setDiagText(res.data.diagnostico || '');
     } catch (e) {
@@ -386,7 +386,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
     setSearching(true);
     setSearchOpen(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/v1/taller/inventario/buscar/?q=${encodeURIComponent(q)}`, { headers });
+      const res = await axios.get(`/api/v1/taller/inventario/buscar/?q=${encodeURIComponent(q)}`, { headers });
       setInventario(res.data);
     } catch (e) { console.error(e); }
     finally { setSearching(false); }
@@ -395,7 +395,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
   const saveDiagnosis = async () => {
     setSavingDiag(true);
     try {
-      await axios.patch(`http://localhost:8000/api/v1/taller/orden/${orderId}/diagnostico/`,
+      await axios.patch(`/api/v1/taller/orden/${orderId}/diagnostico/`,
         { diagnostico: diagText }, { headers });
       onUpdate();
     } catch (e) { console.error(e); }
@@ -407,7 +407,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
     setAddingPart(true);
     try {
       const res = await axios.post(
-        `http://localhost:8000/api/v1/taller/orden/${orderId}/repuesto/`,
+        `/api/v1/taller/orden/${orderId}/repuesto/`,
         { producto_id: selectedItem.id, cantidad },
         { headers }
       );
@@ -425,7 +425,7 @@ export default function OrderSlideOver({ orderId, isOpen, onClose, onUpdate }) {
     setDeletingId(repId);
     try {
       const res = await axios.delete(
-        `http://localhost:8000/api/v1/taller/orden/${orderId}/repuesto/${repId}/`,
+        `/api/v1/taller/orden/${orderId}/repuesto/${repId}/`,
         { headers }
       );
       setOrderData(res.data);

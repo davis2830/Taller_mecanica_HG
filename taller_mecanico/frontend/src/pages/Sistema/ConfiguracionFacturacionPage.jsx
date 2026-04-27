@@ -7,7 +7,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
 
-const API = 'http://localhost:8000/api/v1/facturacion/configuracion/';
+const API = '/api/v1/facturacion/configuracion/';
 
 const CERTIFICADORES = [
   { val: '', label: 'Sin definir' },

@@ -34,7 +34,7 @@ export default function ConfiguracionTallerPage() {
     const fetchConfig = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/sistema/configuracion-taller/', { headers });
+            const res = await axios.get('/api/v1/sistema/configuracion-taller/', { headers });
             setConfig(res.data);
             setForm(res.data);
             setError(null);
@@ -58,7 +58,7 @@ export default function ConfiguracionTallerPage() {
         setSaving(true);
         try {
             const res = await axios.patch(
-                'http://localhost:8000/api/v1/sistema/configuracion-taller/',
+                '/api/v1/sistema/configuracion-taller/',
                 form,
                 { headers },
             );

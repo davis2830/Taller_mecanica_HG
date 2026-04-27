@@ -46,11 +46,11 @@ export default function CategoriaFormModal({ isOpen, onClose, categoria, onSaved
 
         try {
             if (categoria?.id) {
-                await axios.put(`http://localhost:8000/api/v1/inventario/categorias/${categoria.id}/`, formData, {
+                await axios.put(`/api/v1/inventario/categorias/${categoria.id}/`, formData, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
             } else {
-                await axios.post('http://localhost:8000/api/v1/inventario/categorias/', formData, {
+                await axios.post('/api/v1/inventario/categorias/', formData, {
                     headers: { Authorization: `Bearer ${authTokens?.access}` }
                 });
             }

@@ -76,7 +76,7 @@ export default function HistorialOrdenesPage() {
       if (estadoFiltro) params.set('estado', estadoFiltro);
 
       const res = await axios.get(
-        `http://localhost:8000/api/v1/taller/historial/?${params}`,
+        `/api/v1/taller/historial/?${params}`,
         { headers }
       );
       setResults(res.data.results);

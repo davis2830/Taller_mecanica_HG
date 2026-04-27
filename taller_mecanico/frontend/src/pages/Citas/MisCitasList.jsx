@@ -18,7 +18,7 @@ export default function MisCitasList() {
 
     const fetchMisCitas = async () => {
         try {
-            const res = await axios.get('http://localhost:8000/api/v1/citas/mis/', {
+            const res = await axios.get('/api/v1/citas/mis/', {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             setCitas(res.data);
@@ -32,7 +32,7 @@ export default function MisCitasList() {
     const handleCancelar = async (citaId) => {
         if (!window.confirm("¿Seguro que deseas anular esta cita?")) return;
         try {
-            await axios.patch(`http://localhost:8000/api/v1/citas/${citaId}/cancelar/`, {}, {
+            await axios.patch(`/api/v1/citas/${citaId}/cancelar/`, {}, {
                 headers: { 'Authorization': `Bearer ${authTokens.access}` }
             });
             fetchMisCitas();

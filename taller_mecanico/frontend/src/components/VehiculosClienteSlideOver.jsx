@@ -50,7 +50,7 @@ function HistorialTab({ vehiculoId, isDark, onOpenOrder }) {
   useEffect(() => {
     if (!vehiculoId) return;
     setLoading(true);
-    axios.get(`http://localhost:8000/api/v1/taller/vehiculo/${vehiculoId}/historial/`, {
+    axios.get(`/api/v1/taller/vehiculo/${vehiculoId}/historial/`, {
       headers: { Authorization: `Bearer ${authTokens?.access}` }
     }).then(r => setOrdenes(r.data))
       .catch(e => console.error(e))
@@ -189,7 +189,7 @@ export default function VehiculosClienteSlideOver({ isOpen, onClose, cliente, on
   const fetchVehiculos = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/v1/vehiculos/?propietario_id=${cliente.id}`, {
+      const res = await axios.get(`/api/v1/vehiculos/?propietario_id=${cliente.id}`, {
         headers: { Authorization: `Bearer ${authTokens?.access}` }
       });
       setVehiculos(res.data);
@@ -202,7 +202,7 @@ export default function VehiculosClienteSlideOver({ isOpen, onClose, cliente, on
   const handleDelete = async (id, placa) => {
     if (!window.confirm(`¿Seguro que deseas eliminar el vehículo placa ${placa}?`)) return;
     try {
-      await axios.delete(`http://localhost:8000/api/v1/vehiculos/${id}/`, {
+      await axios.delete(`/api/v1/vehiculos/${id}/`, {
         headers: { Authorization: `Bearer ${authTokens?.access}` }
       });
       fetchVehiculos();

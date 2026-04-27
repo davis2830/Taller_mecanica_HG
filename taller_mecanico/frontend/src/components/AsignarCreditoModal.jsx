@@ -38,7 +38,7 @@ export default function AsignarCreditoModal({ isOpen, onClose, factura, onSaved 
         (async () => {
             setLoadingEmpresas(true);
             try {
-                const res = await axios.get('http://localhost:8000/api/v1/usuarios/empresas/?activo=true', { headers });
+                const res = await axios.get('/api/v1/usuarios/empresas/?activo=true', { headers });
                 const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
                 setEmpresas(list);
             } catch (err) {
@@ -86,7 +86,7 @@ export default function AsignarCreditoModal({ isOpen, onClose, factura, onSaved 
                 payload.override_motivo = overrideMotivo.trim();
             }
             const res = await axios.post(
-                `http://localhost:8000/api/v1/facturacion/${factura.id}/asignar-credito/`,
+                `/api/v1/facturacion/${factura.id}/asignar-credito/`,
                 payload,
                 { headers }
             );
