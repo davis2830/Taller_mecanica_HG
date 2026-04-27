@@ -79,17 +79,92 @@ class RolSerializer(serializers.ModelSerializer):
 
 class PerfilSerializer(serializers.ModelSerializer):
     rol = RolSerializer(read_only=True)
+    avatar_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Perfil
-        fields = ['telefono', 'direccion', 'rol', 'nit', 'nombre_fiscal', 'direccion_fiscal']
+        fields = [
+            'telefono', 'direccion', 'rol',
+            'nit', 'nombre_fiscal', 'direccion_fiscal',
+            'avatar', 'avatar_url',
+        ]
+        extra_kwargs = {'avatar': {'write_only': True, 'required': False}}
+
+    def get_avatar_url(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get('request')
+        url = obj.avatar.url
+        return request.build_absolute_uri(url) if request else url
 
 class UserSerializer(serializers.ModelSerializer):
     perfil = PerfilSerializer(read_only=True)
-    
+    is_superuser = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'date_joined', 'perfil']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_active', 'is_staff', 'is_superuser', 'date_joined', 'perfil',
+        ]
+
+
+class MiPerfilSerializer(serializers.ModelSerializer):
+    """
+    Vista propia del usuario logueado: GET para mostrar / PATCH para
+    editar nombre, apellido, teléfono, dirección y datos fiscales. El
+    cambio de email tiene su endpoint propio (con verificación) y el
+    avatar también (multipart aparte). El password idem.
+    """
+    telefono = serializers.CharField(source='perfil.telefono', allow_blank=True, required=False)
+    direccion = serializers.CharField(source='perfil.direccion', allow_blank=True, required=False)
+    nit = serializers.CharField(source='perfil.nit', allow_blank=True, required=False)
+    nombre_fiscal = serializers.CharField(source='perfil.nombre_fiscal', allow_blank=True, required=False)
+    direccion_fiscal = serializers.CharField(source='perfil.direccion_fiscal', allow_blank=True, required=False)
+    rol = serializers.SerializerMethodField(read_only=True)
+    avatar_url = serializers.SerializerMethodField(read_only=True)
+    email_pendiente = serializers.CharField(source='perfil.email_pendiente', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_superuser',
+            'telefono', 'direccion',
+            'nit', 'nombre_fiscal', 'direccion_fiscal',
+            'rol', 'avatar_url', 'email_pendiente',
+        ]
+        read_only_fields = ['id', 'username', 'email', 'is_superuser', 'rol', 'avatar_url', 'email_pendiente']
+
+    def get_rol(self, obj):
+        try:
+            r = obj.perfil.rol
+        except Perfil.DoesNotExist:
+            return None
+        return r.nombre if r else None
+
+    def get_avatar_url(self, obj):
+        try:
+            avatar = obj.perfil.avatar
+        except Perfil.DoesNotExist:
+            return None
+        if not avatar:
+            return None
+        request = self.context.get('request')
+        url = avatar.url
+        return request.build_absolute_uri(url) if request else url
+
+    def update(self, instance, validated_data):
+        perfil_data = validated_data.pop('perfil', {})
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        instance.save()
+        if perfil_data:
+            perfil, _ = Perfil.objects.get_or_create(usuario=instance)
+            for k, v in perfil_data.items():
+                setattr(perfil, k, v)
+            perfil.save()
+        return instance
 
 class ClienteSerializer(serializers.ModelSerializer):
     perfil = PerfilSerializer(read_only=True)

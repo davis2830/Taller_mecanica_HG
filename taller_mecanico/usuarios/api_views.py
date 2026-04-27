@@ -1,13 +1,22 @@
+import secrets
+from datetime import timedelta
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from rest_framework.permissions import IsAuthenticated, BasePermission, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import send_mail
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from .api_serializers import (
     UserSerializer, ClienteSerializer, RolSerializer,
-    EmpresaSerializer, TareaProgramadaSerializer,
+    EmpresaSerializer, TareaProgramadaSerializer, MiPerfilSerializer,
 )
 from .permisos import es_admin_o_secretaria
 from .models import Rol, Perfil, Empresa, TareaProgramada
@@ -23,8 +32,195 @@ class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
+
+
+# ===========================================================================
+# MI PERFIL — el usuario logueado edita sus propios datos
+# ===========================================================================
+
+class MiPerfilView(APIView):
+    """
+    GET   /api/v1/usuarios/me/  → datos del usuario logueado
+    PATCH /api/v1/usuarios/me/  → editar nombre/apellido/tel/dirección/datos fiscales
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        Perfil.objects.get_or_create(usuario=request.user)
+        ser = MiPerfilSerializer(request.user, context={'request': request})
+        return Response(ser.data)
+
+    def patch(self, request):
+        Perfil.objects.get_or_create(usuario=request.user)
+        ser = MiPerfilSerializer(
+            request.user, data=request.data, partial=True,
+            context={'request': request},
+        )
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class MiPerfilAvatarView(APIView):
+    """
+    POST   /api/v1/usuarios/me/avatar/   → subir / reemplazar (multipart)
+    DELETE /api/v1/usuarios/me/avatar/   → eliminar
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        if 'avatar' not in request.FILES:
+            return Response({'error': 'Falta el archivo `avatar`.'}, status=status.HTTP_400_BAD_REQUEST)
+        f = request.FILES['avatar']
+        if f.size > 2 * 1024 * 1024:
+            return Response({'error': 'La imagen no puede pesar más de 2 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        perfil, _ = Perfil.objects.get_or_create(usuario=request.user)
+        perfil.avatar = f
+        perfil.save()
+        ser = MiPerfilSerializer(request.user, context={'request': request})
+        return Response(ser.data)
+
+    def delete(self, request):
+        perfil, _ = Perfil.objects.get_or_create(usuario=request.user)
+        if perfil.avatar:
+            perfil.avatar.delete(save=False)
+            perfil.avatar = None
+            perfil.save()
+        ser = MiPerfilSerializer(request.user, context={'request': request})
+        return Response(ser.data)
+
+
+class MiPerfilCambiarPasswordView(APIView):
+    """
+    POST /api/v1/usuarios/me/cambiar-password/
+    Body: { password_actual, password_nueva, password_nueva_confirm }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        actual = request.data.get('password_actual') or ''
+        nueva = request.data.get('password_nueva') or ''
+        confirm = request.data.get('password_nueva_confirm') or ''
+        if not request.user.check_password(actual):
+            return Response({'error': 'La contraseña actual es incorrecta.'}, status=status.HTTP_400_BAD_REQUEST)
+        if nueva != confirm:
+            return Response({'error': 'Las contraseñas nuevas no coinciden.'}, status=status.HTTP_400_BAD_REQUEST)
+        if nueva == actual:
+            return Response({'error': 'La contraseña nueva debe ser distinta de la actual.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_password(nueva, user=request.user)
+        except DjangoValidationError as e:
+            return Response({'error': ' '.join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.set_password(nueva)
+        request.user.save()
+        return Response({'detail': 'Contraseña actualizada. Tu sesión actual sigue activa.'})
+
+
+class MiPerfilSolicitarCambioEmailView(APIView):
+    """
+    POST /api/v1/usuarios/me/email/solicitar/
+    Body: { email_nuevo, password_actual }
+
+    El cambio NO se aplica de inmediato. Se envía un link de
+    verificación al email **nuevo**; hasta que el usuario clickee el
+    link, `usuario.email` no cambia. Adicionalmente, se notifica al
+    email **viejo** que se está realizando el cambio.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        email_nuevo = (request.data.get('email_nuevo') or '').strip().lower()
+        password_actual = request.data.get('password_actual') or ''
+
+        if not email_nuevo:
+            return Response({'error': 'Falta el correo nuevo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if email_nuevo == (request.user.email or '').strip().lower():
+            return Response({'error': 'Ese ya es tu correo actual.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password_actual):
+            return Response({'error': 'La contraseña actual es incorrecta.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email__iexact=email_nuevo).exclude(pk=request.user.pk).exists():
+            return Response({'error': 'Ese correo ya está usado por otra cuenta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        perfil, _ = Perfil.objects.get_or_create(usuario=request.user)
+        perfil.email_pendiente = email_nuevo
+        perfil.email_token = secrets.token_urlsafe(48)
+        perfil.email_token_expira = timezone.now() + timedelta(hours=24)
+        perfil.save()
+
+        frontend = getattr(settings, 'FRONTEND_URL', '').rstrip('/') or 'http://localhost:5173'
+        link = f"{frontend}/perfil/verificar-email/{perfil.email_token}/"
+        try:
+            send_mail(
+                subject="Confirma tu nuevo correo — AutoServiPro",
+                message=(
+                    f"Hola {request.user.first_name or request.user.username},\n\n"
+                    f"Recibimos una solicitud para cambiar el correo de tu cuenta a {email_nuevo}.\n"
+                    f"Para confirmar el cambio, abre el siguiente link:\n\n{link}\n\n"
+                    f"El link expira en 24 horas. Si tú no solicitaste este cambio, "
+                    f"ignora este correo y cambia tu contraseña."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email_nuevo],
+                fail_silently=True,
+            )
+            if request.user.email:
+                send_mail(
+                    subject="Solicitud de cambio de correo — AutoServiPro",
+                    message=(
+                        f"Hola {request.user.first_name or request.user.username},\n\n"
+                        f"Se está intentando cambiar tu correo a {email_nuevo}.\n"
+                        f"Si NO fuiste tú, cambia tu contraseña inmediatamente y avisa al "
+                        f"administrador del taller."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[request.user.email],
+                    fail_silently=True,
+                )
+        except Exception:
+            pass
+
+        return Response({
+            'detail': f'Te enviamos un correo de verificación a {email_nuevo}. Tu correo actual no cambió hasta que confirmes.',
+            'email_pendiente': email_nuevo,
+        })
+
+
+class VerificarEmailView(APIView):
+    """
+    POST /api/v1/usuarios/me/email/verificar/<token>/
+    Aplica el cambio de email si el token es válido y no expiró.
+    No requiere auth (el link se manda al correo).
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, token):
+        perfil = Perfil.objects.filter(email_token=token).first()
+        if not perfil or not token:
+            return Response({'error': 'Link inválido o ya usado.'}, status=status.HTTP_400_BAD_REQUEST)
+        if perfil.email_token_expira and perfil.email_token_expira < timezone.now():
+            perfil.email_token = ''
+            perfil.email_pendiente = ''
+            perfil.email_token_expira = None
+            perfil.save()
+            return Response({'error': 'Link expirado. Solicita el cambio nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        nuevo = perfil.email_pendiente
+        if not nuevo:
+            return Response({'error': 'No hay cambio de correo pendiente.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email__iexact=nuevo).exclude(pk=perfil.usuario_id).exists():
+            return Response({'error': 'Ese correo ya está usado por otra cuenta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        u = perfil.usuario
+        u.email = nuevo
+        u.save()
+        perfil.email_pendiente = ''
+        perfil.email_token = ''
+        perfil.email_token_expira = None
+        perfil.save()
+        return Response({'detail': 'Correo actualizado correctamente.', 'email': nuevo})
 
 
 class ClienteViewSet(viewsets.ModelViewSet):

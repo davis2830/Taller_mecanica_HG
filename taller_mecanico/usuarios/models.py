@@ -151,6 +151,21 @@ class Perfil(models.Model):
     telefono = models.CharField(max_length=15, blank=True, null=True)
     direccion = models.TextField(blank=True, null=True)
 
+    # ── Avatar / foto de perfil ──
+    avatar = models.ImageField(
+        upload_to='usuarios/avatares/',
+        blank=True, null=True,
+        help_text="Foto de perfil del usuario.",
+    )
+
+    # ── Cambio de email con verificación ──
+    # Cuando el usuario solicita cambiar su email, guardamos el nuevo email
+    # aquí + un token. El cambio en `usuario.email` solo se aplica cuando
+    # el usuario confirma desde el link enviado al email NUEVO.
+    email_pendiente = models.EmailField(blank=True, default='')
+    email_token = models.CharField(max_length=64, blank=True, default='')
+    email_token_expira = models.DateTimeField(null=True, blank=True)
+
     # ── Datos fiscales del cliente (SAT Guatemala) ──
     # NIT receptor. 'CF' = Consumidor Final (default, permite facturar sin NIT formal).
     nit = models.CharField(
