@@ -93,17 +93,16 @@ class Command(BaseCommand):
                     ya_enviados += 1
                     logger.info(f'Ya se envió recordatorio para la cita #{cita.id}')
                     continue
-                
-                # Verificar que el cliente tenga email
-                if not cita.cliente.email:
-                    sin_email += 1
-                    logger.warning(f'El cliente {cita.cliente.username} no tiene email registrado')
-                    continue
-                
+
+                # No saltamos las citas sin email — enviar_email_cita igual
+                # despacha WhatsApp internamente para clientes con teléfono
+                # pero sin correo. Solo lo recordamos para el resumen.
+                cliente_sin_email = not cita.cliente.email
+
                 if not modo_test:
                     # Enviar el email usando el nuevo sistema elegante
                     from citas.utils import enviar_email_cita
-                    
+
                     try:
                         if enviar_email_cita(cita, 'recordatorio'):
                             # Registrar la notificación
@@ -113,9 +112,17 @@ class Command(BaseCommand):
                                 mensaje=f'Recordatorio enviado a {cita.cliente.email}',
                                 enviado=True
                             )
-                            
+
                             recordatorios_enviados += 1
                             logger.info(f'✓ Recordatorio enviado para la cita #{cita.id} ({cita.cliente.email})')
+                        elif cliente_sin_email:
+                            # Cliente sin email — WhatsApp se intentó dentro
+                            # de enviar_email_cita si el canal estaba activo.
+                            sin_email += 1
+                            logger.info(
+                                f'⏭ Cita #{cita.id}: cliente {cita.cliente.username} sin email; '
+                                f'WhatsApp se disparó si el canal estaba activo.'
+                            )
                         elif not email_canal_activo:
                             # No es error: el admin apagó el canal email a propósito.
                             # WhatsApp se intentó internamente; no creamos
@@ -124,22 +131,23 @@ class Command(BaseCommand):
                             logger.info(f'⏭ Cita #{cita.id}: canal email apagado, sin notificación persistida.')
                         else:
                             raise Exception("No se pudo enviar el email")
-                            
+
                     except Exception as e:
                         errores += 1
                         logger.error(f'✗ Error al enviar recordatorio para la cita #{cita.id}: {e}')
-                        
+
                         # Registrar la notificación como fallida
                         Notificacion.objects.create(
                             cita=cita,
                             tipo='RECORDATORIO',
-                            mensaje=f'Error al enviar a {cita.cliente.email}: {str(e)}',
+                            mensaje=f'Error al enviar a {cita.cliente.email or "(sin email)"}: {str(e)}',
                             enviado=False
                         )
-                        
+
                 else:
                     # Modo de prueba - solo simular
-                    logger.info(f'[PRUEBA] Recordatorio que se enviaría para la cita #{cita.id} ({cita.cliente.email})')
+                    destinatario = cita.cliente.email or '(sin email)'
+                    logger.info(f'[PRUEBA] Recordatorio que se enviaría para la cita #{cita.id} ({destinatario})')
                     recordatorios_enviados += 1
                 
             except Exception as e:
