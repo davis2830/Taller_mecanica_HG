@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Moon, LogOut, ChevronDown, Bell, Search } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Bell, Search, User } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -23,6 +23,7 @@ const PAGE_TITLES = {
     '/reportes/utilidades':     { title: 'Reporte de Utilidades',   sub: 'Análisis financiero' },
     '/sistema/usuarios':        { title: 'Usuarios',                sub: 'Gestión del sistema' },
     '/sistema/roles':           { title: 'Roles',                   sub: 'Permisos del sistema' },
+    '/perfil':                  { title: 'Mi Perfil',               sub: 'Tus datos personales' },
 };
 
 export default function AppHeader() {
@@ -147,8 +148,17 @@ export default function AppHeader() {
                                 </div>
                             </div>
 
-                            {/* Logout */}
+                            {/* Mi Perfil + Logout */}
                             <div className="p-1.5">
+                                <button
+                                    onClick={() => { setMenuOpen(false); navigate('/perfil'); }}
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
+                                        isDark ? 'text-slate-200 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    <User size={15} />
+                                    Mi Perfil
+                                </button>
                                 <button
                                     onClick={handleLogout}
                                     className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold rounded-xl transition-colors text-rose-500 hover:bg-rose-500/10`}

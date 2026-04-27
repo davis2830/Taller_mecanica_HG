@@ -33,6 +33,8 @@ import TareasProgramadasPage from '../pages/Sistema/TareasProgramadasPage';
 import EmpresasPage from '../pages/Finanzas/EmpresasPage';
 import EmpresaEstadoCuentaPage from '../pages/Finanzas/EmpresaEstadoCuentaPage';
 import CuentasPorCobrarPage from '../pages/Finanzas/CuentasPorCobrarPage';
+import MiPerfilPage from '../pages/MiPerfilPage';
+import VerificarEmailPage from '../pages/VerificarEmailPage';
 
 export const routes = [
     {
@@ -227,6 +229,20 @@ export const routes = [
         private: true,
         layout: true,
         title: 'Tareas Programadas'
+    },
+    {
+        path: '/perfil',
+        element: MiPerfilPage,
+        private: true,
+        layout: true,
+        title: 'Mi Perfil'
+    },
+    {
+        path: '/perfil/verificar-email/:token',
+        element: VerificarEmailPage,
+        private: false,
+        layout: false,
+        title: 'Verificar Correo'
     },
 ];
 
