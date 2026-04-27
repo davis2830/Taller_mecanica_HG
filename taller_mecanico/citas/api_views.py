@@ -3,12 +3,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, ConfiguracionTaller
+from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, ConfiguracionTaller, CanalNotificacion
 from .api_serializers import (
     CitaSerializer, CitaCreacionSerializer,
     VehiculoSerializer, VehiculoWriteSerializer,
     TipoServicioSerializer, RecepcionSerializer,
     ConfiguracionTallerSerializer,
+    CanalNotificacionSerializer,
 )
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -78,6 +79,82 @@ class MarcaPublicaView(APIView):
             'nombre_empresa': config.nombre_empresa or '',
             'logo_url': config.logo.url if config.logo else None,
         })
+
+
+class CanalesNotificacionListView(APIView):
+    """
+    GET /api/v1/sistema/canales-notificacion/
+
+    Devuelve la lista de eventos del sistema y la configuración de canales
+    (correo / WhatsApp) por evento. Solo administradores.
+    """
+    permission_classes = [EsAdministradorPermission]
+
+    def get(self, request):
+        from taller_mecanico.notification_channels import (
+            EVENTOS_SOLO_EMAIL, EVENTOS_EMAIL_OBLIGATORIO,
+        )
+        canales = CanalNotificacion.objects.all().order_by('grupo', 'orden', 'label')
+        data = CanalNotificacionSerializer(canales, many=True).data
+        # Agregar flags semánticos para que la UI los muestre como locked.
+        for row in data:
+            row['solo_email'] = row['evento'] in EVENTOS_SOLO_EMAIL
+            row['email_obligatorio'] = row['evento'] in EVENTOS_EMAIL_OBLIGATORIO
+        return Response(data)
+
+
+class CanalNotificacionDetailView(APIView):
+    """
+    PATCH /api/v1/sistema/canales-notificacion/<evento>/
+
+    Actualiza email_activo / whatsapp_activo de un evento. Si el evento está
+    en la lista de "solo email" (eventos sensibles de cuentas), whatsapp_activo
+    se forzará a False sin importar lo que mande el cliente.
+    """
+    permission_classes = [EsAdministradorPermission]
+
+    def patch(self, request, evento):
+        try:
+            canal = CanalNotificacion.objects.get(evento=evento)
+        except CanalNotificacion.DoesNotExist:
+            return Response({'detail': 'Evento desconocido.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from taller_mecanico.notification_channels import (
+            EVENTOS_SOLO_EMAIL, EVENTOS_EMAIL_OBLIGATORIO,
+        )
+
+        def _to_bool(raw):
+            """Coercer robusto: maneja JSON booleano y form-encoded strings.
+
+            `bool("false")` en Python es True, así que un cliente que mande
+            form-encoded con `email_activo=false` apagaría el toggle al
+            revés. Aceptamos los strings habituales como falsos.
+            """
+            if isinstance(raw, bool):
+                return raw
+            if raw is None:
+                return False
+            return str(raw).strip().lower() not in ('false', '0', '', 'no', 'off', 'null', 'none')
+
+        # Solo permitimos modificar email_activo / whatsapp_activo.
+        if 'email_activo' in request.data:
+            new_email = _to_bool(request.data.get('email_activo'))
+            # Eventos de seguridad: el correo no se puede apagar — se ignora
+            # silenciosamente para evitar romper flujos de activación / cambio
+            # de correo / recuperación.
+            if evento in EVENTOS_EMAIL_OBLIGATORIO:
+                new_email = True
+            canal.email_activo = new_email
+        if 'whatsapp_activo' in request.data:
+            wa = _to_bool(request.data.get('whatsapp_activo'))
+            if evento in EVENTOS_SOLO_EMAIL:
+                wa = False
+            canal.whatsapp_activo = wa
+        canal.save()
+        data = CanalNotificacionSerializer(canal).data
+        data['solo_email'] = evento in EVENTOS_SOLO_EMAIL
+        data['email_obligatorio'] = evento in EVENTOS_EMAIL_OBLIGATORIO
+        return Response(data)
 
 
 class SlotsDisponiblesView(APIView):

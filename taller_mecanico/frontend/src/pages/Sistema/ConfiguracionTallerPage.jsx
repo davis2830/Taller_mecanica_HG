@@ -4,6 +4,7 @@ import { SlidersHorizontal, Save, Loader2, AlertTriangle, Users, Sun, Clock, Cal
 import { refreshMarca } from '../../context/MarcaContext';
 import { useTheme } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
+import CanalesNotificacionCard from './CanalesNotificacionCard';
 
 const DIAS = [
     { val: 0, label: 'Lunes' },
@@ -388,6 +389,9 @@ export default function ConfiguracionTallerPage() {
                     </label>
                 </div>
             </div>
+
+            {/* Card: Canales de notificación (correo / WhatsApp por evento) */}
+            <CanalesNotificacionCard />
 
             {config?.actualizado_el && (
                 <p className={`text-xs ${sub}`}>

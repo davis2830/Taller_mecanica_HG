@@ -11,6 +11,12 @@ from django.utils import timezone
 import logging
 
 from taller_mecanico.email_helpers import get_email_context
+from taller_mecanico.notification_channels import (
+    canal_email, canal_whatsapp,
+    EVENTO_OT_ESPERANDO_REPUESTOS_TALLER,
+    EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE,
+)
+from taller_mecanico.whatsapp import enviar_whatsapp_task
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +83,12 @@ def enviar_aviso_esperando_repuestos_task(self, orden_id):
         logger.warning(f"[esperando_repuestos:taller] OT {orden_id} no existe; abortando aviso.")
         return f"OT {orden_id} no existe."
 
+    if not canal_email(EVENTO_OT_ESPERANDO_REPUESTOS_TALLER):
+        logger.info(
+            f"[esperando_repuestos:taller] OT {orden_id}: canal email deshabilitado por config; saltando."
+        )
+        return "Canal email deshabilitado."
+
     usuarios = obtener_usuarios_notificacion()
     emails = [u.email for u in usuarios if u.email]
     if not emails:
@@ -138,9 +150,42 @@ def enviar_aviso_esperando_repuestos_cliente_task(self, orden_id):
         return f"OT {orden_id} no existe."
 
     cliente = getattr(orden.vehiculo, 'propietario', None)
-    if not cliente or not cliente.email:
+    if not cliente:
         logger.info(
-            f"[esperando_repuestos:cliente] OT {orden_id} sin email de cliente; saltando."
+            f"[esperando_repuestos:cliente] OT {orden_id} sin propietario; saltando."
+        )
+        return "Sin cliente."
+
+    # Despachar WhatsApp en paralelo si está habilitado y hay teléfono.
+    # Se hace ANTES de los gates específicos de email (canal_email, .email)
+    # para que un cliente con solo número de teléfono igual reciba el aviso.
+    # Solo en el primer intento — si el correo falla y la task se reintenta,
+    # NO queremos duplicar el WhatsApp al cliente.
+    if self.request.retries == 0 and canal_whatsapp(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
+        perfil = getattr(cliente, 'perfil', None)
+        telefono = getattr(perfil, 'telefono', '') or ''
+        if telefono:
+            params = {
+                'cliente_nombre': cliente.first_name or cliente.username,
+                'marca': (get_email_context().get('marca') or {}).get('nombre_empresa') or 'el taller',
+                'vehiculo': f"{orden.vehiculo.marca} {orden.vehiculo.modelo} ({orden.vehiculo.placa})",
+            }
+            try:
+                enviar_whatsapp_task.delay(
+                    EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE, telefono, params,
+                )
+            except Exception as exc:
+                logger.warning(f"[whatsapp:esperando_repuestos] no se pudo encolar: {exc}")
+
+    if not canal_email(EVENTO_OT_ESPERANDO_REPUESTOS_CLIENTE):
+        logger.info(
+            f"[esperando_repuestos:cliente] OT {orden_id}: canal email deshabilitado por config; saltando."
+        )
+        return "Canal email deshabilitado."
+
+    if not cliente.email:
+        logger.info(
+            f"[esperando_repuestos:cliente] OT {orden_id} sin email de cliente; saltando correo."
         )
         return "Cliente sin email."
 

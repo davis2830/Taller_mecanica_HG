@@ -5,6 +5,10 @@ urlpatterns = [
     # Configuración del Taller (singleton)
     path('sistema/configuracion-taller/', api_views.ConfiguracionTallerView.as_view(), name='api_config_taller'),
 
+    # Canales de notificación (correo / WhatsApp por evento)
+    path('sistema/canales-notificacion/', api_views.CanalesNotificacionListView.as_view(), name='api_canales_notificacion'),
+    path('sistema/canales-notificacion/<slug:evento>/', api_views.CanalNotificacionDetailView.as_view(), name='api_canal_notificacion_detail'),
+
     # Marca pública (logo + nombre) — accesible sin auth para login.
     path('marca/', api_views.MarcaPublicaView.as_view(), name='api_marca_publica'),
 

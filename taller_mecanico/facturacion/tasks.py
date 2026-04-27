@@ -34,13 +34,19 @@ def enviar_recordatorios_cobro_task(test_mode=False):
     hoy = date.today()
     candidatos = []
 
+    # Una empresa califica para recordatorio si tiene email_cobro O telefono
+    # — el helper enviar_email_recordatorio_cobro decide internamente qué
+    # canal usar según la config del taller (correo, WhatsApp o ambos).
+    tiene_email = Q(empresa__email_cobro__isnull=False) & ~Q(empresa__email_cobro='')
+    tiene_telefono = Q(empresa__telefono__isnull=False) & ~Q(empresa__telefono='')
+
     qs = Factura.objects.filter(
-        estado='EMITIDA',
-        condicion_pago='CREDITO',
-        pago_estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDA'],
-        empresa__recordatorios_activos=True,
-        empresa__email_cobro__isnull=False,
-    ).exclude(empresa__email_cobro='').exclude(fecha_vencimiento__isnull=True)
+        Q(estado='EMITIDA')
+        & Q(condicion_pago='CREDITO')
+        & Q(pago_estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDA'])
+        & Q(empresa__recordatorios_activos=True)
+        & (tiene_email | tiene_telefono),
+    ).exclude(fecha_vencimiento__isnull=True)
 
     enviados = 0
     fallidos = 0

@@ -1,6 +1,19 @@
 from rest_framework import serializers
-from .models import Cita, Vehiculo, TipoServicio, RecepcionVehiculo, RecepcionFoto, ConfiguracionTaller
+from .models import (
+    Cita, Vehiculo, TipoServicio, RecepcionVehiculo, RecepcionFoto,
+    ConfiguracionTaller, CanalNotificacion,
+)
 from django.contrib.auth.models import User
+
+
+class CanalNotificacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CanalNotificacion
+        fields = [
+            'evento', 'label', 'descripcion', 'grupo', 'orden',
+            'email_activo', 'whatsapp_activo', 'actualizado_el',
+        ]
+        read_only_fields = ['evento', 'label', 'descripcion', 'grupo', 'orden', 'actualizado_el']
 
 
 class ConfiguracionTallerSerializer(serializers.ModelSerializer):

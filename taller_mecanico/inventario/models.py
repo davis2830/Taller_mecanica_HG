@@ -163,6 +163,10 @@ class AlertaInventario(models.Model):
     )
     notificado_por_email = models.BooleanField(default=False)
     fecha_ultimo_email = models.DateTimeField(null=True, blank=True)
+    notificado_in_app = models.BooleanField(
+        default=False,
+        help_text="Notificación in-app (campanita) ya creada para esta alerta.",
+    )
     
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.producto.nombre}"

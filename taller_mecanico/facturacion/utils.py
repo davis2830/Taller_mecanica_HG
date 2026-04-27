@@ -14,6 +14,11 @@ import logging
 
 from citas.utils import formato_fecha_es
 from taller_mecanico.email_helpers import get_email_context
+from taller_mecanico.notification_channels import (
+    canal_email, canal_whatsapp,
+    EVENTO_FACTURA_EMITIDA, EVENTO_RECORDATORIO_COBRO,
+)
+from taller_mecanico.whatsapp import enviar_whatsapp_task
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +32,10 @@ def enviar_email_factura(factura, destinatario_email=None):
         if cita and cita.cliente:
             destinatario_email = cita.cliente.email
     if not destinatario_email:
+        return False
+
+    if not canal_email(EVENTO_FACTURA_EMITIDA):
+        logger.info(f"[facturacion:emitida] canal email deshabilitado por config; saltando.")
         return False
 
     # Cálculos
@@ -99,11 +108,39 @@ def enviar_email_recordatorio_cobro(factura, dias_diferencia=0):
       - 0       : vence hoy
       - positivo: vencida
     """
-    if not factura.empresa or not factura.empresa.email_cobro:
+    # Guards de negocio: aplican a TODOS los canales.
+    if not factura.empresa:
         return False
     if factura.condicion_pago != 'CREDITO':
         return False
     if factura.pago_estado in ('PAGADA', 'NO_APLICA'):
+        return False
+
+    # Despacho WhatsApp paralelo (mock por ahora). Se hace ANTES del check
+    # de email_cobro para que una empresa con solo teléfono y sin email
+    # de cobro registrado pueda recibir el recordatorio por WhatsApp.
+    if canal_whatsapp(EVENTO_RECORDATORIO_COBRO):
+        telefono = getattr(factura.empresa, 'telefono', '') or ''
+        if telefono:
+            try:
+                enviar_whatsapp_task.delay(
+                    EVENTO_RECORDATORIO_COBRO, telefono,
+                    {
+                        'marca': (get_email_context().get('marca') or {}).get('nombre_empresa') or 'el taller',
+                        'numero_factura': factura.numero_factura,
+                        'saldo': f"{float(factura.saldo_pendiente):.2f}",
+                        'fecha_venc': factura.fecha_vencimiento.isoformat() if factura.fecha_vencimiento else '',
+                    },
+                )
+            except Exception as exc:
+                logger.warning(f"[whatsapp:recordatorio_cobro] no se pudo encolar: {exc}")
+
+    if not canal_email(EVENTO_RECORDATORIO_COBRO):
+        logger.info(f"[facturacion:recordatorio] canal email deshabilitado por config; saltando.")
+        return False
+
+    # Guard específico de email — después del WhatsApp porque solo afecta correo.
+    if not factura.empresa.email_cobro:
         return False
 
     empresa = factura.empresa
