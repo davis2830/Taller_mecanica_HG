@@ -32,6 +32,7 @@ python-dateutil==2.9.0.post0
 python-decouple==3.8
 six==1.17.0
 sqlparse==0.5.3
+twilio==9.10.5
 tzdata==2025.2
 tzlocal==5.3.1
 vine==5.1.0
