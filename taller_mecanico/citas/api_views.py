@@ -132,7 +132,9 @@ class CanalNotificacionDetailView(APIView):
             """
             if isinstance(raw, bool):
                 return raw
-            return str(raw).strip().lower() not in ('false', '0', '', 'no', 'off')
+            if raw is None:
+                return False
+            return str(raw).strip().lower() not in ('false', '0', '', 'no', 'off', 'null', 'none')
 
         # Solo permitimos modificar email_activo / whatsapp_activo.
         if 'email_activo' in request.data:
