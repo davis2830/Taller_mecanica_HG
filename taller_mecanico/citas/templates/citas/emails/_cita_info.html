@@ -8,7 +8,9 @@ Opcional: `precio_mostrar` (decimal) — si se pasa, muestra fila de total.
     {% include 'emails/_info_row.html' with icon="wrench" label="Servicio" value=cita.servicio.nombre %}
     {% include 'emails/_info_row.html' with icon="truck" label="Vehículo" value=cita.vehiculo.marca|add:" "|add:cita.vehiculo.modelo|add:" — "|add:cita.vehiculo.placa %}
     {% if precio_mostrar is not None %}
-        {% include 'emails/_info_row.html' with icon="dollar-sign" label="Total estimado" value="Q "|add:precio_mostrar %}
+        {% with precio_str=precio_mostrar|floatformat:2|intcomma %}
+            {% include 'emails/_info_row.html' with icon="dollar-sign" label="Total estimado" value="Q "|add:precio_str %}
+        {% endwith %}
     {% endif %}
     <tr>
         <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;width:160px;vertical-align:top;">
