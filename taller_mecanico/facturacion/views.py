@@ -100,9 +100,11 @@ def emitir_factura(request, factura_id):
         if orden.cita and orden.cita.estado != 'COMPLETADA':
             orden.cita.estado = 'COMPLETADA'
             orden.cita.save()
-            
-            # --- Enviar email "Encuesta / Completada" via Celery
-            if orden.cita.cliente and orden.cita.cliente.email:
+
+            # --- Enviar Encuesta / Completada via Celery (correo + WhatsApp).
+            # No gateamos por email: `enviar_email_cita` despacha WhatsApp en
+            # paralelo y omite el correo si no hay email registrado.
+            if orden.cita.cliente:
                 enviar_correo_cita_task.delay(orden.cita.id, 'encuesta')
                 Notificacion.objects.create(
                     cita=orden.cita,
@@ -111,8 +113,8 @@ def emitir_factura(request, factura_id):
                     enviado=True
                 )
             # ---
-            
-        # Despachar correo de Factura automáticamente
+
+        # Despachar correo de Factura automáticamente (requiere email).
         if orden.cita and orden.cita.cliente and orden.cita.cliente.email:
             enviar_factura_task.delay(factura.id, orden.cita.cliente.email)
             

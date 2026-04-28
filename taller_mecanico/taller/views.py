@@ -151,7 +151,11 @@ def actualizar_estado_orden(request):
         orden.save()
 
         # ── Notificaciones automáticas al cliente ──
-        if hasattr(orden, 'cita') and orden.cita and orden.cita.cliente.email:
+        # NO gateamos por `cita.cliente.email`. La tarea despacha WhatsApp y
+        # correo en paralelo: un cliente con teléfono pero sin email igual
+        # debe recibir su WhatsApp. `enviar_email_cita` omite el correo
+        # internamente si no hay email registrado.
+        if hasattr(orden, 'cita') and orden.cita:
             cita = orden.cita
             from citas.tasks import enviar_correo_cita_task
             try:
