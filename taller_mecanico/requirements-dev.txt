@@ -1,0 +1,19 @@
+# Dependencias SOLO para desarrollo y CI. En producción NO se instalan.
+#
+# Uso: `pip install -r requirements-dev.txt` (instala también requirements.txt)
+-r requirements.txt
+
+# ── Testing ─────────────────────────────────────────────────────────────────
+pytest>=9,<10
+pytest-django>=4,<5
+pytest-cov>=7,<8
+
+# Generación de fixtures (Cliente, Cita, OT…) sin escribirlas a mano.
+factory_boy>=3.3,<4
+Faker>=40,<41
+
+# Mock HTTP (Twilio, APIs externas). Sin esto los tests hacen llamadas reales.
+responses>=0.26,<1
+
+# Congela `datetime.now()` en tests sensibles a tiempo (recordatorios, expira).
+freezegun>=1.5,<2
