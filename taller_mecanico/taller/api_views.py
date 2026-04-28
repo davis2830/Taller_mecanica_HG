@@ -84,7 +84,14 @@ class ActualizarEstadoOrdenView(APIView):
 
             # Disparar Celery mails asíncronamente, después del commit para que el
             # worker vea el nuevo estado ya persistido (evita race con @transaction.atomic).
-            if hasattr(orden, 'cita') and orden.cita and orden.cita.cliente.email:
+            #
+            # Importante: NO gateamos por `cita.cliente.email`. La tarea
+            # `enviar_correo_cita_task` despacha WhatsApp y correo en paralelo;
+            # un cliente puede tener teléfono pero no email y aun así debe
+            # recibir su WhatsApp si el canal está habilitado. La función
+            # `enviar_email_cita` ya omite el correo internamente cuando no
+            # hay email del cliente, así que no se duplica trabajo.
+            if hasattr(orden, 'cita') and orden.cita:
                 cita_id = orden.cita.id
                 from citas.tasks import enviar_correo_cita_task
 
@@ -362,13 +369,21 @@ class ProcesarFacturaView(APIView):
             orden.cita.estado = 'COMPLETADA'
             orden.cita.save()
 
-        # Disparar correos async (si están configurados)
+        # Disparar correos / WhatsApp async (si están configurados).
+        #
+        # Importante:
+        #   - `enviar_factura_task` SÍ requiere email (manda PDF al cliente).
+        #   - `enviar_correo_cita_task('encuesta')` despacha WhatsApp en
+        #     paralelo al correo, así que se llama incluso si el cliente no
+        #     tiene email registrado. La propia función `enviar_email_cita`
+        #     decide internamente qué canales abrir.
         try:
             from facturacion.tasks import enviar_factura_task
             from citas.tasks import enviar_correo_cita_task
             cliente = orden.cita.cliente if orden.cita else None
-            if cliente and cliente.email:
-                enviar_factura_task.delay(factura.id, cliente.email)
+            if cliente:
+                if cliente.email:
+                    enviar_factura_task.delay(factura.id, cliente.email)
                 enviar_correo_cita_task.delay(orden.cita.id, 'encuesta')
         except Exception as e:
             print(f'[INFO] Celery email skipped: {e}')

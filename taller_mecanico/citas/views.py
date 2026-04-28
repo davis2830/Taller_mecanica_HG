@@ -287,25 +287,29 @@ def nueva_cita(request, fecha, categoria):
                     enviado=False
                 )
 
-                # Migrado a Tarea Asíncrona (Celery)
+                # Migrado a Tarea Asíncrona (Celery).
+                # No gateamos por email: la tarea despacha también WhatsApp,
+                # así que clientes con teléfono pero sin email igual reciben
+                # la notificación. `enviar_email_cita` omite el correo
+                # internamente cuando no hay email registrado.
                 cliente_email = cita.cliente.email if cita.cliente else None
-                if cliente_email:
-                    # Enviar indicación a Celery de forma instantánea
+                if cita.cliente:
                     enviar_correo_cita_task.delay(cita.id, 'confirmacion')
-                    
+
                     # Como es asíncrono, daremos por hecho que Celery enviará la confirmación
                     # y marcamos la notificación de antemano para UX.
                     notificacion = Notificacion.objects.filter(cita=cita, tipo='CONFIRMACION').first()
                     if notificacion:
                         notificacion.enviado = True
                         notificacion.save()
+                if cliente_email:
                     messages.success(request, f'Cita agendada correctamente. Confirmación enviada a {cliente_email}.')
                 else:
                     messages.success(request, 'Cita agendada correctamente.')
                     if usuario_es_staff:
-                        messages.info(request, 'El cliente no tiene email registrado; no se envió confirmación.')
+                        messages.info(request, 'El cliente no tiene email registrado; se intentará enviar confirmación por WhatsApp si está habilitado.')
                     else:
-                        messages.info(request, 'No tienes email registrado. Actualiza tu perfil para recibir confirmaciones.')
+                        messages.info(request, 'No tienes email registrado. Actualiza tu perfil para recibir confirmaciones por correo.')
 
                 return redirect('mis_citas')
 
@@ -364,6 +368,17 @@ def confirmar_cita_email(request, token):
     elif cita.estado == 'PENDIENTE':
         cita.estado = 'CONFIRMADA'
         cita.save()
+        # Disparar evento `cita_confirmada` (correo + WhatsApp). Como ya
+        # cambiamos `cita.estado` a CONFIRMADA, `_evento_para_tipo` lo
+        # resuelve correctamente. Si Celery está caído, no rompemos la
+        # confirmación visual al cliente — solo logueamos.
+        try:
+            enviar_correo_cita_task.delay(cita.id, 'confirmacion')
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"[magic-link] No se pudo encolar cita_confirmada para cita {cita.id}: {exc}"
+            )
         titulo = '¡Cita confirmada!'
         mensaje = f'Tu cita para {cita.servicio.nombre} quedó confirmada. Te esperamos.'
     elif cita.estado == 'CONFIRMADA':
@@ -584,10 +599,22 @@ def gestionar_cita(request, cita_id):
                     ),
                     enviado=False
                 )
+                # No gateamos por email: la tarea despacha también WhatsApp.
+                # Si la cita pasa de PENDIENTE a CONFIRMADA usamos
+                # 'confirmacion' (que `_evento_para_tipo` resuelve como
+                # `cita_confirmada` cuando `cita.estado != PENDIENTE`).
                 try:
-                    if cita.cliente.email:
-                        print(f"[Celery Queue] Encolando Estado nuevo: {cita.estado} | Email: {cita.cliente.email}")
-                        tipo_email = 'encuesta' if cita.estado == 'COMPLETADA' else 'cambio_estado'
+                    if cita.cliente:
+                        print(f"[Celery Queue] Encolando Estado nuevo: {cita.estado} | Email: {cita.cliente.email or '(sin email)'}")
+                        if cita.estado == 'COMPLETADA':
+                            tipo_email = 'encuesta'
+                        elif (
+                            estado_anterior_bd == 'PENDIENTE'
+                            and cita.estado == 'CONFIRMADA'
+                        ):
+                            tipo_email = 'confirmacion'
+                        else:
+                            tipo_email = 'cambio_estado'
                         # Despachar tarea asíncrona
                         enviar_correo_cita_task.delay(cita.id, tipo_email)
                         # Pre-marcar la notificación como enviada para mejorar la UI
