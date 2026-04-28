@@ -639,7 +639,10 @@ class RecepcionEnviarBoletaView(APIView):
             
             asunto = f'Boleta de Recepción Digital #{str(recepcion.id).zfill(5)} - Taller Mecánico'
             v = recepcion.vehiculo
-            enlace = request.data.get('url', f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')}/citas/recepcion/{recepcion.id}/boleta")
+            from taller_mecanico.url_helpers import spa_url
+            enlace = request.data.get('url') or spa_url(
+                f"/citas/recepcion/{recepcion.id}/boleta", request=request
+            )
             
             mensaje_html = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
