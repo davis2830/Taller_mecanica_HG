@@ -14,8 +14,18 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=Csv())
 
-# URL Base para envío de correos asíncronos y creación de enlaces mágicos
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:8000')
+# URL Base del SPA React (NO del backend Django). Se usa en correos
+# transaccionales, enlaces mágicos y redirects desde vistas Django legacy.
+# En desarrollo el SPA corre con `npm run dev` (Vite) en :5173; en producción
+# debe apuntar al dominio donde se sirve el bundle de React.
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+
+# URL Base del backend Django para enlaces de email que apuntan a vistas
+# server-side (activación de cuenta, magic-link de confirmación de cita,
+# verificación de cambio de correo). Como esos endpoints VIVEN en Django,
+# necesitamos su propia URL pública, distinta de FRONTEND_URL cuando el SPA
+# y el backend están en hosts/puertos diferentes (lo normal en dev).
+BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
 
 
 # Application definition

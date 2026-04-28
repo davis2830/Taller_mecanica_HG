@@ -413,12 +413,20 @@
       <div class="section-divider"></div>
 
       <div class="row">
-        <div class="col-12">
+        <div class="col-md-6">
           <div class="env-field-group" style="margin-bottom:0;">
-            <label class="env-label" for="FRONTEND_URL"><i class="fas fa-link" style="font-size:0.8rem;"></i> URL Base del Sistema (Redirecciones y Correos)</label>
+            <label class="env-label" for="FRONTEND_URL"><i class="fas fa-link" style="font-size:0.8rem;"></i> URL del Frontend (SPA React)</label>
             <input type="url" id="FRONTEND_URL" name="FRONTEND_URL" class="env-input"
-                   value="{{ env.FRONTEND_URL|default:'http://localhost:8000' }}" placeholder="https://misistema.com">
-            <p class="env-hint"><i class="fas fa-info-circle"></i> Esta dirección se inyectará en todos los botones y enlaces mágicos mandados por email (citas, verificaciones de cuenta). Sin slash al final.</p>
+                   value="{{ env.FRONTEND_URL|default:'http://localhost:5173' }}" placeholder="https://app.misistema.com">
+            <p class="env-hint"><i class="fas fa-info-circle"></i> URL pública del SPA React (no del backend Django). En desarrollo es <code>http://localhost:5173</code> (Vite). Se usa en botones de correos para llevar al usuario al SPA. Sin slash al final.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="env-field-group" style="margin-bottom:0;">
+            <label class="env-label" for="BACKEND_URL"><i class="fas fa-server" style="font-size:0.8rem;"></i> URL del Backend (Django)</label>
+            <input type="url" id="BACKEND_URL" name="BACKEND_URL" class="env-input"
+                   value="{{ env.BACKEND_URL|default:'http://localhost:8000' }}" placeholder="https://api.misistema.com">
+            <p class="env-hint"><i class="fas fa-info-circle"></i> URL pública del backend Django (donde corren admin, magic-link de confirmación de cita y activación de cuenta). En desarrollo es <code>http://localhost:8000</code>. Sin slash al final.</p>
           </div>
         </div>
       </div>

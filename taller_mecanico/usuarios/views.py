@@ -14,19 +14,17 @@ from django.conf import settings
 
 from .forms import UserRegisterForm, UserUpdateForm, PerfilUpdateForm, RolForm, AsignarRolForm
 from .models import Rol, Perfil
+from taller_mecanico.url_helpers import redirect_to_spa
+
 
 def _redirect_spa_login(request, query=''):
     """
-    Redirige al login del SPA React. Si FRONTEND_URL no está configurado,
-    cae al login de Django como último recurso (no debería pasar en runtime).
-    `query` se concatena al final, ej. '?verificado=true'.
+    Wrapper histórico — delega en :func:`taller_mecanico.url_helpers.redirect_to_spa`.
+
+    Se mantiene como alias por compatibilidad con call sites internos; código
+    nuevo debería importar ``redirect_to_spa`` directamente.
     """
-    base = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
-    if base:
-        return redirect(f"{base}/login{query}")
-    # Fallback: si no está FRONTEND_URL, intentamos construirla con el host de
-    # la request (útil cuando el SPA está servido detrás del mismo origen).
-    return redirect(f"{request.build_absolute_uri('/').rstrip('/')}/login{query}")
+    return redirect_to_spa('/login', query=query, request=request)
 
 
 def es_admin(user):
@@ -67,12 +65,14 @@ def register(request):
                 # Enviar correo de activación con Token criptográfico
                 from django.urls import reverse
                 from taller_mecanico.email_helpers import get_email_context
+                from taller_mecanico.url_helpers import backend_url
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
+                # `activar_cuenta` es una VISTA Django; el link va al backend.
                 ctx = get_email_context({
                     'user': user,
-                    'base_url': (settings.FRONTEND_URL or '').rstrip('/'),
+                    'base_url': backend_url('/').rstrip('/'),
                     'activar_url': activar_path,
                 })
                 mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
@@ -130,12 +130,13 @@ def reenviar_activacion(request):
                 # Re-enviar correo de activación
                 from django.urls import reverse
                 from taller_mecanico.email_helpers import get_email_context
+                from taller_mecanico.url_helpers import backend_url
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
                 ctx = get_email_context({
                     'user': user,
-                    'base_url': (settings.FRONTEND_URL or '').rstrip('/'),
+                    'base_url': backend_url('/').rstrip('/'),
                     'activar_url': activar_path,
                 })
                 mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
@@ -588,7 +589,7 @@ def configuracion_sistema(request):
         with open(path, 'w', encoding='utf-8') as f:
             f.write(header)
             f.write("# --- Seguridad y Django ---\n")
-            for key in ['SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS', 'FRONTEND_URL']:
+            for key in ['SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS', 'FRONTEND_URL', 'BACKEND_URL']:
                 if key in data:
                     f.write(f"{key}={data[key]}\n")
             f.write("\n# --- Base de Datos ---\n")
@@ -605,7 +606,7 @@ def configuracion_sistema(request):
         
         # Actualizar con los valores del formulario
         campos = [
-            'SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS', 'FRONTEND_URL',
+            'SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS', 'FRONTEND_URL', 'BACKEND_URL',
             'DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT',
             'EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USE_TLS', 'EMAIL_HOST_USER', 'EMAIL_HOST_PASSWORD', 'DEFAULT_FROM_EMAIL',
         ]
@@ -678,11 +679,9 @@ def verificar_email_view(request, token):
     color_principal = '#10b981' if estado == 'ok' else '#dc2626'
     icono = '✓' if estado == 'ok' else '✗'
 
-    # Link al login del frontend React. Usamos FRONTEND_URL configurado en
-    # `.env`; si no está, fallback al mismo host de la request (lo cual
-    # funciona si el SPA está servido en la misma URL del backend).
-    frontend = getattr(settings, 'FRONTEND_URL', '').rstrip('/') or request.build_absolute_uri('/').rstrip('/')
-    login_url = f"{frontend}/login"
+    # Link al login del frontend React. Centralizado en url_helpers.spa_url.
+    from taller_mecanico.url_helpers import spa_url
+    login_url = spa_url('/login', request=request)
 
     html = f"""
     <!DOCTYPE html>

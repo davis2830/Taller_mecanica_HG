@@ -122,10 +122,11 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
     # para que el mensaje de WhatsApp NO se enqueue con el link vacío.
     enlace_confirmar = ''
     if tipo_email == 'confirmacion' and cita.estado == 'PENDIENTE':
-        base_url = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
-        if base_url:
-            token = Signer().sign(str(cita.id))
-            enlace_confirmar = f"{base_url}/citas/confirmar-email/{token}/"
+        # El magic-link es servido por una VISTA Django (citas.views.confirmar_cita_email),
+        # NO por el SPA. Por eso usamos BACKEND_URL, no FRONTEND_URL.
+        from taller_mecanico.url_helpers import backend_url
+        token = Signer().sign(str(cita.id))
+        enlace_confirmar = backend_url(f"/citas/confirmar-email/{token}/")
     # url_encuesta no se rellena hasta que exista el módulo de encuestas.
     url_encuesta = ''
 

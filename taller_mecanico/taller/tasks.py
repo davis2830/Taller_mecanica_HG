@@ -101,8 +101,11 @@ def enviar_aviso_esperando_repuestos_task(self, orden_id):
         if cliente else '—'
     ) or (cliente.username if cliente else '—')
 
-    frontend_url = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
-    detalle_url = f"{frontend_url}/taller/ordenes/{orden.id}" if frontend_url else None
+    # Aviso INTERNO al staff — link al Kanban del SPA. (No existe vista
+    # individual de OT en el SPA todavía; si en el futuro se agrega
+    # `/kanban/orden/<id>`, cambiar aquí.)
+    from taller_mecanico.url_helpers import spa_url
+    detalle_url = spa_url('/kanban')
 
     contexto = get_email_context({
         'orden': orden,
