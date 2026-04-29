@@ -81,3 +81,27 @@ class PublicUser(models.Model):
     @property
     def es_superadmin(self) -> bool:
         return self.rol == self.ROL_SUPERADMIN
+
+    # ----- Compat con DRF / Django (para que IsAuthenticated y similares
+    # traten a PublicUser como user autenticado sin heredar de AbstractUser) -----
+
+    @property
+    def is_authenticated(self) -> bool:  # pragma: no cover - trivial
+        """DRF: IsAuthenticated.has_permission() lo lee."""
+        return True
+
+    @property
+    def is_anonymous(self) -> bool:  # pragma: no cover - trivial
+        return False
+
+    @property
+    def is_active(self) -> bool:  # pragma: no cover - trivial
+        return self.activo
+
+    @property
+    def is_staff(self) -> bool:  # pragma: no cover - trivial
+        """Conveniencia: staff = cualquier PublicUser activo (hoy todos lo son)."""
+        return self.activo
+
+    def get_username(self) -> str:  # pragma: no cover - trivial
+        return self.email

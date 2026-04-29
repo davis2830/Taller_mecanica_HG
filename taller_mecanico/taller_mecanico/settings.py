@@ -125,6 +125,12 @@ AUTHENTICATION_BACKENDS = [
 
 ROOT_URLCONF = 'taller_mecanico.urls'
 
+# URLconf usado cuando la request entra por el schema `public` (i.e. Host
+# como `admin.localhost` o `localhost` sin Domain matcheado). Expone SOLO
+# el panel superadmin SaaS + Django admin, nunca endpoints del taller.
+# Ver `taller_mecanico/public_urls.py` para la lista completa.
+PUBLIC_SCHEMA_URLCONF = 'taller_mecanico.public_urls'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -248,6 +254,10 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # =====================================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        # PublicAdmin primero: si el token trae user_type='public_admin' lo
+        # resuelve a PublicUser; si no, lanza InvalidToken y el siguiente
+        # backend lo procesa como auth.User del taller.
+        'public_admin.auth.PublicAdminJWTAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication', # Para la web actual
     ),
@@ -276,6 +286,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.devinapps\.com$",
+    # Subdomains de tenants en dev (admin.localhost, demo.localhost, etc.)
+    r"^http://[a-z0-9-]+\.localhost(:\d+)?$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 

@@ -92,7 +92,13 @@ class Tenant(TenantMixin):
     def clean(self) -> None:
         super().clean()
         slug_lower = (self.slug or '').lower()
-        if slug_lower in SLUGS_RESERVADOS:
+        # Excepción: el "tenant público" usa slug='public' y schema_name='public'
+        # — es necesario para que django-tenants pueda rutear admin.* y otros
+        # subdominios sin tenant a nuestro PUBLIC_SCHEMA_URLCONF.
+        is_public_tenant = (
+            slug_lower == 'public' and self.schema_name == 'public'
+        )
+        if slug_lower in SLUGS_RESERVADOS and not is_public_tenant:
             raise ValidationError(
                 {'slug': _(f'"{slug_lower}" es un slug reservado del sistema.')}
             )
@@ -103,7 +109,12 @@ class Tenant(TenantMixin):
         if self.slug:
             self.slug = self.slug.lower().strip()
         if not self.schema_name and self.slug:
-            self.schema_name = f'taller_{self.slug.replace("-", "_")}'
+            # Excepción: slug='public' → schema_name='public' (tenant del
+            # schema público, no un taller). Sin prefijo `taller_`.
+            if self.slug == 'public':
+                self.schema_name = 'public'
+            else:
+                self.schema_name = f'taller_{self.slug.replace("-", "_")}'
         self.full_clean()
         super().save(*args, **kwargs)
 
