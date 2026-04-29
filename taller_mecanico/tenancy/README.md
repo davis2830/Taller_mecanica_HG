@@ -119,6 +119,78 @@ def test_creacion_de_tenant_nuevo():
         Tenant.objects.create(...)
 ```
 
+## Setup inicial del SaaS (PR #41c)
+
+Para arrancar el SaaS de cero (local o prod), corré el comando orquestador
+`setup_saas` que crea el superadmin (PublicUser en `public`) **y** el primer
+tenant en una sola corrida — idempotente:
+
+```bash
+python manage.py setup_saas \
+    --superadmin-email steed.galvez@gmail.com \
+    --superadmin-nombre "Steed Gálvez" \
+    --superadmin-password "tu-pass-fuerte" \
+    --tenant-slug demo \
+    --tenant-nombre "Demo Taller" \
+    --tenant-email-contacto demo@autoservipro.com \
+    --dominio-base localhost   # o autoservipro.com en prod
+```
+
+También podés correr los pasos por separado:
+- `python manage.py crear_publicuser <email> <nombre> --password ...`
+- `python manage.py crear_tenant <slug> <nombre> <email_contacto>`
+
+## Helpers tenant-aware en código
+
+PR #41c agrega dos piezas que TODA la app debe usar para no romperse en
+multi-tenant:
+
+### 1. URLs en correos / WhatsApp
+
+Cuando un tenant manda un correo, el link tiene que volver a SU subdominio,
+no al `BACKEND_URL` global. Si fixfast manda un magic-link a
+`autoservipro.com/citas/abc/`, el middleware no encuentra el tenant y la
+confirmación falla.
+
+```python
+# ❌ INCORRECTO en multi-tenant — usa el host global:
+from taller_mecanico.url_helpers import backend_url
+link = backend_url('/citas/abc/')
+
+# ✅ CORRECTO — usa el dominio primario del tenant actual:
+from taller_mecanico.url_helpers import tenant_backend_url, tenant_spa_url
+link = tenant_backend_url('/citas/abc/')
+spa_link = tenant_spa_url('/dashboard')
+```
+
+`tenant_backend_url`/`tenant_spa_url` heredan scheme/puerto de
+`BACKEND_URL`/`FRONTEND_URL` y reemplazan el host por el primary `Domain`
+del tenant actual. Si no hay tenant en contexto (schema `public`, CLI),
+caen al helper global.
+
+### 2. Celery tasks cross-tenant
+
+Una task despachada con `.delay()` corre en el worker SIN saber de qué
+tenant viene. Sus queries irían al schema actual del worker (random,
+posiblemente `public`), mezclando datos.
+
+Solución: `TenantAwareTask` captura `connection.schema_name` al despachar
+(via `apply_async`) y lo restaura al ejecutar (via `__call__`).
+
+```python
+from celery import shared_task
+from taller_mecanico.celery_helpers import TenantAwareTask
+
+@shared_task(base=TenantAwareTask)
+def enviar_correo(cita_id):
+    # Adentro: connection.schema_name es el del tenant que despachó.
+    Cita.objects.get(id=cita_id)  # va al schema correcto.
+```
+
+Toda task nueva DEBE usar `base=TenantAwareTask`. Las existentes ya están
+migradas en PR #41c (`citas/`, `taller/`, `inventario/`, `facturacion/`,
+`usuarios/`, `whatsapp.py`).
+
 ## Agregar un tenant en producción
 
 ```bash

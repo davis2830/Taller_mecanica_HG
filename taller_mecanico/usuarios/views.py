@@ -65,14 +65,16 @@ def register(request):
                 # Enviar correo de activación con Token criptográfico
                 from django.urls import reverse
                 from taller_mecanico.email_helpers import get_email_context
-                from taller_mecanico.url_helpers import backend_url
+                from taller_mecanico.url_helpers import tenant_backend_url
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
                 # `activar_cuenta` es una VISTA Django; el link va al backend.
+                # En multi-tenant, el link tiene que volver al subdominio del
+                # tenant que registró al usuario, no al BACKEND_URL global.
                 ctx = get_email_context({
                     'user': user,
-                    'base_url': backend_url('/').rstrip('/'),
+                    'base_url': tenant_backend_url('/').rstrip('/'),
                     'activar_url': activar_path,
                 })
                 mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
@@ -130,13 +132,13 @@ def reenviar_activacion(request):
                 # Re-enviar correo de activación
                 from django.urls import reverse
                 from taller_mecanico.email_helpers import get_email_context
-                from taller_mecanico.url_helpers import backend_url
+                from taller_mecanico.url_helpers import tenant_backend_url
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
                 ctx = get_email_context({
                     'user': user,
-                    'base_url': backend_url('/').rstrip('/'),
+                    'base_url': tenant_backend_url('/').rstrip('/'),
                     'activar_url': activar_path,
                 })
                 mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
