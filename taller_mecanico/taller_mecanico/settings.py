@@ -149,6 +149,10 @@ WSGI_APPLICATION = 'taller_mecanico.wsgi.application'
 # BASE DE DATOS — Configurada desde el archivo .env
 # =====================================================================
 
+# PostgreSQL es el motor oficial del proyecto (requerido para django-tenants
+# en PR #41b — usa schemas de Postgres para aislar tenants). Los defaults
+# apuntan al docker-compose de `../infra/postgres/` para dev local; en prod
+# se sobrescriben desde el .env del servidor.
 DATABASES = {
     'default': {
         # django_tenants.postgresql_backend es un wrapper del backend oficial
