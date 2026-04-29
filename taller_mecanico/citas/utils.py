@@ -124,9 +124,13 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
     if tipo_email == 'confirmacion' and cita.estado == 'PENDIENTE':
         # El magic-link es servido por una VISTA Django (citas.views.confirmar_cita_email),
         # NO por el SPA. Por eso usamos BACKEND_URL, no FRONTEND_URL.
-        from taller_mecanico.url_helpers import backend_url
+        # En multi-tenant: ``tenant_backend_url`` resuelve al subdominio del
+        # tenant actual (ej. ``fixfast.autoservipro.com``) para que el
+        # middleware lo identifique al hacer click. Cae al BACKEND_URL global
+        # si no hay tenant en contexto (schema ``public``).
+        from taller_mecanico.url_helpers import tenant_backend_url
         token = Signer().sign(str(cita.id))
-        enlace_confirmar = backend_url(f"/citas/confirmar-email/{token}/")
+        enlace_confirmar = tenant_backend_url(f"/citas/confirmar-email/{token}/")
     # url_encuesta no se rellena hasta que exista el módulo de encuestas.
     url_encuesta = ''
 

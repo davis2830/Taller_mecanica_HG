@@ -1,8 +1,9 @@
 from celery import shared_task
+from taller_mecanico.celery_helpers import TenantAwareTask
 from .models import Factura
 from .utils import enviar_email_factura
 
-@shared_task
+@shared_task(base=TenantAwareTask)
 def enviar_factura_task(factura_id, destinatario_email=None):
     try:
         factura = Factura.objects.get(id=factura_id)
@@ -14,7 +15,7 @@ def enviar_factura_task(factura_id, destinatario_email=None):
         return f"Error enviando email para factura {factura_id}: {str(e)}"
 
 
-@shared_task
+@shared_task(base=TenantAwareTask)
 def enviar_recordatorios_cobro_task(test_mode=False):
     """
     Recorre facturas a crédito con saldo pendiente y envía recordatorios al
@@ -86,7 +87,7 @@ def enviar_recordatorios_cobro_task(test_mode=False):
     }
 
 
-@shared_task
+@shared_task(base=TenantAwareTask)
 def actualizar_facturas_vencidas_task():
     """
     Marca como VENCIDA las facturas a crédito cuya fecha_vencimiento ya pasó
