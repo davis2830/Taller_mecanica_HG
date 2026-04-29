@@ -21,20 +21,15 @@ from __future__ import annotations
 
 from django.utils import timezone
 
-from taller_mecanico.url_helpers import (
-    backend_url,
-    spa_url,
-    tenant_backend_url,
-    tenant_spa_url,
-)
+from taller_mecanico.url_helpers import backend_url, spa_url
 
 
 def _abs_logo_url(logo_field) -> str | None:
     """
     Devuelve URL absoluta del logo. Si el ImageField está vacío, None.
     Si la URL ya es absoluta (empieza con http), la devuelve tal cual.
-    Si es relativa, la prefija con la URL del tenant — el logo está en
-    /media/ que sirve Django, y cada tenant lo tiene en su subdominio.
+    Si es relativa, la prefija con BACKEND_URL — el logo está en /media/
+    que sirve Django, no el SPA.
     """
     if not logo_field:
         return None
@@ -44,7 +39,7 @@ def _abs_logo_url(logo_field) -> str | None:
         return None
     if url.startswith('http://') or url.startswith('https://'):
         return url
-    return tenant_backend_url(url)
+    return backend_url(url)
 
 
 def get_email_context(extra: dict | None = None) -> dict:
@@ -73,11 +68,8 @@ def get_email_context(extra: dict | None = None) -> dict:
         # `frontend_url` apunta al SPA (botones tipo "Ver mis citas").
         # `backend_url` apunta al backend (links a vistas Django como
         # admin o magic-links). Los templates eligen según corresponda.
-        # En multi-tenant, ambos resuelven al subdominio del tenant actual
-        # (ej. ``fixfast.autoservipro.com``); fuera de tenant context
-        # (schema ``public``, CLI), caen al global.
-        'frontend_url': tenant_spa_url('/').rstrip('/'),
-        'backend_url': tenant_backend_url('/').rstrip('/'),
+        'frontend_url': spa_url('/').rstrip('/'),
+        'backend_url': backend_url('/').rstrip('/'),
         'ahora': timezone.now(),
     }
     if extra:

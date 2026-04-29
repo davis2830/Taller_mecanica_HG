@@ -1,11 +1,9 @@
 from celery import shared_task
 from django.core.management import call_command
-from taller_mecanico.celery_helpers import TenantAwareTask
 from .models import Cita
 from .utils import enviar_email_cita
 
-
-@shared_task(base=TenantAwareTask)
+@shared_task
 def enviar_correo_cita_task(cita_id, tipo_email):
     try:
         cita = Cita.objects.get(id=cita_id)
@@ -17,7 +15,7 @@ def enviar_correo_cita_task(cita_id, tipo_email):
         return f"Error enviando email para cita {cita_id}: {str(e)}"
 
 
-@shared_task(base=TenantAwareTask)
+@shared_task
 def enviar_recordatorios_citas_task():
     """
     Envuelve el management command `enviar_recordatorios` para que pueda
