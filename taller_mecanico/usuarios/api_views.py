@@ -282,14 +282,16 @@ class RegistroUsuarioView(APIView):
 
                 from django.urls import reverse
                 from taller_mecanico.email_helpers import get_email_context
-                from taller_mecanico.url_helpers import backend_url
+                from taller_mecanico.url_helpers import tenant_backend_url
                 activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
                 # `activar_cuenta` es una VISTA Django (server-side); usamos
                 # BACKEND_URL para que el link funcione aunque FRONTEND_URL
                 # apunte a otro host (ej. SPA en :5173).
+                # En multi-tenant, ``tenant_backend_url`` devuelve la URL del
+                # subdominio del tenant actual (ej. ``fixfast.autoservipro.com``).
                 ctx = get_email_context({
                     'user': user,
-                    'base_url': backend_url('/').rstrip('/'),
+                    'base_url': tenant_backend_url('/').rstrip('/'),
                     'activar_url': activar_path,
                 })
                 mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
