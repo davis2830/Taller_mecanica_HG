@@ -108,8 +108,10 @@ class TestEnviarEmailCita:
     ):
         """
         Cuando la cita está PENDIENTE, el correo + WhatsApp deben llevar un
-        magic-link firmado a `BACKEND_URL/citas/confirmar-email/<token>/`.
-        Verifica que el link NO apunte al SPA (regresión PR #39).
+        magic-link firmado a la URL backend del tenant. En multi-tenant,
+        ``tenant_backend_url`` resuelve al subdominio del tenant actual
+        (host ``testserver`` en conftest), heredando scheme/puerto de
+        ``BACKEND_URL``. Verifica que el link NO apunte al SPA (regresión PR #39).
         """
         settings.BACKEND_URL = 'http://api.test'
         settings.FRONTEND_URL = 'http://spa.test'
@@ -124,11 +126,12 @@ class TestEnviarEmailCita:
 
         assert len(mail.outbox) == 1
         body = mail.outbox[0].alternatives[0][0]  # HTML
-        assert 'http://api.test/citas/confirmar-email/' in body
+        # Host del tenant ``test``; scheme heredado de BACKEND_URL.
+        assert 'http://testserver/citas/confirmar-email/' in body
         # El correo NO debe incluir el link pointing al SPA en el CTA.
         assert 'http://spa.test/citas/confirmar-email' not in body
 
         # WhatsApp también recibe el enlace correcto.
         assert len(capturar_whatsapp) == 1
         params = capturar_whatsapp[0][0][2]
-        assert params['enlace_confirmar'].startswith('http://api.test/citas/confirmar-email/')
+        assert params['enlace_confirmar'].startswith('http://testserver/citas/confirmar-email/')
