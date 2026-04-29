@@ -26,6 +26,10 @@ pytestmark = [pytest.mark.django_db, pytest.mark.email]
 
 class TestRegistro:
     def test_crea_usuario_inactivo_y_envia_email_de_activacion(self, settings):
+        # En multi-tenant, el link de activación apunta al subdominio del
+        # tenant que registró al usuario. ``tenant_backend_url`` deriva el
+        # scheme/puerto de ``BACKEND_URL`` y el host del Domain primario
+        # del tenant actual.
         settings.BACKEND_URL = 'http://api.test'
         settings.FRONTEND_URL = 'http://spa.test'
         # Campos del `UserRegisterForm` real (ver usuarios/forms.py):
@@ -56,9 +60,11 @@ class TestRegistro:
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert 'nuevo@test.taller' in email.to
-        # Link de activación usa BACKEND_URL (no SPA).
+        # Link de activación usa tenant_backend_url → host del Domain primario
+        # del tenant actual (``testserver`` en conftest), scheme de BACKEND_URL.
+        # NUNCA debe apuntar al SPA (FRONTEND_URL=spa.test).
         body = email.alternatives[0][0] if email.alternatives else email.body
-        assert 'http://api.test/usuarios/activar/' in body
+        assert 'http://testserver/usuarios/activar/' in body
         assert 'http://spa.test/usuarios/activar/' not in body
 
 
