@@ -28,29 +28,72 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
 
 
-# Application definition
+# =====================================================================
+# MULTI-TENANCY (django-tenants) — PR #41b
+# =====================================================================
+# Cada taller cliente vive en su propio schema Postgres. El schema `public`
+# es compartido (modelos SaaS: Tenant, Domain, PublicUser).
+#
+# SHARED_APPS: modelos que viven en `public` (una sola tabla global).
+# TENANT_APPS: modelos que viven en cada schema de taller (tabla por tenant).
+#
+# INSTALLED_APPS = SHARED_APPS + apps en TENANT_APPS que no estén ya en SHARED.
+# django-tenants requiere que `django_tenants` sea la PRIMERA en SHARED_APPS.
 
-INSTALLED_APPS = [
+SHARED_APPS = [
+    'django_tenants',  # OBLIGATORIO primero.
+    'tenancy',         # Modelos Tenant + Domain (SaaS).
+    'public_admin',    # Modelo PublicUser (superadmin SaaS).
+    # Django core que django-tenants recomienda compartir:
+    'django.contrib.contenttypes',  # Obligatorio en SHARED (migrations framework).
+]
+
+TENANT_APPS = [
+    # Django core que va por tenant:
     'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
+    'django.contrib.auth',          # auth_user por tenant → cada taller sus usuarios.
+    'django.contrib.sessions',      # Sesiones scoped al tenant.
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    # Apps de negocio del taller:
     'usuarios',
     'citas',
     'inventario',
     'taller',
-    'facturacion',  # Nueva app añadida
-    'crispy_forms',
-    'crispy_bootstrap4',
+    'facturacion',
+    # Apps de terceros con modelos que necesitan estar por tenant
+    # (ej. django_celery_results guarda resultados de tasks que son del tenant):
     'django_apscheduler',
     'django_celery_results',
+]
+
+# Apps sin modelos (o con modelos que no necesitan schema) pueden ir en
+# ambos listados o solo en uno. Estas van sin migraciones problemáticas:
+APPS_SIN_MODELOS = [
+    'crispy_forms',
+    'crispy_bootstrap4',
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
 ]
+
+INSTALLED_APPS = list(SHARED_APPS) + [
+    app for app in TENANT_APPS if app not in SHARED_APPS
+] + APPS_SIN_MODELOS
+
+# django-tenants: qué modelo es el Tenant y cuál es el Domain.
+TENANT_MODEL = 'tenancy.Tenant'
+TENANT_DOMAIN_MODEL = 'tenancy.Domain'
+
+# Cuando una request no matchea ningún dominio, por default django-tenants
+# devuelve 404. En dev preferimos redirect al subdomain `public` para que
+# el superadmin dashboard sea accesible en `localhost:8000` sin subdomain.
+# (Futuro — por ahora dejamos el default 404).
+
+# Router de base de datos: django-tenants elige el schema correcto según
+# el middleware setee `connection.tenant`.
+DATABASE_ROUTERS = ['django_tenants.routers.TenantSyncRouter']
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
@@ -60,6 +103,10 @@ LOGIN_URL = '/usuarios/login/'
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
 
 MIDDLEWARE = [
+    # TenantMainMiddleware DEBE ir primero: resuelve el subdomain → tenant →
+    # setea `connection.set_schema()` antes de cualquier otra lógica que
+    # consulte modelos.
+    'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'usuarios.tunnel_auth.XAuthorizationHeaderMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -104,12 +151,15 @@ WSGI_APPLICATION = 'taller_mecanico.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.mysql'),
+        # django_tenants.postgresql_backend es un wrapper del backend oficial
+        # de Postgres que hace `SET search_path` automático según el tenant
+        # actual. Para tests con pytest-django también funciona correctamente.
+        'ENGINE': config('DB_ENGINE', default='django_tenants.postgresql_backend'),
         'NAME': config('DB_NAME', default='taller_mecanico'),
-        'USER': config('DB_USER', default='root'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
+        'USER': config('DB_USER', default='taller_meca'),
+        'PASSWORD': config('DB_PASSWORD', default='taller_meca_dev'),
         'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='3306'),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 
