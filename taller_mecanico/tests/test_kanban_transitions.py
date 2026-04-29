@@ -13,22 +13,14 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
-from django.test import TestCase
 from rest_framework.test import APIClient
 
 
-# La vista `ActualizarEstadoOrdenView` envuelve todo en `@transaction.atomic`
-# y despacha la task con `transaction.on_commit`. En tests con django_db
-# normal (SAVEPOINT/ROLLBACK) los callbacks de `on_commit` NUNCA se disparan.
-# Antes de PR #41b usábamos `transaction=True` pero con django-tenants
-# hacer TRUNCATE cross-schema falla por FK constraints (auth_permission en
-# el schema del tenant referencia django_content_type en public).
-#
-# Solución: usar `TestCase.captureOnCommitCallbacks(execute=True)` que fuerza
-# a Django a ejecutar los callbacks al cerrar el context manager, aunque
-# estemos dentro de un SAVEPOINT. Así mantenemos el rollback rápido y el
-# test sigue validando el dispatch de la task.
-pytestmark = [pytest.mark.django_db, pytest.mark.integration]
+# `transaction=True` es NECESARIO: la vista `ActualizarEstadoOrdenView` envuelve
+# todo en `@transaction.atomic` y despacha la task con `transaction.on_commit`.
+# Con el django_db normal (SAVEPOINT/ROLLBACK) el `on_commit` nunca se dispara,
+# así que las aserciones del mock fallarían aunque el código esté correcto.
+pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.integration]
 
 
 @pytest.fixture
@@ -63,8 +55,7 @@ class TestKanbanTransiciones:
     def test_mover_a_en_revision_dispara_notificacion(self, staff_user, orden_con_cita):
         """EN_ESPERA → EN_REVISION → `enviar_correo_cita_task('en_revision')`."""
         with patch('citas.tasks.enviar_correo_cita_task.delay') as mock_delay:
-            with TestCase.captureOnCommitCallbacks(execute=True):
-                resp = self._mover(staff_user, orden_con_cita, 'EN_REVISION')
+            resp = self._mover(staff_user, orden_con_cita, 'EN_REVISION')
 
         assert resp.status_code == 200, resp.content
         mock_delay.assert_called_once_with(orden_con_cita.cita.id, 'en_revision')
@@ -77,8 +68,7 @@ class TestKanbanTransiciones:
         orden_con_cita.estado = 'EN_REVISION'
         orden_con_cita.save()
         with patch('citas.tasks.enviar_correo_cita_task.delay') as mock_delay:
-            with TestCase.captureOnCommitCallbacks(execute=True):
-                resp = self._mover(staff_user, orden_con_cita, 'COTIZACION')
+            resp = self._mover(staff_user, orden_con_cita, 'COTIZACION')
 
         assert resp.status_code == 200
         mock_delay.assert_called_once_with(orden_con_cita.cita.id, 'cotizacion')
@@ -87,8 +77,7 @@ class TestKanbanTransiciones:
         orden_con_cita.estado = 'COTIZACION'
         orden_con_cita.save()
         with patch('citas.tasks.enviar_correo_cita_task.delay') as mock_delay:
-            with TestCase.captureOnCommitCallbacks(execute=True):
-                resp = self._mover(staff_user, orden_con_cita, 'LISTO')
+            resp = self._mover(staff_user, orden_con_cita, 'LISTO')
 
         assert resp.status_code == 200
         mock_delay.assert_called_once_with(orden_con_cita.cita.id, 'listo')
@@ -102,8 +91,7 @@ class TestKanbanTransiciones:
         orden_con_cita.save()
 
         with patch('citas.tasks.enviar_correo_cita_task.delay') as mock_delay:
-            with TestCase.captureOnCommitCallbacks(execute=True):
-                resp = self._mover(staff_user, orden_con_cita, 'EN_REVISION')
+            resp = self._mover(staff_user, orden_con_cita, 'EN_REVISION')
 
         assert resp.status_code == 200
         mock_delay.assert_not_called()

@@ -8,8 +8,6 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils import timezone
 
-from taller_mecanico.celery_helpers import TenantAwareTask
-
 import logging
 
 from taller_mecanico.email_helpers import get_email_context
@@ -71,7 +69,7 @@ def _datos_ordenes_compra(orden):
     } for oc in ocs]
 
 
-@shared_task(base=TenantAwareTask, bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def enviar_aviso_esperando_repuestos_task(self, orden_id):
     """
     Aviso INTERNO al taller (admin/recepción/superusuarios) cuando una OT
@@ -142,7 +140,7 @@ def enviar_aviso_esperando_repuestos_task(self, orden_id):
             return f"Error tras 3 reintentos: {exc}"
 
 
-@shared_task(base=TenantAwareTask, bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def enviar_aviso_esperando_repuestos_cliente_task(self, orden_id):
     """
     Aviso al CLIENTE cuando su OT pasa a ESPERANDO_REPUESTOS.

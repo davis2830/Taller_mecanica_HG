@@ -21,8 +21,6 @@ from typing import Optional
 from celery import shared_task
 from django.conf import settings
 
-from taller_mecanico.celery_helpers import TenantAwareTask
-
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +188,7 @@ def _send_twilio(evento: str, telefono: str, mensaje: str) -> str:
     return msg.sid
 
 
-@shared_task(base=TenantAwareTask, bind=True, max_retries=2, default_retry_delay=30)
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
 def enviar_whatsapp_task(self, evento: str, telefono: str, params: dict):
     """
     Envía (o simula) un mensaje de WhatsApp para un evento determinado.

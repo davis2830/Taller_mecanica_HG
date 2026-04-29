@@ -11,7 +11,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
-from taller_mecanico.celery_helpers import TenantAwareTask
 from taller_mecanico.email_helpers import get_email_context
 
 
@@ -28,7 +27,7 @@ def _enviar_html(subject, template, context, to_email):
     msg.send(fail_silently=False)
 
 
-@shared_task(base=TenantAwareTask, bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def enviar_email_verificacion_cambio_correo_task(self, email_destino, nombre, link):
     """
     Envía el correo con el link para confirmar el cambio de email al
@@ -51,7 +50,7 @@ def enviar_email_verificacion_cambio_correo_task(self, email_destino, nombre, li
         raise self.retry(exc=exc)
 
 
-@shared_task(base=TenantAwareTask, bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def enviar_aviso_cambio_correo_task(self, email_destino, nombre, email_nuevo):
     """
     Notifica al correo VIEJO que se está intentando cambiar el correo, por
