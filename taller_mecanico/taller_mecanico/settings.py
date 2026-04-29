@@ -102,14 +102,18 @@ WSGI_APPLICATION = 'taller_mecanico.wsgi.application'
 # BASE DE DATOS — Configurada desde el archivo .env
 # =====================================================================
 
+# PostgreSQL es el motor oficial del proyecto (requerido para django-tenants
+# en PR #41b — usa schemas de Postgres para aislar tenants). Los defaults
+# apuntan al docker-compose de `../infra/postgres/` para dev local; en prod
+# se sobrescriben desde el .env del servidor.
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.mysql'),
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
         'NAME': config('DB_NAME', default='taller_mecanico'),
-        'USER': config('DB_USER', default='root'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
+        'USER': config('DB_USER', default='taller_meca'),
+        'PASSWORD': config('DB_PASSWORD', default='taller_meca_dev'),
         'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='3306'),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 
