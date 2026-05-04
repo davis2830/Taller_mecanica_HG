@@ -234,6 +234,26 @@ class TestTenantCRUD:
         )
         assert resp.status_code == 400
 
+    def test_crear_tenant_con_slug_prefijo_taller_es_400(
+        self, api_client, superadmin, public_domain
+    ):
+        """Evita el doble prefijo `taller_taller_<slug>` en el schema."""
+        c = _auth_client(api_client, superadmin, public_domain)
+        for slug in ('taller-asis7', 'taller_asis7', 'TALLER-asis7'):
+            resp = c.post(
+                '/api/v1/public-admin/tenants/',
+                {
+                    'slug': slug,
+                    'nombre': 'X',
+                    'email_contacto': 'x@x.com',
+                },
+                format='json',
+            )
+            assert resp.status_code == 400, f'esperaba 400 para slug={slug!r}'
+            assert 'slug' in resp.data
+            # La sugerencia debe incluir el slug limpio sin el prefijo.
+            assert 'asis7' in str(resp.data['slug']).lower()
+
     def test_superadmin_puede_desactivar_tenant_via_action(
         self, api_client, superadmin, public_domain
     ):

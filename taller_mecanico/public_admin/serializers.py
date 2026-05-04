@@ -60,6 +60,15 @@ class TenantSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f'"{slug}" es un slug reservado del sistema.'
             )
+        # Evita el doble prefijo "taller_taller_<slug>" en el schema: el
+        # `taller_` lo agrega `Tenant.save()`, así que el slug ya no debería
+        # incluirlo. Damos una sugerencia útil al usuario.
+        if slug.startswith(('taller-', 'taller_')):
+            sugerencia = slug.split('-', 1)[-1].split('_', 1)[-1]
+            raise serializers.ValidationError(
+                f'No usar el prefijo "taller-"/"taller_" — se agrega '
+                f'automáticamente al schema. Usá "{sugerencia}" en su lugar.'
+            )
         return slug
 
 

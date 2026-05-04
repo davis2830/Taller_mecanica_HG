@@ -102,6 +102,17 @@ class Tenant(TenantMixin):
             raise ValidationError(
                 {'slug': _(f'"{slug_lower}" es un slug reservado del sistema.')}
             )
+        # Evitar doble prefijo en el schema: el slug "taller-foo" derivaría
+        # `schema_name='taller_taller_foo'` (porque agregamos `taller_` al
+        # guardar). Forzamos al usuario a escribir solo el sufijo.
+        if slug_lower.startswith(('taller-', 'taller_')):
+            sugerencia = slug_lower.split('-', 1)[-1].split('_', 1)[-1]
+            raise ValidationError({
+                'slug': _(
+                    f'No usar el prefijo "taller-"/"taller_" — se agrega '
+                    f'automáticamente al schema. Usá "{sugerencia}" en su lugar.'
+                )
+            })
 
     def save(self, *args, **kwargs) -> None:
         # Normalizamos slug y derivamos schema_name. Schema en Postgres
