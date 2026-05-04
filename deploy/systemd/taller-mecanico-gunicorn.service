@@ -1,0 +1,29 @@
+[Unit]
+Description=Gunicorn — Taller Mecanico SaaS (Django backend)
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=notify
+User=taller
+Group=taller
+WorkingDirectory=/srv/taller-mecanico/taller_mecanico
+EnvironmentFile=/srv/taller-mecanico/taller_mecanico/.env
+ExecStart=/srv/taller-mecanico/taller_mecanico/venv/bin/gunicorn \
+    --config /srv/taller-mecanico/taller_mecanico/gunicorn.conf.py \
+    taller_mecanico.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+
+# Logs van a journald (verlos con: journalctl -u taller-mecanico-gunicorn)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
