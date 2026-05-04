@@ -22,12 +22,18 @@ export default function TenantFormModal({ onClose, onSaved }) {
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
 
+    // Slugifica un texto: lowercase, sin caracteres especiales, espacios → '-'.
+    // Adicionalmente strippea el prefijo redundante "taller-" / "taller " que
+    // el usuario tiende a tipear en el nombre comercial. El backend agrega
+    // "taller_" al schema_name automáticamente, por lo que repetirlo en el
+    // slug deriva en "taller_taller_<slug>" (feo y validamos contra eso).
     const slugify = (text) =>
         text.toLowerCase()
             .trim()
             .replace(/[^a-z0-9\s-]/g, '')
             .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
+            .replace(/-+/g, '-')
+            .replace(/^taller[-_]+/, '');
 
     const handleNombreChange = (e) => {
         const val = e.target.value;
@@ -115,6 +121,11 @@ export default function TenantFormModal({ onClose, onSaved }) {
                         <p className="mt-1 text-xs text-slate-500">
                             Schema en Postgres: <span className="font-mono">taller_{slug.replace(/-/g, '_') || '…'}</span>
                         </p>
+                        {/^taller[-_]/.test(slug) && (
+                            <p className="mt-1 text-xs text-amber-300">
+                                No incluir "taller-" en el slug — ya se agrega al schema.
+                            </p>
+                        )}
                         {fieldError('slug') && <p className="mt-1 text-xs text-red-300">{fieldError('slug')}</p>}
                     </label>
 
