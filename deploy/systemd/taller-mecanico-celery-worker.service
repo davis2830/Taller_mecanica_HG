@@ -1,0 +1,29 @@
+[Unit]
+Description=Celery worker — Taller Mecanico SaaS
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=taller
+Group=taller
+WorkingDirectory=/srv/taller-mecanico/taller_mecanico
+EnvironmentFile=/srv/taller-mecanico/taller_mecanico/.env
+ExecStart=/srv/taller-mecanico/taller_mecanico/venv/bin/celery \
+    -A taller_mecanico worker \
+    --loglevel=info \
+    --concurrency=4 \
+    --max-tasks-per-child=200
+KillMode=mixed
+TimeoutStopSec=60
+Restart=on-failure
+RestartSec=10
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

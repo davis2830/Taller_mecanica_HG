@@ -1,0 +1,32 @@
+[Unit]
+Description=Celery beat (scheduler) — Taller Mecanico SaaS
+After=network.target postgresql.service redis-server.service taller-mecanico-celery-worker.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=taller
+Group=taller
+WorkingDirectory=/srv/taller-mecanico/taller_mecanico
+EnvironmentFile=/srv/taller-mecanico/taller_mecanico/.env
+# django-celery-beat usa la DB como scheduler; --pidfile evita locks duplicados
+ExecStart=/srv/taller-mecanico/taller_mecanico/venv/bin/celery \
+    -A taller_mecanico beat \
+    --loglevel=info \
+    --scheduler django_celery_beat.schedulers:DatabaseScheduler \
+    --pidfile=/run/taller-mecanico-celery-beat.pid
+RuntimeDirectory=taller-mecanico
+PIDFile=/run/taller-mecanico-celery-beat.pid
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=10
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

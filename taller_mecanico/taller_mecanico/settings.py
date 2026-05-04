@@ -197,6 +197,10 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# STATIC_ROOT — destino de `collectstatic` en producción.
+# Nginx sirve directamente desde acá (ver deploy/nginx/gctorque.conf).
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
@@ -235,12 +239,17 @@ WHATSAPP_DEFAULT_COUNTRY_CODE = config('WHATSAPP_DEFAULT_COUNTRY_CODE', default=
 # =====================================================================
 # CELERY — Configuración
 # =====================================================================
-CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+# Configurable via .env. Default: RabbitMQ local (compat con setup dev existente).
+# En producción usamos Redis (ver deploy/env/.env.production.example).
+CELERY_BROKER_URL = config(
+    'CELERY_BROKER_URL',
+    default='amqp://guest:guest@localhost:5672//',
+)
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='django-db')
 CELERY_CACHE_BACKEND = 'django-cache'
 # Desactiva las colas temporales de control y eventos (Sintaxis Celery 5+)
 CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
@@ -288,6 +297,8 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.devinapps\.com$",
     # Subdomains de tenants en dev (admin.localhost, demo.localhost, etc.)
     r"^http://[a-z0-9-]+\.localhost(:\d+)?$",
+    # Subdomains en .test (uso local con hosts file).
+    r"^http://[a-z0-9-]+\.taller\.test(:\d+)?$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -297,3 +308,17 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "https://*.devinapps.com",
 ]
+
+# Dominio raíz de producción — agrega CORS regex + CSRF trusted dinámicamente.
+# Setealo en .env como PROD_DOMAIN=gctorque.com (sin protocolo ni subdomain).
+_PROD_DOMAIN = config('PROD_DOMAIN', default='')
+if _PROD_DOMAIN:
+    import re
+    _escaped = re.escape(_PROD_DOMAIN)
+    CORS_ALLOWED_ORIGIN_REGEXES.append(
+        rf"^https://([a-z0-9-]+\.)?{_escaped}$"
+    )
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"https://{_PROD_DOMAIN}",
+        f"https://*.{_PROD_DOMAIN}",
+    ])
