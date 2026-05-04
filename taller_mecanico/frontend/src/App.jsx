@@ -5,6 +5,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { MarcaProvider } from './context/MarcaContext';
 import Layout from './components/Layout';
 import routes from './config/routes';
+import adminRoutes from './config/adminRoutes';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminLogin from './pages/admin/AdminLogin';
 
 /**
  * PrivateRoute - Componente para proteger rutas
@@ -19,15 +22,51 @@ const PrivateRoute = ({ children, isPrivate }) => {
 };
 
 /**
- * AppRoutes - Componente que renderiza todas las rutas
- * Lee desde config/routes.js
+ * AdminAppRoutes - Rutas del panel superadmin SaaS.
+ * Se monta cuando AuthContext.isAdminMode === true.
  */
-function AppRoutes() {
+function AdminAppRoutes() {
     const { user } = useContext(AuthContext);
 
     return (
         <Routes>
-            {/* Generar rutas dinámicamente desde routes.js */}
+            {/* Login público sin AdminLayout */}
+            <Route
+                path="/login"
+                element={user ? <Navigate to="/" /> : <AdminLogin />}
+            />
+
+            {/* Rutas privadas con AdminLayout + Outlet */}
+            <Route
+                element={
+                    user ? <AdminLayout /> : <Navigate to="/login" />
+                }
+            >
+                {adminRoutes
+                    .filter((r) => r.private)
+                    .map((route) => (
+                        <Route
+                            key={route.path}
+                            path={route.path}
+                            element={<route.element />}
+                        />
+                    ))}
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+    );
+}
+
+/**
+ * TenantAppRoutes - Rutas del dashboard del taller (modo normal).
+ * Lee desde config/routes.js.
+ */
+function TenantAppRoutes() {
+    const { user } = useContext(AuthContext);
+
+    return (
+        <Routes>
             {routes.map((route) => {
                 // Si es una ruta privada y el usuario está en login, redirigir a dashboard
                 if (!route.private && user && route.path === '/login') {
@@ -66,6 +105,15 @@ function AppRoutes() {
             <Route path="*" element={<Navigate to="/" />} />
         </Routes>
     );
+}
+
+/**
+ * AppRoutes - Router principal. Switchea entre modo tenant (taller) y
+ * modo admin (panel SaaS) según ``AuthContext.isAdminMode``.
+ */
+function AppRoutes() {
+    const { isAdminMode } = useContext(AuthContext);
+    return isAdminMode ? <AdminAppRoutes /> : <TenantAppRoutes />;
 }
 
 /**
