@@ -12,10 +12,25 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
+    // IMPORTANTE: usar la forma objeto con `changeOrigin: false` (default
+    // de http-proxy) para PRESERVAR el Host header del browser al pasar
+    // por el proxy. Vite, cuando recibe la forma string, setea
+    // `changeOrigin: true` automáticamente y reescribe Host a la URL
+    // del target → django-tenants ve `Host: localhost` y no encuentra
+    // el tenant correcto (`admin.*` o `<tenant>.*`) → 404 en login.
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/media': 'http://localhost:8000',
-      '/static': 'http://localhost:8000',
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: false,
+      },
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: false,
+      },
+      '/static': {
+        target: 'http://localhost:8000',
+        changeOrigin: false,
+      },
     },
   },
   // Vitest: configuración de tests unitarios / componentes.
