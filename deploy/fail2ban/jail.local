@@ -1,0 +1,70 @@
+# /etc/fail2ban/jail.local — overrides locales (no tocar jail.conf upstream).
+#
+# Instalación:
+#   sudo cp deploy/fail2ban/jail.local /etc/fail2ban/jail.local
+#   sudo cp deploy/fail2ban/filter.d/*.conf /etc/fail2ban/filter.d/
+#   sudo systemctl restart fail2ban
+#   sudo fail2ban-client status
+#
+# Ver IPs banneadas: sudo fail2ban-client status sshd
+# Desbanear IP:      sudo fail2ban-client set sshd unbanip <IP>
+
+[DEFAULT]
+# Ignorar localhost y la IP de tu oficina (agregá la tuya con `whatismyip`).
+ignoreip = 127.0.0.1/8 ::1
+# Tiempos: 1h ban después de 5 fails dentro de 10min.
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+# Backend para parsear logs (auto detecta journald/file).
+backend  = auto
+# Email para alertas (configurar mta = sendmail si querés notificaciones).
+destemail = steed.galvez@gmail.com
+sender    = fail2ban@gctorque.com
+mta       = sendmail
+action    = %(action_)s
+
+# ─────────────────────────────────────────────────────────────────────
+# SSH — protege contra brute-force al puerto 22
+# ─────────────────────────────────────────────────────────────────────
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = %(sshd_log)s
+backend  = %(sshd_backend)s
+maxretry = 3
+bantime  = 24h
+
+# ─────────────────────────────────────────────────────────────────────
+# Nginx — IPs que disparan rate-limit demasiadas veces
+# ─────────────────────────────────────────────────────────────────────
+[nginx-limit-req]
+enabled  = true
+filter   = nginx-limit-req
+port     = http,https
+logpath  = /var/log/nginx/*error.log
+maxretry = 10
+findtime = 10m
+bantime  = 2h
+
+# ─────────────────────────────────────────────────────────────────────
+# Nginx — bots conocidos buscando exploits (wp-admin, .env, .git, etc.)
+# ─────────────────────────────────────────────────────────────────────
+[nginx-badbots]
+enabled  = true
+filter   = nginx-badbots
+port     = http,https
+logpath  = /var/log/nginx/*access.log
+maxretry = 2
+findtime = 1h
+bantime  = 24h
+
+# ─────────────────────────────────────────────────────────────────────
+# Django — login fallido al panel admin (logueado por la app)
+# ─────────────────────────────────────────────────────────────────────
+# Requiere logging de Django para emitir un error específico cuando hay
+# login fallido. Por ahora deshabilitado — el throttle de DRF + el rate
+# limit de Nginx cubren el escenario realista.
+# [django-auth]
+# enabled = false

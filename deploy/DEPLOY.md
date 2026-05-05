@@ -381,6 +381,30 @@ Abrí en browser:
 
 ---
 
+## Paso 5.5 — Hardening de seguridad (IMPORTANTE — leelo antes de exponer al cliente)
+
+Una vez que la app está funcionando, **endurecé el server** antes de
+darle el dominio a clientes reales:
+
+```
+deploy/SECURITY.md
+```
+
+Cubre:
+- Firewall (UFW) — solo 22/80/443 abiertos
+- fail2ban — anti brute-force SSH + Nginx rate-limit + bots
+- SSH key-only (deshabilitar password)
+- Updates automáticos del SO
+- Hardening de Nginx (rate limit en login, headers de seguridad, SSL hardened)
+- Hardening de Django (`SECURE_PROD=True`)
+- Endurecer Redis (bind localhost + password)
+- Backups diarios de Postgres
+- Healthcheck endpoint + monitoreo
+
+Tiempo estimado: **30-45 min**.
+
+---
+
 ## Paso 6 — Custom domains (clientes premium)
 
 Cuando un cliente quiera usar SU PROPIO dominio (ej. `tallerjuan.com.ar`):

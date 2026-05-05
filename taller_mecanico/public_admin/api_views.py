@@ -18,6 +18,7 @@ from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from public_admin.auth import PublicAdminTokenSerializer, USER_TYPE_PUBLIC_ADMIN
@@ -43,6 +44,10 @@ class PublicAdminTokenView(GenericAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = PublicAdminTokenSerializer
+    # Throttle agresivo en login para prevenir brute-force.
+    # Rate configurable via THROTTLE_LOGIN env var (default: 10/min).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request) -> Response:
         serializer = self.get_serializer(data=request.data)
