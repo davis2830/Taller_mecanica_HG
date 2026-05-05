@@ -231,6 +231,42 @@ python manage.py collectstatic --noinput
 BASH
 ```
 
+### 2.3 Crear `auth.User` adentro del schema `taller_demo`
+
+> El paso 2.2 crea el **superadmin del panel SaaS** (`PublicUser`, vive en el schema `public`) — ese es el que se loguea en `https://admin.gctorque.com`.
+>
+> Para loguearte en el TALLER `https://demo.gctorque.com` necesitás un **`auth.User` separado** que vive ADENTRO del schema `taller_demo`. Son dos modelos distintos en schemas distintos.
+
+```bash
+sudo -u taller bash <<'BASH'
+cd /srv/taller-mecanico/taller_mecanico
+source venv/bin/activate
+
+python manage.py shell <<'PY'
+from django_tenants.utils import schema_context
+from django.contrib.auth.models import User
+
+with schema_context('taller_demo'):
+    u, created = User.objects.get_or_create(
+        username='demoadmin',
+        defaults={
+            'email': 'demo@gctorque.com',
+            'first_name': 'Demo',
+            'last_name': 'Admin',
+            'is_staff': True,
+            'is_superuser': True,
+            'is_active': True,
+        },
+    )
+    u.set_password('CAMBIAME_PASSWORD_DEMO')
+    u.save()
+    print(f"User {'creado' if created else 'actualizado'}: {u.email} en taller_demo")
+PY
+BASH
+```
+
+> **Repetí este paso por cada tenant nuevo** que creás en el panel admin. Más adelante el panel SaaS puede ofrecer crear el primer admin del taller en el flujo de alta, pero hoy se hace manual.
+
 ---
 
 ## Paso 3 — Gunicorn + systemd
@@ -444,7 +480,49 @@ Gunicorn caído. `sudo systemctl status taller-mecanico-gunicorn` y `sudo journa
 ### "404 No tenant for hostname" en login
 Falta el `Domain` en la tabla. Verificalo con:
 ```bash
-python manage.py shell -c "from tenancy.models import Domain; [print(d.domain, '->', d.tenant.schema_name) for d in Domain.objects.all()]"
+sudo -u taller bash -c "cd /srv/taller-mecanico/taller_mecanico && \
+    source venv/bin/activate && \
+    python manage.py shell -c \"from tenancy.models import Domain; [print(d.domain, '->', d.tenant.schema_name) for d in Domain.objects.all()]\""
+```
+
+Si falta `admin.gctorque.com`:
+```bash
+sudo -u taller bash -c "cd /srv/taller-mecanico/taller_mecanico && \
+    source venv/bin/activate && \
+    python manage.py setup_admin_domain --host admin.gctorque.com"
+```
+
+Si falta el subdomain de un tenant (ej. `demo.gctorque.com`):
+```bash
+sudo -u taller bash <<'BASH'
+cd /srv/taller-mecanico/taller_mecanico
+source venv/bin/activate
+python manage.py shell <<'PY'
+from tenancy.models import Tenant, Domain
+t = Tenant.objects.get(schema_name='taller_demo')
+Domain.objects.get_or_create(
+    domain='demo.gctorque.com',
+    defaults={'tenant': t, 'is_primary': True},
+)
+print("OK")
+PY
+BASH
+```
+
+> django-tenants NO cachea la tabla `Domain` — los cambios surten efecto en el siguiente request, sin reiniciar Gunicorn.
+
+### "Credenciales inválidas" en panel admin pero usuario existe
+Verificá que el `PublicUser` (NO `auth.User`) tiene la password correcta:
+```bash
+sudo -u taller bash -c "cd /srv/taller-mecanico/taller_mecanico && \
+    source venv/bin/activate && \
+    python manage.py shell <<'PY'
+from public_admin.models import PublicUser
+u = PublicUser.objects.get(email='steed.galvez@gmail.com')
+u.set_password('NUEVA_PASSWORD')
+u.save()
+print(f'Password actualizada para {u.email}')
+PY"
 ```
 
 ### Cert SSL expira
