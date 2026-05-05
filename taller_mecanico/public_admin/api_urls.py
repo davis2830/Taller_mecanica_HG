@@ -8,9 +8,17 @@ from __future__ import annotations
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from public_admin import api_views
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    """Refresh con rate-limit \u2014 misma tasa que login."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
 
 router = DefaultRouter()
@@ -22,7 +30,7 @@ urlpatterns = [
     # Auth endpoints
     path('token/', api_views.PublicAdminTokenView.as_view(),
          name='public-admin-token'),
-    path('token/refresh/', TokenRefreshView.as_view(),
+    path('token/refresh/', ThrottledTokenRefreshView.as_view(),
          name='public-admin-token-refresh'),
     path('me/', api_views.PublicAdminMeView.as_view(),
          name='public-admin-me'),

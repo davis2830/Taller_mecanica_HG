@@ -274,6 +274,22 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'EXCEPTION_HANDLER': 'taller_mecanico.exception_handler.custom_exception_handler',
+    # Throttling — protege contra brute-force en login y abuso general.
+    # Usa cache local por default (LocMemCache); en prod con multiples
+    # workers Gunicorn conviene usar Redis cache para que el rate limit
+    # sea consistente entre procesos. Ver deploy/SECURITY.md.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': config('THROTTLE_ANON', default='60/min'),
+        'user': config('THROTTLE_USER', default='600/min'),
+        # Scoped: aplicado explícitamente con `throttle_scope = 'login'`
+        # en las views de obtención de tokens (login).
+        'login': config('THROTTLE_LOGIN', default='10/min'),
+    },
 }
 
 from datetime import timedelta
@@ -308,6 +324,36 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "https://*.devinapps.com",
 ]
+
+# =====================================================================
+# SEGURIDAD HTTP — Hardening producción (env-driven)
+# =====================================================================
+# Estas configuraciones se ACTIVAN solo cuando SECURE_PROD=True en .env.
+# En dev local con http://localhost queremos cookies sin Secure y sin SSL
+# redirect, por eso son opt-in.
+SECURE_PROD = config('SECURE_PROD', default=False, cast=bool)
+
+if SECURE_PROD:
+    # Confiamos en X-Forwarded-Proto que setea Nginx (ver deploy/nginx/gctorque.conf).
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # Redirige cualquier request HTTP → HTTPS (Nginx ya lo hace, esto es defensa
+    # en profundidad por si alguien le pega directo al puerto 8000 expuesto).
+    SECURE_SSL_REDIRECT = True
+    # Cookies solo via HTTPS.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # SameSite=Lax por default (Django 4+) cubre CSRF cross-site básico.
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    # HSTS — fuerza HTTPS por 1 año. EMPEZAR CON 60 segundos para testear,
+    # subir gradualmente. Una vez que estás seguro, podes habilitar preload.
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=60, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
+    # Headers extra de seguridad.
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    X_FRAME_OPTIONS = 'DENY'
 
 # Dominio raíz de producción — agrega CORS regex + CSRF trusted dinámicamente.
 # Setealo en .env como PROD_DOMAIN=gctorque.com (sin protocolo ni subdomain).
