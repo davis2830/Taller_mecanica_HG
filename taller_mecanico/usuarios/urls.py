@@ -1,19 +1,26 @@
 # usuarios/urls.py
 from django.urls import path
-from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
 from . import views
-from .forms import TallerLoginForm
 
+# Rutas legacy: apuntaban a vistas Django con templates HTML (login,
+# register, logout, reenviar-activacion). El SPA React ahora maneja
+# toda la UI de auth, así que estas URLs redirigen al SPA para preservar
+# bookmarks y links viejos. Ver PR de limpieza legacy.
 urlpatterns = [
-    path('register/', views.register, name='register'),
+    # Auth flows — todos redirigen al SPA.
+    path('login/',                RedirectView.as_view(url='/login', permanent=True), name='login'),
+    path('logout/',               RedirectView.as_view(url='/login', permanent=True), name='logout'),
+    path('register/',             RedirectView.as_view(url='/register', permanent=True), name='register'),
+    path('reenviar-activacion/',  RedirectView.as_view(url='/resend-activation', permanent=True), name='reenviar_activacion'),
+
+    # Vistas que SÍ se siguen usando: los enlaces de los emails apuntan
+    # a estas URLs. NO borrar ni mover.
     path('activar/<uidb64>/<token>/', views.activar_cuenta, name='activar_cuenta'),
-    path('reenviar-activacion/', views.reenviar_activacion, name='reenviar_activacion'),
     path('verificar-email/<str:token>/', views.verificar_email_view, name='verificar_email'),
-    path('login/', auth_views.LoginView.as_view(
-        template_name='usuarios/login.html',
-        authentication_form=TallerLoginForm
-    ), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(template_name='usuarios/logout.html'), name='logout'),
+
+    # Paneles server-side que todavía usa Django (SPA tiene sus propios
+    # equivalentes pero no se limpian en este PR).
     path('profile/', views.profile, name='profile'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('roles/', views.lista_roles, name='lista_roles'),

@@ -98,9 +98,12 @@ DATABASE_ROUTERS = ['django_tenants.routers.TenantSyncRouter']
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
-LOGIN_REDIRECT_URL = '/usuarios/dashboard/'
-LOGIN_URL = '/usuarios/login/'
-LOGOUT_REDIRECT_URL = '/usuarios/login/'
+# Las vistas HTML de login/logout/register fueron reemplazadas por el
+# SPA React. Las URLs viejas de /usuarios/login/ etc. siguen existiendo
+# pero redirigen al SPA (ver usuarios/urls.py).
+LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/login'
+LOGOUT_REDIRECT_URL = '/login'
 
 MIDDLEWARE = [
     # TenantMainMiddleware DEBE ir primero: resuelve el subdomain → tenant →
