@@ -154,7 +154,8 @@ export default function AppSidebar() {
     }, []);
 
     // Ocultar en páginas públicas
-    if (location.pathname === '/login' || location.pathname === '/register') return null;
+    const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/resend-activation'];
+    if (PUBLIC_PATHS.includes(location.pathname) || location.pathname.startsWith('/reset-password/')) return null;
 
     // ── Rol colors ─────────────────────────────────────
     const ROL_GRADIENT = {

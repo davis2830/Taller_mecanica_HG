@@ -202,16 +202,25 @@ export default function Login() {
                                     </div>
                                 </div>
 
-                                {/* Remember */}
-                                <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-slate-400">
-                                    <input
-                                        type="checkbox"
-                                        checked={remember}
-                                        onChange={(e) => setRemember(e.target.checked)}
-                                        className="h-4 w-4 cursor-pointer rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-red-500/30"
-                                    />
-                                    <span>Recuerda mis credenciales</span>
-                                </label>
+                                {/* Remember + Forgot */}
+                                <div className="flex items-center justify-between gap-3">
+                                    <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-slate-400">
+                                        <input
+                                            type="checkbox"
+                                            checked={remember}
+                                            onChange={(e) => setRemember(e.target.checked)}
+                                            className="h-4 w-4 cursor-pointer rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-red-500/30"
+                                        />
+                                        <span>Recordarme</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/forgot-password')}
+                                        className="text-sm font-semibold text-red-400 hover:text-red-300"
+                                    >
+                                        ¿Olvidaste tu contraseña?
+                                    </button>
+                                </div>
 
                                 {/* Botón */}
                                 <button
@@ -231,6 +240,15 @@ export default function Login() {
                                         className="font-semibold text-red-400 hover:text-red-300"
                                     >
                                         Regístrate aquí
+                                    </button>
+                                </div>
+                                <div className="text-center text-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/resend-activation')}
+                                        className="text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
+                                    >
+                                        ¿No recibiste el correo de activación?
                                     </button>
                                 </div>
                             </form>
