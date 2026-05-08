@@ -7,6 +7,9 @@
 
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import ForgotPassword from '../pages/ForgotPassword';
+import ResetPassword from '../pages/ResetPassword';
+import ResendActivation from '../pages/ResendActivation';
 import Dashboard from '../pages/Dashboard';
 import CitasCalendar from '../pages/CitasCalendar';
 import KanbanBoard from '../pages/KanbanBoard';
@@ -50,6 +53,27 @@ export const routes = [
         private: false,
         layout: false,
         title: 'Crear Cuenta'
+    },
+    {
+        path: '/forgot-password',
+        element: ForgotPassword,
+        private: false,
+        layout: false,
+        title: 'Recuperar Contraseña'
+    },
+    {
+        path: '/reset-password/:uidb64/:token',
+        element: ResetPassword,
+        private: false,
+        layout: false,
+        title: 'Cambiar Contraseña'
+    },
+    {
+        path: '/resend-activation',
+        element: ResendActivation,
+        private: false,
+        layout: false,
+        title: 'Reenviar Activación'
     },
     {
         path: '/',

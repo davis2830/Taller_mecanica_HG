@@ -289,6 +289,9 @@ REST_FRAMEWORK = {
         # Scoped: aplicado explícitamente con `throttle_scope = 'login'`
         # en las views de obtención de tokens (login).
         'login': config('THROTTLE_LOGIN', default='10/min'),
+        # Scope para flujos de recuperación de cuenta (forgot-password,
+        # resend-activation): anti-spam de envío de correos.
+        'password_reset': config('THROTTLE_PASSWORD_RESET', default='5/hour'),
     },
 }
 

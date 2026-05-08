@@ -545,3 +545,200 @@ class TareaProgramadaViewSet(viewsets.ModelViewSet):
         # Refrescar para devolver ultima_ejecucion actualizada.
         tarea.refresh_from_db()
         return Response(self.get_serializer(tarea).data)
+
+
+# =====================================================================
+# Recuperación de cuenta — endpoints PÚBLICOS (sin auth)
+# =====================================================================
+# Patrón anti-enumeración: si el correo no existe (o el user ya está
+# activo en el caso de re-envío), igual respondemos 200 con un mensaje
+# genérico. Así un atacante no puede determinar qué emails están
+# registrados haciendo brute force al endpoint.
+#
+# Throttling: el scope `password_reset` (definido en settings) limita
+# 5/hour por IP para evitar spam de correos.
+
+from rest_framework.throttling import ScopedRateThrottle
+
+
+def _send_activation_email(user, request=None):
+    """Re-envía el correo de activación a un usuario inactivo."""
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+    from django.contrib.auth.tokens import default_token_generator
+    from django.template.loader import render_to_string
+    from django.urls import reverse
+    from taller_mecanico.email_helpers import get_email_context
+    from taller_mecanico.url_helpers import tenant_backend_url
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
+    ctx = get_email_context({
+        'user': user,
+        'base_url': tenant_backend_url('/').rstrip('/'),
+        'activar_url': activar_path,
+    })
+    mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
+    message = render_to_string('usuarios/email_activacion.html', ctx)
+    send_mail(
+        mail_subject, '', None, [user.email],
+        html_message=message, fail_silently=True,
+    )
+
+
+def _send_password_reset_email(user):
+    """Manda email con link al SPA para resetear la contraseña."""
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+    from django.contrib.auth.tokens import default_token_generator
+    from django.template.loader import render_to_string
+    from taller_mecanico.email_helpers import get_email_context
+    from taller_mecanico.url_helpers import tenant_spa_url
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    # El link apunta al SPA (frontend) — la página /reset-password/:uid/:token
+    # toma esos parámetros y hace POST al endpoint de confirmación.
+    reset_url = tenant_spa_url(f'/reset-password/{uid}/{token}').rstrip('/')
+    ctx = get_email_context({
+        'user': user,
+        'reset_url': reset_url,
+    })
+    mail_subject = f"Restablece tu contraseña en {ctx['marca']['nombre_empresa']}"
+    message = render_to_string('usuarios/email_password_reset.html', ctx)
+    send_mail(
+        mail_subject, '', None, [user.email],
+        html_message=message, fail_silently=True,
+    )
+
+
+class ReenviarActivacionAPIView(APIView):
+    """
+    POST /api/v1/usuarios/reenviar-activacion/
+    Body: { email }
+    Reenvía el correo de activación al usuario si está inactivo.
+    Anti-enumeración: siempre devuelve 200 con mensaje genérico.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    GENERIC_MSG = (
+        'Si el correo está registrado y la cuenta no está activa, '
+        'te enviaremos un nuevo enlace de activación. Revisa tu '
+        'bandeja de entrada y la carpeta de SPAM.'
+    )
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip().lower()
+        if not email:
+            return Response(
+                {'error': 'Debes ingresar un correo electrónico.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            user = User.objects.get(email__iexact=email)
+            if not user.is_active:
+                _send_activation_email(user, request=request)
+        except User.DoesNotExist:
+            pass  # No revelamos si el email existe o no.
+        return Response({'success': True, 'message': self.GENERIC_MSG})
+
+
+class PasswordResetSolicitarView(APIView):
+    """
+    POST /api/v1/usuarios/password-reset/solicitar/
+    Body: { email }
+    Si el email corresponde a un usuario activo, manda email con link al
+    SPA para resetear la contraseña.
+    Anti-enumeración: siempre devuelve 200 con mensaje genérico.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    GENERIC_MSG = (
+        'Si el correo está registrado, te enviaremos un enlace para '
+        'restablecer tu contraseña. Revisa tu bandeja de entrada y '
+        'la carpeta de SPAM.'
+    )
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip().lower()
+        if not email:
+            return Response(
+                {'error': 'Debes ingresar un correo electrónico.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            user = User.objects.get(email__iexact=email)
+            if user.is_active and user.has_usable_password():
+                _send_password_reset_email(user)
+        except User.DoesNotExist:
+            pass
+        return Response({'success': True, 'message': self.GENERIC_MSG})
+
+
+class PasswordResetConfirmarView(APIView):
+    """
+    POST /api/v1/usuarios/password-reset/confirmar/
+    Body: { uidb64, token, password, password_confirm }
+    Valida el token y cambia la contraseña.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    def post(self, request):
+        from django.utils.http import urlsafe_base64_decode
+        from django.utils.encoding import force_str
+        from django.contrib.auth.tokens import default_token_generator
+
+        uidb64 = request.data.get('uidb64') or ''
+        token = request.data.get('token') or ''
+        password = request.data.get('password') or ''
+        password_confirm = request.data.get('password_confirm') or ''
+
+        if not (uidb64 and token):
+            return Response(
+                {'error': 'Enlace inválido. Solicita un nuevo correo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if password != password_confirm:
+            return Response(
+                {'error': 'Las contraseñas no coinciden.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is None or not default_token_generator.check_token(user, token):
+            return Response(
+                {'error': 'El enlace es inválido o expiró. Solicita uno nuevo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validate_password(password, user=user)
+        except DjangoValidationError as e:
+            return Response(
+                {'error': ' '.join(e.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(password)
+        # Si la cuenta estaba inactiva (raro pero posible si pidió reset
+        # antes de activar), aprovechamos para activarla — el usuario ya
+        # demostró control sobre el correo.
+        if not user.is_active:
+            user.is_active = True
+        user.save()
+        return Response({
+            'success': True,
+            'message': 'Tu contraseña fue actualizada. Ya puedes iniciar sesión.',
+        })
