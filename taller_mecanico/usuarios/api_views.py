@@ -403,6 +403,7 @@ class RolViewSet(viewsets.ModelViewSet):
     queryset = Rol.objects.all().order_by('nombre')
     serializer_class = RolSerializer
     permission_classes = [IsAdminPermission]
+    pagination_class = None
 
     def list(self, request, *args, **kwargs):
         from django.db.models import Count
@@ -506,6 +507,7 @@ class TareaProgramadaViewSet(viewsets.ModelViewSet):
     serializer_class = TareaProgramadaSerializer
     permission_classes = [IsAdministradorPermission]
     queryset = TareaProgramada.objects.all().order_by('nombre')
+    pagination_class = None
     http_method_names = ['get', 'patch', 'post', 'head', 'options']
 
     def create(self, request, *args, **kwargs):

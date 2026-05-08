@@ -14,11 +14,13 @@ class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = CategoriaProducto.objects.all().order_by('nombre')
     serializer_class = CategoriaProductoSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 class ProveedorMiniViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Proveedor.objects.filter(activo=True).order_by('nombre')
     serializer_class = ProveedorMiniSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 class ProductoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -208,6 +210,7 @@ class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all().order_by('nombre')
     serializer_class = ProveedorSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 class PrecioProveedorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PrecioProveedor.objects.select_related('proveedor', 'producto').order_by('producto__nombre', 'precio_ofrecido')
