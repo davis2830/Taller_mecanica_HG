@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useMarca } from '../context/MarcaContext';
+import { useSidebar } from '../context/SidebarContext';
 import '../styles/app-sidebar.css';
 
 /* ──── Mapa de ruta → sección padre ──────────────────── */
@@ -124,6 +125,7 @@ export default function AppSidebar() {
     const location = useLocation();
     const { user, logoutUser } = useContext(AuthContext);
     const { marca } = useMarca();
+    const { mobileOpen, closeMobileSidebar } = useSidebar();
     const [collapsed, setCollapsed]     = useState(false);
     const [expandedMenu, setExpandedMenu] = useState(() => getInitialExpanded(location.pathname));
 
@@ -152,6 +154,11 @@ export default function AppSidebar() {
             return next;
         });
     }, []);
+
+    // Cerrar sidebar móvil al navegar
+    useEffect(() => {
+        closeMobileSidebar();
+    }, [location.pathname, closeMobileSidebar]);
 
     // Ocultar en páginas públicas
     const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/resend-activation'];
@@ -217,7 +224,9 @@ export default function AppSidebar() {
     // ── MENÚ CLIENTE ────────────────────────────────────
     if (isCliente) {
         return (
-            <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
+            <>
+            {mobileOpen && <div className="sidebar-overlay" onClick={closeMobileSidebar} />}
+            <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'visible' : ''}`}>
                 <SidebarHeader />
                 <nav className="sidebar-nav">
                     <div className="nav-section">
@@ -237,6 +246,7 @@ export default function AppSidebar() {
                 </nav>
                 <UserFooter />
             </aside>
+            </>
         );
     }
 
@@ -317,7 +327,9 @@ export default function AppSidebar() {
     ];
 
     return (
-        <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
+        <>
+        {mobileOpen && <div className="sidebar-overlay" onClick={closeMobileSidebar} />}
+        <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'visible' : ''}`}>
             <SidebarHeader />
             <nav className="sidebar-nav">
                 {menuSections.map((section, idx) => (
@@ -330,5 +342,6 @@ export default function AppSidebar() {
             </nav>
             <UserFooter />
         </aside>
+        </>
     );
 }

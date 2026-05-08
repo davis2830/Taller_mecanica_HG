@@ -150,12 +150,10 @@ class MiPerfilSolicitarCambioEmailView(APIView):
         perfil.email_token_expira = timezone.now() + timedelta(hours=24)
         perfil.save()
 
-        # Construye el link contra el host del backend (mismo origen que está
-        # usando el cliente). Esto evita problemas con FRONTEND_URL mal seteado
-        # o entornos donde el SPA no maneja /perfil/verificar-email/* directo.
-        from django.urls import reverse
-        link = request.build_absolute_uri(
-            reverse('verificar_email', args=[perfil.email_token])
+        from taller_mecanico.url_helpers import tenant_spa_url
+        link = tenant_spa_url(
+            f'/perfil/verificar-email/{perfil.email_token}',
+            request=request,
         )
         # Encolamos los correos en Celery para que el request no bloquee y
         # haya reintentos automáticos si el SMTP falla temporalmente.
