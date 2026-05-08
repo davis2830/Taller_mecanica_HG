@@ -4,7 +4,7 @@ Smoke tests del flujo de registro + activación de cuenta.
 Flujo:
   1. `POST /api/v1/usuarios/registro/` con datos válidos → crea User
      inactivo + envía email (endpoint JSON consumido por el SPA).
-  2. Email contiene link `/usuarios/activar/<uidb64>/<token>/` en BACKEND_URL.
+  2. Email contiene link `/api/v1/usuarios/activar/<uidb64>/<token>/` en BACKEND_URL.
   3. Click al link → User.is_active=True → redirect al SPA `/login?verificado=true`.
 
 Estos tests son los que cubren el evento `usuario_activacion`, que está en
@@ -66,8 +66,8 @@ class TestRegistro:
         # del tenant actual (``testserver`` en conftest), scheme de BACKEND_URL.
         # NUNCA debe apuntar al SPA (FRONTEND_URL=spa.test).
         email_body = email.alternatives[0][0] if email.alternatives else email.body
-        assert 'http://testserver/usuarios/activar/' in email_body
-        assert 'http://spa.test/usuarios/activar/' not in email_body
+        assert 'http://testserver/api/v1/usuarios/activar/' in email_body
+        assert 'http://spa.test/api/v1/usuarios/activar/' not in email_body
 
     def test_url_legacy_register_redirige_al_spa(self):
         """La URL vieja /usuarios/register/ ahora es un redirect al SPA."""
@@ -88,7 +88,7 @@ class TestActivacion:
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        url = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
+        url = reverse('api_activar_cuenta', kwargs={'uidb64': uid, 'token': token})
         response = Client().get(url)
 
         assert response.status_code == 302
@@ -106,7 +106,7 @@ class TestActivacion:
         )
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        url = reverse('activar_cuenta', kwargs={
+        url = reverse('api_activar_cuenta', kwargs={
             'uidb64': uid, 'token': 'token-falso-xyz',
         })
         response = Client().get(url)
@@ -117,3 +117,12 @@ class TestActivacion:
 
         user.refresh_from_db()
         assert user.is_active is False
+
+    def test_url_legacy_activar_redirige_a_api(self):
+        """La URL vieja /usuarios/activar/… redirige a /api/v1/usuarios/activar/…"""
+        url = reverse('activar_cuenta', kwargs={
+            'uidb64': 'MQ', 'token': 'fake-token',
+        })
+        response = Client().get(url)
+        assert response.status_code == 302
+        assert '/api/v1/usuarios/activar/MQ/fake-token/' in response.url

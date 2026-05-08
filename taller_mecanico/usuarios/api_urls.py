@@ -17,6 +17,7 @@ urlpatterns = [
     path('me/email/solicitar/',          api_views.MiPerfilSolicitarCambioEmailView.as_view(), name='api_mi_email_solicitar'),
     path('me/email/verificar/<str:token>/', api_views.VerificarEmailView.as_view(), name='api_mi_email_verificar'),
     path('registro/',                    api_views.RegistroUsuarioView.as_view(), name='api_registro_usuario'),
+    path('activar/<uidb64>/<token>/',    api_views.ActivarCuentaAPIView.as_view(), name='api_activar_cuenta'),
     path('reenviar-activacion/',         api_views.ReenviarActivacionAPIView.as_view(), name='api_reenviar_activacion'),
     path('password-reset/solicitar/',    api_views.PasswordResetSolicitarView.as_view(), name='api_password_reset_solicitar'),
     path('password-reset/confirmar/',    api_views.PasswordResetConfirmarView.as_view(), name='api_password_reset_confirmar'),

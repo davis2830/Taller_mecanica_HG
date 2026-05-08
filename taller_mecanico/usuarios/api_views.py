@@ -242,6 +242,32 @@ class ClienteViewSet(viewsets.ModelViewSet):
         cliente.save()
         return Response({'is_active': cliente.is_active, 'message': 'Estado modificado.'}, status=status.HTTP_200_OK)
 
+class ActivarCuentaAPIView(APIView):
+    """GET /api/v1/usuarios/activar/<uidb64>/<token>/
+    Activa la cuenta y redirige al SPA login.
+    Vive bajo /api/ para que Nginx lo proxee a Django."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, uidb64, token):
+        from django.utils.http import urlsafe_base64_decode
+        from django.utils.encoding import force_str
+        from django.contrib.auth.tokens import default_token_generator
+        from taller_mecanico.url_helpers import redirect_to_spa
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+            return redirect_to_spa('/login', query='?verificado=true', request=request)
+        else:
+            return redirect_to_spa('/login', query='?verificado=error', request=request)
+
+
 class RegistroUsuarioView(APIView):
     permission_classes = [] 
 
@@ -276,36 +302,7 @@ class RegistroUsuarioView(APIView):
                         rol=rol_cliente
                     )
 
-                # Generar el enlace
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
-                token = default_token_generator.make_token(user)
-
-                from django.urls import reverse
-                from taller_mecanico.email_helpers import get_email_context
-                from taller_mecanico.url_helpers import tenant_backend_url
-                activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
-                # `activar_cuenta` es una VISTA Django (server-side); usamos
-                # BACKEND_URL para que el link funcione aunque FRONTEND_URL
-                # apunte a otro host (ej. SPA en :5173).
-                # En multi-tenant, ``tenant_backend_url`` devuelve la URL del
-                # subdominio del tenant actual (ej. ``fixfast.autoservipro.com``).
-                ctx = get_email_context({
-                    'user': user,
-                    'base_url': tenant_backend_url('/').rstrip('/'),
-                    'activar_url': activar_path,
-                })
-                mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
-                message = render_to_string('usuarios/email_activacion.html', ctx)
-                
-                # Usar Celery de forma sincrónica o standard mail
-                send_mail(
-                    mail_subject,
-                    "", # mensaje plano vacío
-                    None,
-                    [form.cleaned_data.get('email')],
-                    html_message=message,
-                    fail_silently=False,
-                )
+                _send_activation_email(user, request=request)
 
                 return Response({
                     'success': True,
@@ -573,7 +570,7 @@ def _send_activation_email(user, request=None):
 
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
-    activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
+    activar_path = reverse('api_activar_cuenta', kwargs={'uidb64': uid, 'token': token})
     ctx = get_email_context({
         'user': user,
         'base_url': tenant_backend_url('/').rstrip('/'),

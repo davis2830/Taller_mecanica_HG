@@ -1,5 +1,6 @@
 # usuarios/urls.py
 from django.urls import path
+from django.shortcuts import redirect
 from django.views.generic import RedirectView
 from . import views
 
@@ -14,9 +15,12 @@ urlpatterns = [
     path('register/',             RedirectView.as_view(url='/register', permanent=True), name='register'),
     path('reenviar-activacion/',  RedirectView.as_view(url='/resend-activation', permanent=True), name='reenviar_activacion'),
 
-    # Vistas que SÍ se siguen usando: los enlaces de los emails apuntan
-    # a estas URLs. NO borrar ni mover.
-    path('activar/<uidb64>/<token>/', views.activar_cuenta, name='activar_cuenta'),
+    # La activación ahora vive en /api/v1/usuarios/activar/… para que
+    # Nginx la proxee a Django. Redirigimos la URL legacy por si quedan
+    # correos viejos con el enlace anterior.
+    path('activar/<uidb64>/<token>/',
+         lambda req, uidb64, token: redirect(f'/api/v1/usuarios/activar/{uidb64}/{token}/'),
+         name='activar_cuenta'),
     path('verificar-email/<str:token>/', views.verificar_email_view, name='verificar_email'),
 
     # Paneles server-side que todavía usa Django (SPA tiene sus propios
