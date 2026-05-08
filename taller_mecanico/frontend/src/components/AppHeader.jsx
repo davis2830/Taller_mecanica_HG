@@ -1,8 +1,9 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Moon, LogOut, ChevronDown, Bell, Search, User } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Bell, Search, User, Menu } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSidebar } from '../context/SidebarContext';
 
 // Mapa de rutas a títulos legibles
 const PAGE_TITLES = {
@@ -29,6 +30,7 @@ const PAGE_TITLES = {
 export default function AppHeader() {
     const { user, logoutUser } = useContext(AuthContext);
     const { isDark, toggleTheme } = useTheme();
+    const { toggleMobileSidebar } = useSidebar();
     const navigate = useNavigate();
     const location = useLocation();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -70,7 +72,14 @@ export default function AppHeader() {
                 : 'bg-white/95 backdrop-blur-md border-slate-200'
         } shadow-sm`}>
 
-            {/* LEFT — Breadcrumb dinámico */}
+            {/* LEFT — Hamburger + Breadcrumb */}
+            <div className="flex items-center gap-3 min-w-0">
+                <button
+                    onClick={toggleMobileSidebar}
+                    className={`md:hidden p-2 rounded-xl transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                    <Menu size={20} />
+                </button>
             <div className="flex flex-col justify-center min-w-0">
                 <h1 className={`text-base font-black leading-tight tracking-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {pageInfo.title}
@@ -80,6 +89,7 @@ export default function AppHeader() {
                         {pageInfo.sub}
                     </p>
                 )}
+            </div>
             </div>
 
             {/* RIGHT — Acciones */}

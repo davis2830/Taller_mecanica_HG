@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { MarcaProvider } from './context/MarcaContext';
+import { SidebarProvider } from './context/SidebarContext';
 import Layout from './components/Layout';
 import routes from './config/routes';
 import adminRoutes from './config/adminRoutes';
@@ -64,17 +65,30 @@ function AdminAppRoutes() {
  */
 function TenantAppRoutes() {
     const { user } = useContext(AuthContext);
+    const isCliente = user?.perfil?.rol?.nombre === 'Cliente';
+    const homeRoute = isCliente ? '/citas' : '/';
 
     return (
         <Routes>
             {routes.map((route) => {
-                // Si es una ruta privada y el usuario está en login, redirigir a dashboard
+                // Si es una ruta privada y el usuario está en login, redirigir según rol
                 if (!route.private && user && route.path === '/login') {
                     return (
                         <Route
                             key={route.path}
                             path={route.path}
-                            element={<Navigate to="/" />}
+                            element={<Navigate to={homeRoute} />}
+                        />
+                    );
+                }
+
+                // Redirigir clientes de Dashboard (/) a /citas
+                if (route.path === '/' && route.private && user && isCliente) {
+                    return (
+                        <Route
+                            key={route.path}
+                            path={route.path}
+                            element={<Navigate to="/citas" replace />}
                         />
                     );
                 }
@@ -125,7 +139,9 @@ function App() {
             <ThemeProvider>
                 <AuthProvider>
                     <MarcaProvider>
-                        <AppRoutes />
+                        <SidebarProvider>
+                            <AppRoutes />
+                        </SidebarProvider>
                     </MarcaProvider>
                 </AuthProvider>
             </ThemeProvider>

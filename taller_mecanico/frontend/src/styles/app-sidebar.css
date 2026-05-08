@@ -279,6 +279,21 @@
 }
 .app-sidebar.collapsed .nav-divider { margin: 8px 8px; }
 
+/* ── Overlay móvil ────────────────────────────────────── */
+.sidebar-overlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+    }
+}
+
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 768px) {
     .app-sidebar       { width: var(--sb-w); }

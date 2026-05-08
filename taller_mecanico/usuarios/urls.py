@@ -21,7 +21,9 @@ urlpatterns = [
     path('activar/<uidb64>/<token>/',
          lambda req, uidb64, token: redirect(f'/api/v1/usuarios/activar/{uidb64}/{token}/'),
          name='activar_cuenta'),
-    path('verificar-email/<str:token>/', views.verificar_email_view, name='verificar_email'),
+    path('verificar-email/<str:token>/',
+         lambda req, token: redirect(f'/perfil/verificar-email/{token}'),
+         name='verificar_email'),
 
     # Paneles server-side que todavía usa Django (SPA tiene sus propios
     # equivalentes pero no se limpian en este PR).
