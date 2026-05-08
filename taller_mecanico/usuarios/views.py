@@ -12,7 +12,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 
-from .forms import UserRegisterForm, UserUpdateForm, PerfilUpdateForm, RolForm, AsignarRolForm
+from .forms import UserUpdateForm, PerfilUpdateForm, RolForm, AsignarRolForm
 from .models import Rol, Perfil
 from taller_mecanico.url_helpers import redirect_to_spa
 
@@ -39,69 +39,6 @@ def es_admin(user):
     except (Perfil.DoesNotExist, AttributeError):
         return False
 
-def register(request):
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            try:
-                # Crear el usuario
-                user = form.save()
-                
-                # Verificar si ya tiene perfil (por las señales)
-                try:
-                    perfil = user.perfil
-                except Perfil.DoesNotExist:
-                    # Si no tiene perfil, crearlo manualmente
-                    rol_cliente, _ = Rol.objects.get_or_create(
-                        nombre='Cliente',
-                        defaults={'descripcion': 'Usuario que solicita servicios'}
-                    )
-                    
-                    Perfil.objects.create(
-                        usuario=user,
-                        rol=rol_cliente
-                    )
-                
-                # Enviar correo de activación con Token criptográfico
-                from django.urls import reverse
-                from taller_mecanico.email_helpers import get_email_context
-                from taller_mecanico.url_helpers import tenant_backend_url
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
-                token = default_token_generator.make_token(user)
-                activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
-                # `activar_cuenta` es una VISTA Django; el link va al backend.
-                # En multi-tenant, el link tiene que volver al subdominio del
-                # tenant que registró al usuario, no al BACKEND_URL global.
-                ctx = get_email_context({
-                    'user': user,
-                    'base_url': tenant_backend_url('/').rstrip('/'),
-                    'activar_url': activar_path,
-                })
-                mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
-                message = render_to_string('usuarios/email_activacion.html', ctx)
-                
-                send_mail(
-                    mail_subject,
-                    "", # mensaje original en texto plano
-                    None, # usa DEFAULT_FROM_EMAIL
-                    [form.cleaned_data.get('email')],
-                    html_message=message,
-                    fail_silently=False,
-                )
-                
-                nombre = form.cleaned_data.get('first_name', '') or form.cleaned_data.get('email', '')
-                messages.success(request, f'¡Casi listo {nombre}! Te hemos enviado un correo electrónico. Por favor revisa tu bandeja de entrada o SPAM para poder iniciar sesión.')
-                return _redirect_spa_login(request, '?registro=ok')
-                
-            except Exception as e:
-                # Si hay error, eliminar el usuario creado para evitar inconsistencias
-                if 'user' in locals():
-                    user.delete()
-                messages.error(request, f'Error al crear la cuenta: {str(e)}')
-    else:
-        form = UserRegisterForm()
-    return render(request, 'usuarios/register.html', {'form': form})
-
 def activar_cuenta(request, uidb64, token):
     """Descifra el token del correo electrónico y activa al usuario si es válido"""
     try:
@@ -118,49 +55,6 @@ def activar_cuenta(request, uidb64, token):
     else:
         messages.error(request, '⚠️ El enlace de activación es inválido o ya expiró por seguridad. Intenta registrar tu cuenta de nuevo.')
         return _redirect_spa_login(request, '?verificado=error')
-
-def reenviar_activacion(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        if email:
-            try:
-                user = User.objects.get(email=email)
-                if getattr(user, 'is_active', False):
-                    messages.info(request, 'Esta cuenta ya se encuentra activa. Puedes iniciar sesión.')
-                    return _redirect_spa_login(request, '?ya_activo=true')
-                
-                # Re-enviar correo de activación
-                from django.urls import reverse
-                from taller_mecanico.email_helpers import get_email_context
-                from taller_mecanico.url_helpers import tenant_backend_url
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
-                token = default_token_generator.make_token(user)
-                activar_path = reverse('activar_cuenta', kwargs={'uidb64': uid, 'token': token})
-                ctx = get_email_context({
-                    'user': user,
-                    'base_url': tenant_backend_url('/').rstrip('/'),
-                    'activar_url': activar_path,
-                })
-                mail_subject = f"Activa tu cuenta en {ctx['marca']['nombre_empresa']}"
-                message = render_to_string('usuarios/email_activacion.html', ctx)
-                
-                send_mail(
-                    mail_subject,
-                    "", # mensaje original en texto plano
-                    None, # usa DEFAULT_FROM_EMAIL
-                    [email],
-                    html_message=message,
-                    fail_silently=False,
-                )
-                
-                messages.success(request, f'¡Enlace reenviado! Hemos enviado un nuevo correo a {email}. Por favor revisa tu bandeja de entrada o SPAM.')
-                return _redirect_spa_login(request, '?reenvio=ok')
-            except User.DoesNotExist:
-                messages.error(request, 'No se encontró ninguna cuenta registrada con este correo electrónico.')
-        else:
-            messages.error(request, 'Por favor ingresa un correo electrónico válido.')
-            
-    return render(request, 'usuarios/reenviar_activacion.html')
 
 @login_required
 def profile(request):

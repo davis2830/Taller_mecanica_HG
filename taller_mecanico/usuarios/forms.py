@@ -1,41 +1,8 @@
 # usuarios/forms.py
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import AuthenticationForm
 from .models import Perfil, Rol
 
-class TallerLoginForm(AuthenticationForm):
-    """Formulario de inicio de sesión personalizado para pedir el correo"""
-    username = forms.CharField(label="Correo Electrónico", widget=forms.TextInput(attrs={'autofocus': True}))
-
-    def clean(self):
-        username = self.cleaned_data.get('username')
-        password = self.cleaned_data.get('password')
-
-        if username is not None and password:
-            from django.contrib.auth import authenticate, get_user_model
-            from django.db.models import Q
-            User = get_user_model()
-            
-            # Interceptamos cuentas no activadas para dar un mensaje Ultra Claro
-            user_qs = User.objects.filter(Q(username__iexact=username) | Q(email__iexact=username))
-            if user_qs.exists():
-                user = user_qs.first()
-                if user.check_password(password) and not user.is_active:
-                    raise forms.ValidationError(
-                        "⚠️ Tu cuenta aún no ha sido verificada. Por favor, abre tu correo electrónico y haz clic en el enlace azul de activación que te enviamos.",
-                        code='inactive',
-                    )
-
-            # Si no era por inactividad, seguimos con el chequeo habitual de Django
-            self.user_cache = authenticate(self.request, username=username, password=password)
-            if self.user_cache is None:
-                raise self.get_invalid_login_error()
-            else:
-                self.confirm_login_allowed(self.user_cache)
-
-        return self.cleaned_data
 
 class UserRegisterForm(forms.ModelForm):
     first_name = forms.CharField(max_length=50, required=True, label="Nombre(s)")

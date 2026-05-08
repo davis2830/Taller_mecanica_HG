@@ -2,12 +2,17 @@
 Smoke tests del flujo de registro + activación de cuenta.
 
 Flujo:
-  1. `POST /usuarios/register/` con datos válidos → crea User inactivo + envía email.
+  1. `POST /api/v1/usuarios/registro/` con datos válidos → crea User
+     inactivo + envía email (endpoint JSON consumido por el SPA).
   2. Email contiene link `/usuarios/activar/<uidb64>/<token>/` en BACKEND_URL.
   3. Click al link → User.is_active=True → redirect al SPA `/login?verificado=true`.
 
 Estos tests son los que cubren el evento `usuario_activacion`, que está en
 EVENTOS_EMAIL_OBLIGATORIO (nunca se puede desactivar por UI).
+
+Nota: la URL legacy ``/usuarios/register/`` todavía existe pero ahora
+es un ``RedirectView`` al SPA (``/register``), por eso los tests pegan
+directo al endpoint API.
 """
 from __future__ import annotations
 
@@ -42,18 +47,15 @@ class TestRegistro:
             'password_confirm': 'SuperSegura2024!',
         }
 
-        response = Client().post(reverse('register'), data=data)
+        response = Client().post('/api/v1/usuarios/registro/', data=data)
 
-        # Redirige al SPA login con flag de registro ok.
-        assert response.status_code == 302
-        assert 'http://spa.test/login' in response.url
-        assert '?registro=ok' in response.url
+        # El endpoint API devuelve 201 con JSON, no un redirect.
+        assert response.status_code == 201, response.content
+        body = response.json()
+        assert body.get('success') is True
 
         # Usuario creado con ese email.
         user = User.objects.get(email='nuevo@test.taller')
-        # Nota: El form actual NO fuerza is_active=False — el flujo depende
-        # del default del modelo + validaciones del login. Aquí solo
-        # validamos que el User existe y el flujo completó.
         assert user.email == 'nuevo@test.taller'
 
         # Email enviado.
@@ -63,9 +65,15 @@ class TestRegistro:
         # Link de activación usa tenant_backend_url → host del Domain primario
         # del tenant actual (``testserver`` en conftest), scheme de BACKEND_URL.
         # NUNCA debe apuntar al SPA (FRONTEND_URL=spa.test).
-        body = email.alternatives[0][0] if email.alternatives else email.body
-        assert 'http://testserver/usuarios/activar/' in body
-        assert 'http://spa.test/usuarios/activar/' not in body
+        email_body = email.alternatives[0][0] if email.alternatives else email.body
+        assert 'http://testserver/usuarios/activar/' in email_body
+        assert 'http://spa.test/usuarios/activar/' not in email_body
+
+    def test_url_legacy_register_redirige_al_spa(self):
+        """La URL vieja /usuarios/register/ ahora es un redirect al SPA."""
+        response = Client().get(reverse('register'))
+        assert response.status_code in (301, 302)
+        assert response.url == '/register'
 
 
 class TestActivacion:
