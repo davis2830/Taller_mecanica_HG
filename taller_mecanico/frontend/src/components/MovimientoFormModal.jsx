@@ -47,7 +47,7 @@ export default function MovimientoFormModal({ isOpen, onClose, onSaved }) {
                     const res = await axios.get(`/api/v1/inventario/productos/?search=${searchQ}`, {
                         headers: { Authorization: `Bearer ${authTokens?.access}` }
                     });
-                    setProductos(res.data);
+                    setProductos(res.data.results || res.data);
                 } catch (e) {
                     console.error(e);
                 }

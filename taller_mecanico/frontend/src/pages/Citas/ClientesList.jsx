@@ -35,7 +35,7 @@ export default function ClientesList() {
             const res = await axios.get('/api/v1/usuarios/clientes/', {
                 headers: { Authorization: `Bearer ${authTokens?.access}` }
             });
-            setClientes(res.data);
+            setClientes(res.data.results || res.data);
         } catch (error) {
             console.error('Error cargando clientes:', error);
         }
