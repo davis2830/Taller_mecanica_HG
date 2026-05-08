@@ -254,6 +254,28 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='django-db')
 CELERY_CACHE_BACKEND = 'django-cache'
+
+# =====================================================================
+# CACHE — Redis (throttle, sesiones, cache general)
+# =====================================================================
+# Si REDIS_URL está definida, usamos Redis; si no, LocMemCache (dev).
+_REDIS_URL = config('REDIS_URL', default='')
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'OPTIONS': {
+                'db': config('REDIS_CACHE_DB', default='1'),
+            },
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
 # Desactiva las colas temporales de control y eventos (Sintaxis Celery 5+)
 CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
 CELERY_WORKER_SEND_TASK_EVENTS = False
@@ -276,6 +298,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
     'EXCEPTION_HANDLER': 'taller_mecanico.exception_handler.custom_exception_handler',
     # Throttling — protege contra brute-force en login y abuso general.
     # Usa cache local por default (LocMemCache); en prod con multiples

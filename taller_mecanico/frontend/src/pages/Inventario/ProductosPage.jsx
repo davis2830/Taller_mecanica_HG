@@ -66,7 +66,7 @@ export default function ProductosPage() {
             // By default list only active unless told otherwise, handled by backend
             
             const res = await axios.get(`/api/v1/inventario/productos/?${params}`, { headers });
-            setProductos(res.data);
+            setProductos(res.data.results || res.data);
         } catch (e) {
             console.error(e);
         } finally {
