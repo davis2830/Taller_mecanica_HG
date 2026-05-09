@@ -130,7 +130,7 @@ def enviar_email_cita(cita, tipo_email, destinatario_email=None):
         # si no hay tenant en contexto (schema ``public``).
         from taller_mecanico.url_helpers import tenant_backend_url
         token = Signer().sign(str(cita.id))
-        enlace_confirmar = tenant_backend_url(f"/citas/confirmar-email/{token}/")
+        enlace_confirmar = tenant_backend_url(f"/api/v1/citas/confirmar-email/{token}/")
     # url_encuesta no se rellena hasta que exista el módulo de encuestas.
     url_encuesta = ''
 

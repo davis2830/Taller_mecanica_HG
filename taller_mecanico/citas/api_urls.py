@@ -1,5 +1,5 @@
 from django.urls import path
-from . import api_views
+from . import api_views, views
 
 urlpatterns = [
     # Configuración del Taller (singleton)
@@ -35,4 +35,8 @@ urlpatterns = [
 
     # Clientes
     path('clientes/', api_views.ClientesListView.as_view(), name='api_clientes_list'),
+
+    # Magic-link de confirmación de cita (GET público, sin auth).
+    # Vive bajo /api/ para que Nginx lo proxee a Django.
+    path('citas/confirmar-email/<str:token>/', views.confirmar_cita_email, name='api_confirmar_cita_email'),
 ]
