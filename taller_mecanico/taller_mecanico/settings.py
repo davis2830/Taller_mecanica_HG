@@ -46,6 +46,10 @@ SHARED_APPS = [
     'public_admin',    # Modelo PublicUser (superadmin SaaS).
     # Django core que django-tenants recomienda compartir:
     'django.contrib.contenttypes',  # Obligatorio en SHARED (migrations framework).
+    # Celery results en schema public: el worker guarda resultados DESPUÉS de
+    # que schema_context() del TenantAwareTask se cierra, así que la conexión
+    # vuelve a public. Si la tabla solo vive en tenant schemas → ProgrammingError.
+    'django_celery_results',
 ]
 
 TENANT_APPS = [
@@ -62,10 +66,8 @@ TENANT_APPS = [
     'inventario',
     'taller',
     'facturacion',
-    # Apps de terceros con modelos que necesitan estar por tenant
-    # (ej. django_celery_results guarda resultados de tasks que son del tenant):
+    # Apps de terceros con modelos que necesitan estar por tenant:
     'django_apscheduler',
-    'django_celery_results',
 ]
 
 # Apps sin modelos (o con modelos que no necesitan schema) pueden ir en
