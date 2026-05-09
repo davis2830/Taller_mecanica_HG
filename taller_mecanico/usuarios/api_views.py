@@ -150,9 +150,9 @@ class MiPerfilSolicitarCambioEmailView(APIView):
         perfil.email_token_expira = timezone.now() + timedelta(hours=24)
         perfil.save()
 
-        from taller_mecanico.url_helpers import tenant_spa_url
-        link = tenant_spa_url(
-            f'/perfil/verificar-email/{perfil.email_token}',
+        from taller_mecanico.url_helpers import tenant_backend_url
+        link = tenant_backend_url(
+            f'/api/v1/usuarios/me/email/verificar/{perfil.email_token}/',
             request=request,
         )
         # Encolamos los correos en Celery para que el request no bloquee y
@@ -174,29 +174,30 @@ class MiPerfilSolicitarCambioEmailView(APIView):
 
 class VerificarEmailView(APIView):
     """
-    POST /api/v1/usuarios/me/email/verificar/<token>/
+    GET|POST /api/v1/usuarios/me/email/verificar/<token>/
     Aplica el cambio de email si el token es válido y no expiró.
     No requiere auth (el link se manda al correo).
+    GET: desde el link del email → procesa y redirige al SPA.
+    POST: desde el SPA (VerificarEmailPage) → respuesta JSON.
     """
     permission_classes = [AllowAny]
 
-    def post(self, request, token):
+    def _verificar(self, token):
+        """Lógica compartida GET/POST. Retorna (perfil, error_msg)."""
         perfil = Perfil.objects.filter(email_token=token).first()
         if not perfil or not token:
-            return Response({'error': 'Link inválido o ya usado.'}, status=status.HTTP_400_BAD_REQUEST)
+            return None, 'Link inválido o ya usado.'
         if perfil.email_token_expira and perfil.email_token_expira < timezone.now():
             perfil.email_token = ''
             perfil.email_pendiente = ''
             perfil.email_token_expira = None
             perfil.save()
-            return Response({'error': 'Link expirado. Solicita el cambio nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
-
+            return None, 'Link expirado. Solicita el cambio nuevamente.'
         nuevo = perfil.email_pendiente
         if not nuevo:
-            return Response({'error': 'No hay cambio de correo pendiente.'}, status=status.HTTP_400_BAD_REQUEST)
+            return None, 'No hay cambio de correo pendiente.'
         if User.objects.filter(email__iexact=nuevo).exclude(pk=perfil.usuario_id).exists():
-            return Response({'error': 'Ese correo ya está usado por otra cuenta.'}, status=status.HTTP_400_BAD_REQUEST)
-
+            return None, 'Ese correo ya está usado por otra cuenta.'
         u = perfil.usuario
         u.email = nuevo
         u.save()
@@ -204,7 +205,20 @@ class VerificarEmailView(APIView):
         perfil.email_token = ''
         perfil.email_token_expira = None
         perfil.save()
-        return Response({'detail': 'Correo actualizado correctamente.', 'email': nuevo})
+        return perfil, None
+
+    def get(self, request, token):
+        from taller_mecanico.url_helpers import redirect_to_spa
+        perfil, error = self._verificar(token)
+        if error:
+            return redirect_to_spa('/perfil', query='?email_verificado=error', request=request)
+        return redirect_to_spa('/perfil', query='?email_verificado=ok', request=request)
+
+    def post(self, request, token):
+        perfil, error = self._verificar(token)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Correo actualizado correctamente.', 'email': perfil.usuario.email})
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
