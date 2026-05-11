@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import axios from 'axios'
 import './index.css'
 import App from './App.jsx'
+import { initNativeApp } from './capacitor-init'
 
 // Si la app se sirve desde un host distinto a localhost (p. ej. un túnel
 // público con Basic Auth), reescribimos las llamadas absolutas a
@@ -28,6 +29,9 @@ if (typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)(:|$)/.test(wind
     return config
   })
 }
+
+// Inicializar plugins nativos (no-op en web)
+initNativeApp()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

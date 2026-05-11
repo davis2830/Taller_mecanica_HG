@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GCTorque</string>
+    <string name="title_activity_main">GCTorque</string>
+    <string name="package_name">com.gctorque.app</string>
+    <string name="custom_url_scheme">com.gctorque.app</string>
+</resources>
