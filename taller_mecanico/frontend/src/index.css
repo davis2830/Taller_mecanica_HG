@@ -24,6 +24,21 @@ html, body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* ── Capacitor: safe areas para notch/barra de navegación ── */
+html {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+body.capacitor-app {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
 /* Overrides para React Big Calendar (SaaS UI) */
 .rbc-calendar {
   font-family: inherit;
