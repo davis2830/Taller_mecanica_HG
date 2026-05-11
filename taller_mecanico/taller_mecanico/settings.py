@@ -14,6 +14,11 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=Csv())
 
+# Ruta secreta para Django admin. En producción se cambia a algo difícil de
+# adivinar (ej. ADMIN_URL=panel-secreto-abc123/) para evitar ataques de
+# fuerza bruta contra /admin/. El trailing slash es obligatorio.
+ADMIN_URL = config('ADMIN_URL', default='admin/')
+
 # URL Base del SPA React (NO del backend Django). Se usa en correos
 # transaccionales, enlaces mágicos y redirects desde vistas Django legacy.
 # En desarrollo el SPA corre con `npm run dev` (Vite) en :5173; en producción
@@ -300,6 +305,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # En producción solo respondemos JSON — desactiva la Browsable API de DRF
+    # que expone documentación interactiva de todos los endpoints.
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ] if not DEBUG else [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
     'EXCEPTION_HANDLER': 'taller_mecanico.exception_handler.custom_exception_handler',
@@ -374,9 +387,14 @@ if SECURE_PROD:
     # Cookies solo via HTTPS.
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # HttpOnly: impide que JS lea las cookies de sesión (mitiga XSS).
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
     # SameSite=Lax por default (Django 4+) cubre CSRF cross-site básico.
     SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SAMESITE = 'Lax'
+    # Sesión expira al cerrar el browser (no queda abierta en PCs compartidas).
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
     # HSTS — fuerza HTTPS por 1 año. EMPEZAR CON 60 segundos para testear,
     # subir gradualmente. Una vez que estás seguro, podes habilitar preload.
     SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=60, cast=int)
@@ -386,6 +404,8 @@ if SECURE_PROD:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     X_FRAME_OPTIONS = 'DENY'
+    # Bloquea XSS reflectado en browsers que lo soportan (legacy pero no estorba).
+    SECURE_BROWSER_XSS_FILTER = True
 
 # Dominio raíz de producción — agrega CORS regex + CSRF trusted dinámicamente.
 # Setealo en .env como PROD_DOMAIN=gctorque.com (sin protocolo ni subdomain).
