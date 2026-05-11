@@ -37,7 +37,7 @@ from taller_mecanico.health import health
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
     path('api/v1/public-admin/', include('public_admin.api_urls')),
     # Healthcheck publico para monitoreo externo (UptimeRobot, etc.).
     path('api/v1/health/', health, name='health'),
