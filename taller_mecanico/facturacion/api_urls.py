@@ -17,4 +17,6 @@ urlpatterns = [
     path('<int:factura_id>/reenviar-correo/', api_views.FacturaReenviarCorreoAPIView.as_view(), name='api_facturacion_reenviar'),
     path('<int:factura_id>/asignar-credito/', api_views.FacturaAsignarCreditoAPIView.as_view(), name='api_facturacion_asignar_credito'),
     path('<int:factura_id>/pagos/', api_views.FacturaPagosAPIView.as_view(), name='api_facturacion_pagos'),
+    # ── Consulta NIT ──
+    path('consultar-nit/<str:nit>/', api_views.ConsultaNITAPIView.as_view(), name='api_consultar_nit'),
 ]
