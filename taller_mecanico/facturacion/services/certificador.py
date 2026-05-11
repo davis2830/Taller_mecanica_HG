@@ -122,8 +122,13 @@ class DigifactCertificador(CertificadorBase):
 
 
 # Registro de adapters disponibles.
+def _felplex_cls():
+    from .felplex import FELplexCertificador
+    return FELplexCertificador
+
 _REGISTRY = {
     '': MockCertificador,          # Sin definir → mock (para poder probar el flujo).
+    'FELPLEX': _felplex_cls,       # Lazy import para evitar circular.
     'INFILE': InfileCertificador,
     'DIGIFACT': DigifactCertificador,
     'GUATEFACT': CertificadorBase,  # Pendiente.
@@ -137,7 +142,9 @@ def get_certificador(config) -> CertificadorBase:
     Factory. Dado el singleton ConfiguracionFacturacion, devuelve el cliente
     apropiado. Si el certificador no está definido → MockCertificador.
     """
-    cls = _REGISTRY.get(config.certificador or '', MockCertificador)
+    entry = _REGISTRY.get(config.certificador or '', MockCertificador)
+    # Resolver lazy imports (funciones que devuelven la clase).
+    cls = entry() if callable(entry) and not isinstance(entry, type) else entry
     if cls is CertificadorBase:
         # Aún no implementado — caer en mock para no bloquear el flujo.
         cls = MockCertificador

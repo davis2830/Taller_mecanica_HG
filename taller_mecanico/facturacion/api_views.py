@@ -1128,3 +1128,31 @@ class CuentasPorCobrarReporteAPIView(APIView):
             'top_empresas_saldo': top_empresas,
             'empresas_con_vencimientos': con_vencimientos,
         })
+
+
+# ── Consulta de NIT via FELplex ──────────────────────────────────────────────
+
+class ConsultaNITAPIView(APIView):
+    """
+    GET /api/v1/facturacion/consultar-nit/<nit>/
+    Consulta datos del contribuyente ante SAT via el certificador (FELplex).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, nit):
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'error': 'Acceso restringido.'}, status=403)
+
+        config = ConfiguracionFacturacion.get()
+        if config.certificador != 'FELPLEX':
+            return Response(
+                {'error': 'La consulta de NIT solo está disponible con FELplex como certificador.'},
+                status=400,
+            )
+
+        from facturacion.services.felplex import consultar_nit
+        resultado = consultar_nit(config, nit)
+
+        if resultado['ok']:
+            return Response({'nit': nit, 'nombre': resultado['nombre'], 'data': resultado.get('data', {})})
+        return Response({'error': resultado['error']}, status=400)

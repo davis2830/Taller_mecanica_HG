@@ -31,6 +31,7 @@ class ConfiguracionFacturacion(models.Model):
     ]
     CERTIFICADOR_CHOICES = [
         ('', 'Sin definir'),
+        ('FELPLEX', 'FELplex'),
         ('INFILE', 'INFILE'),
         ('DIGIFACT', 'Digifact'),
         ('GUATEFACT', 'Guatefact'),
@@ -100,12 +101,17 @@ class ConfiguracionFacturacion(models.Model):
         default='',
         help_text="URL base del API del certificador (te la da el proveedor).",
     )
-    certificador_usuario = models.CharField(max_length=120, blank=True, default='')
+    certificador_usuario = models.CharField(
+        max_length=120,
+        blank=True,
+        default='',
+        help_text="Usuario del certificador. Para FELplex = Entity ID (visible en tu panel PLEXapps).",
+    )
     certificador_api_key = models.CharField(
         max_length=255,
         blank=True,
         default='',
-        help_text="Token / API key del certificador. Se usará al integrar Fase 4.",
+        help_text="Token / API key del certificador (X-Authorization en FELplex).",
     )
 
     # ── Automatizaciones ──────────────────────────────────────────────
