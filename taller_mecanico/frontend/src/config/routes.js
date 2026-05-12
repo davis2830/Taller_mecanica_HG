@@ -13,6 +13,7 @@ import ResendActivation from '../pages/ResendActivation';
 import Dashboard from '../pages/Dashboard';
 import CitasCalendar from '../pages/CitasCalendar';
 import KanbanBoard from '../pages/KanbanBoard';
+import LandingPage from '../pages/landing/LandingPage';
 
 import MisCitasList from '../pages/Citas/MisCitasList';
 import VehiculosList from '../pages/Citas/VehiculosList';
@@ -40,6 +41,13 @@ import MiPerfilPage from '../pages/MiPerfilPage';
 import VerificarEmailPage from '../pages/VerificarEmailPage';
 
 export const routes = [
+    {
+        path: '/landing',
+        element: LandingPage,
+        private: false,
+        layout: false,
+        title: 'GC Torque — ERP para Talleres Mecánicos'
+    },
     {
         path: '/login',
         element: Login,
